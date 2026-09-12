@@ -1,0 +1,382 @@
+﻿@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * ArtDera Design System
+ * -----------------------------------------------------------
+ * Cultural-contemporary editorial luxury. Colours anchored on
+ * Midnight Ink / Museum Ivory / Warm Porcelain with restrained
+ * use of Oxblood as the primary accent and Terracotta / Deep
+ * Indigo as supporting accents. Typography pairs DM Serif
+ * Display (editorial) with Manrope (interface).
+ */
+
+@theme inline {
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+
+  /* Fonts */
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "DM Serif Display", "Cormorant Garamond", ui-serif, Georgia, serif;
+
+  /* Semantic colour tokens (Tailwind utilities) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-terracotta: var(--terracotta);
+  --color-terracotta-foreground: var(--terracotta-foreground);
+  --color-indigo: var(--indigo);
+  --color-indigo-foreground: var(--indigo-foreground);
+  --color-ink: var(--ink);
+  --color-ivory: var(--ivory);
+  --color-porcelain: var(--porcelain);
+  --color-stone: var(--stone);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  /* Brand palette (ArtDera Strategy Report 2026) */
+  --ink: #171717; /* Midnight Ink */
+  --ivory: #f6f1e8; /* Museum Ivory */
+  --porcelain: #fffdfc; /* Warm Porcelain */
+  --oxblood: #6e2334; /* Oxblood */
+  --terracotta: #b65f42; /* Burnished Terracotta */
+  --indigo: #263454; /* Deep Indigo */
+  --stone: #a89f94; /* Muted Stone */
+
+  /* Semantic mapping — light (default) */
+  --background: var(--ivory);
+  --foreground: var(--ink);
+  --surface: oklch(0.98 0.008 82);
+  --card: var(--porcelain);
+  --card-foreground: var(--ink);
+  --popover: var(--porcelain);
+  --popover-foreground: var(--ink);
+
+  --primary: var(--oxblood);
+  --primary-foreground: var(--porcelain);
+  --secondary: oklch(0.92 0.015 80);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.93 0.012 80);
+  --muted-foreground: oklch(0.42 0.02 75);
+  --accent: var(--oxblood);
+  --accent-foreground: var(--porcelain);
+  --terracotta-foreground: var(--porcelain);
+  --indigo-foreground: var(--porcelain);
+
+  --destructive: oklch(0.55 0.19 25);
+  --destructive-foreground: var(--porcelain);
+  --success: oklch(0.52 0.11 155);
+  --warning: oklch(0.65 0.13 75);
+
+  --border: oklch(0.88 0.012 80);
+  --border-strong: oklch(0.78 0.015 78);
+  --input: oklch(0.9 0.012 80);
+  --ring: var(--oxblood);
+
+  --radius: 0.75rem;
+  --shadow-soft: 0 18px 50px color-mix(in oklab, var(--ink) 10%, transparent);
+  --shadow-lift: 0 24px 70px color-mix(in oklab, var(--ink) 14%, transparent);
+  --ease-premium: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --header-height: 6.5rem;
+}
+
+.dark {
+  --background: var(--ink);
+  --foreground: var(--ivory);
+  --surface: oklch(0.22 0 0);
+  --card: oklch(0.22 0 0);
+  --card-foreground: var(--ivory);
+  --popover: oklch(0.22 0 0);
+  --popover-foreground: var(--ivory);
+  --primary: var(--terracotta);
+  --primary-foreground: var(--ink);
+  --secondary: oklch(0.28 0.01 60);
+  --secondary-foreground: var(--ivory);
+  --muted: oklch(0.26 0.01 60);
+  --muted-foreground: oklch(0.72 0.015 80);
+  --border: oklch(1 0 0 / 12%);
+  --border-strong: oklch(1 0 0 / 22%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--terracotta);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    outline-color: var(--ring);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: var(--oxblood);
+    color: var(--porcelain);
+  }
+}
+
+@utility container-editorial {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  max-width: 86rem;
+}
+@media (min-width: 768px) {
+  .container-editorial {
+    padding-inline: 2rem;
+  }
+}
+
+@utility hairline {
+  border-bottom: 1px solid var(--color-border);
+}
+
+@utility eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+  min-height: 2.75rem;
+  &:hover {
+    background: color-mix(in oklab, var(--color-primary) 88%, black);
+    transform: translateY(-1px);
+  }
+}
+@utility btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-foreground);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: transparent;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+  min-height: 2.75rem;
+  &:hover {
+    background: color-mix(in oklab, var(--color-foreground) 6%, transparent);
+    border-color: var(--color-foreground);
+  }
+}
+@utility btn-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: var(--ink);
+  color: var(--ivory);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+  min-height: 2.75rem;
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-foreground) 6%, transparent);
+  color: var(--color-foreground);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+@utility card-artwork {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--color-card);
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@utility section-y {
+  padding-block: clamp(4.5rem, 7vw, 7.5rem);
+}
+
+@utility art-input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  background: var(--porcelain);
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+@utility art-field {
+  width: 100%;
+  min-height: 2.9rem;
+  border: 1px solid var(--color-border-strong);
+  background: color-mix(in oklab, var(--porcelain) 78%, transparent);
+  border-radius: 0.75rem;
+  padding: 0.72rem 0.9rem;
+  font-size: 0.875rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  &:focus {
+    border-color: var(--oxblood);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--oxblood) 12%, transparent);
+  }
+}
+
+@utility admin-action {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  padding-inline: 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  &:hover {
+    border-color: var(--ink);
+    background: var(--ivory);
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .hero-reveal {
+    animation: editorialReveal 0.9s var(--ease-premium) both;
+  }
+
+  .hero-reveal-delay-1 {
+    animation-delay: 0.12s;
+  }
+  .hero-reveal-delay-2 {
+    animation-delay: 0.28s;
+  }
+  .hero-reveal-delay-3 {
+    animation-delay: 0.44s;
+  }
+  .hero-reveal-delay-4 {
+    animation-delay: 0.62s;
+  }
+
+  .image-mask {
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .image-mask > img {
+    transform: scale(1.035);
+    transition: transform 900ms var(--ease-premium);
+  }
+
+  .group:hover .image-mask > img,
+  .image-mask:hover > img {
+    transform: scale(1);
+  }
+
+  .glass-light {
+    background: color-mix(in oklab, var(--porcelain) 78%, transparent);
+    backdrop-filter: blur(18px);
+  }
+
+  .glass-dark {
+    background: color-mix(in oklab, var(--ink) 48%, transparent);
+    backdrop-filter: blur(18px);
+  }
+
+  .premium-panel {
+    border: 1px solid var(--color-border);
+    background: var(--porcelain);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .scroll-cue {
+    animation: editorialReveal 0.9s var(--ease-premium) 0.8s both;
+  }
+}

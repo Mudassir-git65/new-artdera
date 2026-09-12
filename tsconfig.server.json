@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["server/**/*.ts", "nitro/**/*.ts", "tests/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist", ".output"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "moduleResolution": "Bundler",
+    "types": ["node", "vitest/globals"],
+    "noEmit": true
+  }
+}

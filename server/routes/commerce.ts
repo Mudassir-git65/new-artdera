@@ -28,6 +28,7 @@ import { requireAuth, requireRole } from "../middleware/auth";
 import { publicArtwork, publicAssetUrl, publicStore } from "../lib/serializers";
 import { paymentProvider } from "../services/payments";
 import { getEnv } from "../config/env";
+import { trackWishlistSave } from "../services/view-tracker";
 import { notify } from "../services/notifications";
 import { audit } from "../services/audit";
 import { releaseExpiredReservations } from "../services/reservations";
@@ -1427,6 +1428,10 @@ commerceRouter.patch(
     }
     await order.save();
     if (["cancelled", "returned", "refunded"].includes(status)) {
+      await PayoutModel.updateMany(
+        { orderId: order._id },
+        { $set: { status: "cancelled", netAmount: 0 } },
+      );
       const rejected = await rejectCommissionForOrder(
         order._id,
         `Order ${status.replaceAll("_", " ")}`,
@@ -1748,8 +1753,10 @@ commerceRouter.post(
       { $setOnInsert: { userId: req.auth!.user._id, artworkId: artwork._id } },
       { upsert: true },
     );
-    if (result.upsertedCount)
+    if (result.upsertedCount) {
       await ArtworkModel.updateOne({ _id: artwork._id }, { $inc: { wishlistCount: 1 } });
+      void trackWishlistSave(artwork.storeId, artwork._id, req.auth!.user._id);
+    }
     return ok(res, { artworkId: String(artwork._id), saved: true }, "Saved to wishlist", 201);
   }),
 );

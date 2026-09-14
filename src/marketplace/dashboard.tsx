@@ -591,12 +591,25 @@ function Overview({
   const drafts = storeArtworks.filter((item) => item.status === "Draft").length;
   const sold = storeArtworks.filter((item) => item.status === "Sold").length;
   const sellerOrders = ORDERS.filter((order) => order.sellerId === userId);
+  const validSellerOrders = sellerOrders.filter(
+    (order) =>
+      !["Cancelled", "Refunded", "Failed", "Awaiting Payment", "cancelled", "refunded", "failed", "awaiting_payment"].includes(
+        order.status,
+      ),
+  );
   const activePromotions = PROMOTIONS.filter((promotion) =>
     ["Active", "Scheduled", "Pending"].includes(promotion.status),
   );
   const pendingPayout = PAYOUTS.filter(
-    (payout) => payout.sellerId === userId && payout.status !== "Paid",
+    (payout) =>
+      payout.sellerId === userId &&
+      payout.status !== "Paid" &&
+      payout.status !== "Cancelled" &&
+      payout.status !== "cancelled",
   ).reduce((sum, payout) => sum + payout.net, 0);
+  const storeViewsCount = activity.storeViews ?? 0;
+  const savesCount = activity.saves ?? 0;
+  const estimatedPayoutAmount = activity.estimatedPayout ?? 0;
   const metrics = [
     [
       "Total artworks",
@@ -606,12 +619,28 @@ function Overview({
     ],
     [
       "Orders",
-      String(sellerOrders.length),
-      `${sellerOrders.filter((order) => ["Paid", "Seller Confirmed", "Preparing"].includes(order.status)).length} need attention`,
+      String(validSellerOrders.length),
+      validSellerOrders.length === 0
+        ? "No confirmed orders yet"
+        : `${sellerOrders.filter((order) => ["Paid", "Seller Confirmed", "Preparing", "paid", "seller_confirmed", "preparing"].includes(order.status)).length} need attention`,
       ShoppingBag,
     ],
-    ["Store views", String(activity.storeViews ?? 0), "Last 7 days", Eye],
-    ["Wishlist saves", String(activity.saves ?? 0), "Last 7 days", Heart],
+    [
+      "Store views",
+      String(storeViewsCount),
+      storeViewsCount === 0
+        ? "No views yet — share your store to start getting discovered"
+        : "Last 7 days",
+      Eye,
+    ],
+    [
+      "Wishlist saves",
+      String(savesCount),
+      savesCount === 0
+        ? "No saves yet — showcase artworks to attract collectors"
+        : "Last 7 days",
+      Heart,
+    ],
     [
       "Messages",
       String(activity.messages ?? 0),
@@ -620,8 +649,10 @@ function Overview({
     ],
     [
       "Estimated earnings",
-      formatPKR(activity.estimatedPayout ?? 0),
-      `${formatPKR(pendingPayout)} pending`,
+      formatPKR(estimatedPayoutAmount),
+      estimatedPayoutAmount === 0 && pendingPayout === 0
+        ? "No eligible earnings yet from confirmed sales"
+        : `${formatPKR(pendingPayout)} pending`,
       Banknote,
     ],
     [
@@ -2888,10 +2919,32 @@ function Analytics({ planId }: { planId: PlanId }) {
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ["Store views", metrics.storeViews ?? 0, "Last 30 days"],
-          ["Artwork views", metrics.artworkViews ?? 0, "Last 30 days"],
-          ["Unique visitors", metrics.uniqueVisitors ?? 0, "Last 30 days"],
-          ["Revenue", formatPKR(metrics.revenue ?? 0), `${metrics.orders ?? 0} orders`],
+          [
+            "Store views",
+            metrics.storeViews ?? 0,
+            (metrics.storeViews ?? 0) === 0
+              ? "No views yet — share your store to start getting discovered"
+              : "Last 30 days",
+          ],
+          [
+            "Artwork views",
+            metrics.artworkViews ?? 0,
+            (metrics.artworkViews ?? 0) === 0
+              ? "No impressions yet — add artworks to get discovered"
+              : "Last 30 days",
+          ],
+          [
+            "Unique visitors",
+            metrics.uniqueVisitors ?? 0,
+            (metrics.uniqueVisitors ?? 0) === 0 ? "No visitors recorded" : "Last 30 days",
+          ],
+          [
+            "Revenue",
+            formatPKR(metrics.revenue ?? 0),
+            (metrics.revenue ?? 0) === 0 && (metrics.orders ?? 0) === 0
+              ? "No confirmed sales yet"
+              : `${metrics.orders ?? 0} orders`,
+          ],
         ].map(([label, value, change]) => (
           <Metric
             key={label as string}

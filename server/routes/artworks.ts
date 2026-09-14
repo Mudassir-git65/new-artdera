@@ -10,6 +10,7 @@ import { audit } from "../services/audit";
 import { notify } from "../services/notifications";
 import { mergeSponsoredResults } from "../services/sponsored";
 import { sanitizeText } from "../lib/security";
+import { trackArtworkView } from "../services/view-tracker";
 
 export const artworksRouter = Router();
 const legacyStatuses: Record<string, string> = {
@@ -333,7 +334,7 @@ artworksRouter.get(
       .populate("storeId", "name slug verificationStatus")
       .lean();
     if (!item) throw new ApiError(404, "ARTWORK_NOT_FOUND", "Artwork not found");
-    void ArtworkModel.updateOne({ _id: item._id }, { $inc: { views: 1 } });
+    void trackArtworkView(item, req);
     return ok(res, publicArtwork(item));
   }),
 );

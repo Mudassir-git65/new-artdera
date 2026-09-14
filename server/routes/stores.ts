@@ -16,6 +16,7 @@ import { audit } from "../services/audit";
 import { notify } from "../services/notifications";
 import { sanitizeText } from "../lib/security";
 import { requirePermission, reserveListingSlot } from "../services/plans";
+import { trackStoreView } from "../services/view-tracker";
 
 export const storesRouter = Router();
 const reservedSlugs = new Set([
@@ -106,7 +107,7 @@ storesRouter.get(
       .sort({ isSponsored: -1, createdAt: -1 })
       .limit(100)
       .lean();
-    void StoreModel.updateOne({ _id: store._id }, { $inc: { totalViews: 1 } });
+    void trackStoreView(store._id, req);
     return ok(res, { store: publicStore(store), artworks: artworks.map(publicArtwork) });
   }),
 );

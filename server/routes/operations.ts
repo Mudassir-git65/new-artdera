@@ -552,8 +552,28 @@ operationsRouter.get(
         },
       ]),
     ]);
+    const isPaidOrder = (order: any) => {
+      const validStatuses = [
+        "paid",
+        "payment_confirmed",
+        "seller_confirmed",
+        "preparing",
+        "ready_for_pickup",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+        "inspection_period",
+        "completed",
+      ];
+      const invalidPaymentStatuses = ["unpaid", "failed", "rejected", "refunded"];
+      return (
+        validStatuses.includes(order.status) &&
+        !invalidPaymentStatuses.includes(order.paymentStatus)
+      );
+    };
+    const paidOrders = orders.filter(isPaidOrder);
     const metrics = {
-      storeViews: stores.reduce((sum, store) => sum + store.totalViews, 0),
+      storeViews: stores.reduce((sum, store) => sum + (store.totalViews || 0), 0),
       artworkViews: artworkStats[0]?.views ?? 0,
       uniqueVisitors: events
         .filter((event) => event._id.type === "store_view" || event._id.type === "artwork_view")
@@ -566,12 +586,10 @@ operationsRouter.get(
       videoRequests: events
         .filter((event) => event._id.type === "video_request")
         .reduce((sum, event) => sum + event.count, 0),
-      orders: orders.length,
-      revenue: orders
-        .filter((order) => !["cancelled", "refunded"].includes(order.status))
-        .reduce((sum, order) => sum + order.artworkSubtotal, 0),
-      estimatedCommission: orders.reduce((sum, order) => sum + order.platformCommission, 0),
-      estimatedPayout: orders.reduce((sum, order) => sum + order.sellerNetAmount, 0),
+      orders: paidOrders.length,
+      revenue: paidOrders.reduce((sum, order) => sum + (order.artworkSubtotal || 0), 0),
+      estimatedCommission: paidOrders.reduce((sum, order) => sum + (order.platformCommission || 0), 0),
+      estimatedPayout: paidOrders.reduce((sum, order) => sum + (order.sellerNetAmount || 0), 0),
     };
     return ok(res, { range, from, metrics, series: events });
   }),

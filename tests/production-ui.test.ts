@@ -25,7 +25,7 @@ describe("production-facing UI safety", () => {
 
   it("keeps the browser-only creator loader out of server rendering", () => {
     const creatorRoute = source("src/routes/creator.$slug.tsx");
-    expect(creatorRoute).toMatch(/createFileRoute\("\/creator\/\$slug"\)\(\{[\s\S]*?ssr:\s*false/);
+    expect(creatorRoute).toMatch(/typeof window !== "undefined"/);
   });
 
   it("never logs password-reset links in production", () => {

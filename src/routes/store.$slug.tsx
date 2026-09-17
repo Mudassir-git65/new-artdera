@@ -41,7 +41,8 @@ import { useAuth } from "@/marketplace/auth";
 import { formatPKR } from "@/marketplace/config";
 import type { Artwork, Store } from "@/marketplace/types";
 
-import { generateMeta, generateGallerySchema, generateBreadcrumbSchema } from "@/lib/seo";
+import { generateMeta, generateGallerySchema, generateBreadcrumbSchema, generateCreatorStoreSocialMeta } from "@/lib/seo";
+import { getCreatorOrStoreResolved } from "@/lib/creator-meta";
 
 const PRICE_MIN = 100;
 const PRICE_MAX = 300000;
@@ -63,33 +64,32 @@ function sliderToPrice(pos: number): number {
 }
 
 export const Route = createFileRoute("/store/$slug")({
-  head: ({ params }) => {
-    const store = STORES.find((item) => item.slug === params.slug);
-    const storeName = store
-      ? store.name
-      : decodeURIComponent(params.slug)
-          .replace(/[-_]+/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
+  loader: async ({ params }) => {
+    return await getCreatorOrStoreResolved(params.slug, "store");
+  },
+  head: ({ loaderData, params }) => {
+    const storeName =
+      loaderData?.name ||
+      decodeURIComponent(params.slug)
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
 
-    const seo = generateMeta({
-      title: `${storeName} — Gallery & Studio Storefront | ArtDera`,
-      description: store
-        ? `${store.name} storefront on ArtDera. ${store.bio.slice(0, 140)}... Located in ${store.location}. Explore available artworks, exhibitions, and collections.`
-        : `${storeName} storefront on ArtDera. Explore available artworks, exhibitions, and collections.`,
-      canonicalPath: `/store/${params.slug}`,
-      ogImage: store?.coverImage || store?.profileImage,
-      ogType: "profile",
+    const seo = generateCreatorStoreSocialMeta({
+      name: storeName,
+      slug: params.slug,
+      bio: loaderData?.bio,
+      profileImage: loaderData?.profileImage,
+      coverImage: loaderData?.coverImage,
+      routePrefix: "store",
     });
 
-    const gallerySchema = store
-      ? generateGallerySchema({
-          name: store.name,
-          slug: store.slug,
-          bio: store.bio,
-          location: store.location,
-          portrait: store.profileImage,
-        })
-      : null;
+    const gallerySchema = generateGallerySchema({
+      name: storeName,
+      slug: params.slug,
+      bio: loaderData?.bio || `Discover original artwork by ${storeName} on ArtDera.`,
+      location: loaderData?.location,
+      portrait: loaderData?.profileImage,
+    });
 
     const breadcrumbSchema = generateBreadcrumbSchema([
       { name: "Home", path: "/" },
@@ -101,14 +101,10 @@ export const Route = createFileRoute("/store/$slug")({
       meta: seo.meta,
       links: seo.links,
       scripts: [
-        ...(gallerySchema
-          ? [
-              {
-                type: "application/ld+json",
-                children: JSON.stringify(gallerySchema),
-              },
-            ]
-          : []),
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(gallerySchema),
+        },
         {
           type: "application/ld+json",
           children: JSON.stringify(breadcrumbSchema),

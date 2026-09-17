@@ -24,6 +24,30 @@ export function buildCanonicalUrl(path?: string): string {
   return `${SITE_URL}${cleanPath}`;
 }
 
+export function buildAbsoluteImageUrl(url?: string, fallbackUrl?: string): string {
+  const fallback = fallbackUrl ?? `${SITE_URL}/images/default-creator-og.jpg`;
+  if (!url || typeof url !== "string" || !url.trim()) return fallback;
+  const trimmed = url.trim();
+
+  // Return data URLs unchanged if present (though social tags should be https)
+  if (trimmed.startsWith("data:")) return trimmed;
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    if (trimmed.startsWith("http://localhost") || trimmed.startsWith("http://127.0.0.1")) {
+      try {
+        const pathname = new URL(trimmed).pathname;
+        return `${SITE_URL}${pathname}`;
+      } catch {
+        return fallback;
+      }
+    }
+    return trimmed.replace(/^http:\/\//i, "https://");
+  }
+
+  const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return `${SITE_URL}${cleanPath}`;
+}
+
 export function generateMeta({
   title = DEFAULT_SITE_TITLE,
   description = DEFAULT_SITE_DESCRIPTION,
@@ -34,6 +58,7 @@ export function generateMeta({
 }: SEOProps = {}) {
   const canonicalUrl = buildCanonicalUrl(canonicalPath);
   const formattedTitle = title.includes("ArtDera") ? title : `${title} | ArtDera`;
+  const absoluteOgImage = buildAbsoluteImageUrl(ogImage, DEFAULT_OG_IMAGE);
 
   const meta = [
     { title: formattedTitle },
@@ -44,11 +69,85 @@ export function generateMeta({
     { property: "og:description", content: description },
     { property: "og:type", content: ogType },
     { property: "og:url", content: canonicalUrl },
-    { property: "og:image", content: ogImage },
+    { property: "og:image", content: absoluteOgImage },
+    { property: "og:image:secure_url", content: absoluteOgImage },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: formattedTitle },
     { name: "twitter:description", content: description },
-    { name: "twitter:image", content: ogImage },
+    { name: "twitter:image", content: absoluteOgImage },
+  ];
+
+  const links = [
+    { rel: "canonical", href: canonicalUrl },
+    { rel: "alternate", hrefLang: "x-default", href: canonicalUrl },
+    { rel: "alternate", hrefLang: "en", href: canonicalUrl },
+  ];
+
+  return { meta, links };
+}
+
+export interface CreatorStoreMetaProps {
+  name: string;
+  slug: string;
+  bio?: string;
+  profileImage?: string;
+  coverImage?: string;
+  routePrefix?: "store" | "creator";
+}
+
+export function generateCreatorStoreSocialMeta({
+  name,
+  slug,
+  bio,
+  profileImage,
+  coverImage,
+  routePrefix = "store",
+}: CreatorStoreMetaProps) {
+  // Format Title: creator/artist name + | ArtDera
+  const cleanName = name.trim();
+  const title = cleanName.includes("ArtDera") ? cleanName : `${cleanName} | ArtDera`;
+
+  // Format Description: short creator/store bio or fallback
+  const cleanBio = bio?.trim();
+  const fallbackDesc = `Discover original artwork by ${cleanName} on ArtDera.`;
+  const rawDescription = cleanBio && cleanBio.length > 0 ? cleanBio : fallbackDesc;
+  // Truncate description to 200 chars max for optimal crawler previews
+  const description =
+    rawDescription.length > 200 ? `${rawDescription.slice(0, 197)}...` : rawDescription;
+
+  // Canonical path & URL
+  const canonicalPath = `/${routePrefix}/${slug}`;
+  const canonicalUrl = buildCanonicalUrl(canonicalPath);
+
+  // Fallback image logic: profile image -> cover/banner image -> default creator OG image
+  const defaultFallbackOg = `${SITE_URL}/images/default-creator-og.jpg`;
+  const primaryRawImage = profileImage?.trim() || coverImage?.trim();
+  const absoluteProfileImage = buildAbsoluteImageUrl(primaryRawImage, defaultFallbackOg);
+
+  // Dynamic 1200x630 OG preview endpoint
+  const dynamicOgUrl = `${SITE_URL}/api/og/${routePrefix}/${slug}`;
+
+  const meta = [
+    { title },
+    { name: "description", content: description },
+    { name: "robots", content: "index, follow" },
+    { property: "og:site_name", content: "ArtDera" },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:type", content: "profile" },
+    { property: "og:url", content: canonicalUrl },
+    { property: "og:image", content: dynamicOgUrl },
+    { property: "og:image:secure_url", content: dynamicOgUrl },
+    { property: "og:image:width", content: "1200" },
+    { property: "og:image:height", content: "630" },
+    { property: "og:image:alt", content: `${cleanName} profile on ArtDera` },
+    // Direct profile picture fallback for crawlers requiring non-SVG/direct images
+    { property: "og:image", content: absoluteProfileImage },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+    { name: "twitter:image", content: dynamicOgUrl },
+    { name: "twitter:image:alt", content: `${cleanName} profile on ArtDera` },
   ];
 
   const links = [

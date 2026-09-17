@@ -24,6 +24,7 @@ import { bootstrapRouter } from "./routes/bootstrap";
 import { indexnowRouter } from "./routes/indexnow";
 import { feedsRouter } from "./routes/feeds";
 import { adminAffiliatesRouter, affiliatesRouter } from "./routes/affiliates";
+import { ogRouter } from "./routes/og";
 import mongoose from "mongoose";
 
 function rateLimitKey(req: Request) {
@@ -196,6 +197,7 @@ export function createApp() {
   app.use("/api/admin", adminRouter);
   app.use("/api/bootstrap", bootstrapRouter);
   app.use("/api/indexnow", indexnowRouter);
+  app.use("/api/og", ogRouter);
   app.use("/feeds", feedsRouter);
   if (env.UPLOAD_PROVIDER === "local") {
     app.use(

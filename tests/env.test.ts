@@ -20,9 +20,14 @@ const originalValues = {
 };
 
 afterEach(() => {
+  delete process.env.VERCEL;
+  delete process.env.VERCEL_ENV;
   for (const [key, value] of Object.entries(originalValues)) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
+  }
+  if (!process.env.MONGODB_URI && originalValues.MONGODB_URI) {
+    process.env.MONGODB_URI = originalValues.MONGODB_URI;
   }
   resetEnvForTests();
 });
@@ -43,6 +48,8 @@ describe("server environment parsing", () => {
   it("safely disables development-only modes in production", () => {
     process.env.NODE_ENV = "production";
     process.env.APP_URL = "https://www.artdera.com";
+    process.env.MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/test";
+    process.env.AUTH_SECRET = process.env.AUTH_SECRET || "artdera-test-secret-that-is-longer-than-thirty-two-characters";
     process.env.DEMO_PAYMENT_MODE = "true";
     process.env.SEED_DEMO_DATA = "true";
     resetEnvForTests();
@@ -57,6 +64,8 @@ describe("server environment parsing", () => {
   it("uses safe defaults for malformed optional Vercel configuration", () => {
     process.env.VERCEL = "1";
     process.env.NODE_ENV = "unexpected";
+    process.env.MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/test";
+    process.env.AUTH_SECRET = process.env.AUTH_SECRET || "artdera-test-secret-that-is-longer-than-thirty-two-characters";
     process.env.DEMO_PAYMENT_MODE = "true";
     process.env.APP_URL = "not-a-url";
     process.env.ALLOWED_ORIGINS = "not-a-url, https://www.artdera.com";

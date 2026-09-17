@@ -6,53 +6,46 @@ import { toast } from "sonner";
 import { useAuth } from "@/marketplace/auth";
 import { ARTWORKS, STORES } from "@/marketplace/data";
 import { FollowService, MessageService, MarketplaceService } from "@/marketplace/services";
-import { generateMeta, generatePersonSchema, generateBreadcrumbSchema } from "@/lib/seo";
+import { generateMeta, generatePersonSchema, generateBreadcrumbSchema, generateCreatorStoreSocialMeta } from "@/lib/seo";
+import { getCreatorOrStoreResolved } from "@/lib/creator-meta";
 import { hasActiveProfessionalSubscription } from "@/lib/subscription-status";
 
 export const Route = createFileRoute("/creator/$slug")({
-  // This loader uses the browser API client, whose /api URLs are intentionally relative.
-  // Running it during SSR turns those URLs into invalid server-side fetches and makes
-  // direct creator links return 500 before the client has a chance to load the catalog.
-  ssr: false,
-  head: ({ params }) => {
-    const creator = getCreator(params.slug);
-    const title = creator
-      ? `${creator.name} — Artist Biography & Available Artworks | ArtDera`
-      : `${decodeURIComponent(params.slug)
-          .replace(/[-_]+/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase())} | ArtDera`;
-
-    if (!creator) {
-      const seo = generateMeta({
-        title,
-        description:
-          "Discover artist profiles, biographies, and available studio works on ArtDera.",
-      });
-      return { meta: seo.meta, links: seo.links };
+  loader: async ({ params }) => {
+    if (typeof window !== "undefined") {
+      void MarketplaceService.loadArtworksForStore(params.slug);
     }
+    return await getCreatorOrStoreResolved(params.slug, "creator");
+  },
+  head: ({ loaderData, params }) => {
+    const creatorName =
+      loaderData?.name ||
+      decodeURIComponent(params.slug)
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
 
-    const seo = generateMeta({
-      title: `${creator.name} — Artist Biography & Available Artworks`,
-      description: `${creator.name} is a ${creator.discipline} artist based in ${creator.location}. ${creator.bio.slice(0, 140)}... Discover available paintings and studio works on ArtDera.`,
-      canonicalPath: `/creator/${creator.slug}`,
-      ogImage: creator.portrait,
-      ogType: "profile",
+    const seo = generateCreatorStoreSocialMeta({
+      name: creatorName,
+      slug: params.slug,
+      bio: loaderData?.bio,
+      profileImage: loaderData?.profileImage,
+      coverImage: loaderData?.coverImage,
+      routePrefix: "creator",
     });
 
     const personSchema = generatePersonSchema({
-      name: creator.name,
-      slug: creator.slug,
-      bio: creator.bio,
-      location: creator.location,
-      discipline: creator.discipline,
-      portrait: creator.portrait,
-      verified: creator.verified,
+      name: creatorName,
+      slug: params.slug,
+      bio: loaderData?.bio || `Discover original artwork by ${creatorName} on ArtDera.`,
+      location: loaderData?.location,
+      portrait: loaderData?.profileImage,
+      verified: loaderData?.verified,
     });
 
     const breadcrumbSchema = generateBreadcrumbSchema([
       { name: "Home", path: "/" },
       { name: "Creators", path: "/creators" },
-      { name: creator.name, path: `/creator/${creator.slug}` },
+      { name: creatorName, path: `/creator/${params.slug}` },
     ]);
 
     return {
@@ -69,9 +62,6 @@ export const Route = createFileRoute("/creator/$slug")({
         },
       ],
     };
-  },
-  loader: async ({ params }) => {
-    await MarketplaceService.loadArtworksForStore(params.slug);
   },
   component: CreatorPage,
   notFoundComponent: () => (

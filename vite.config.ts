@@ -25,6 +25,11 @@ export default defineConfig({
           },
         }
       : undefined,
+    resolve: {
+      alias: {
+        "punycode/": "punycode",
+      },
+    },
     server: apiProxyTarget
       ? {
           proxy: {

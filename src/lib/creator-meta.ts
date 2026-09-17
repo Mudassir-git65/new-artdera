@@ -1,3 +1,4 @@
+import { createServerFn } from "@tanstack/react-start";
 import { generateCreatorStoreSocialMeta } from "./seo";
 
 export interface CreatorMetaResolved {
@@ -63,18 +64,10 @@ const SAMPLE_CREATORS: Array<{
   },
 ];
 
-/**
- * Resolves creator/store data by slug from MongoDB (if server-side & database ready),
- * seeded static creators/stores, or title-case fallbacks.
- */
-export async function getCreatorOrStoreResolved(
-  slug: string,
-  routePrefix: "store" | "creator" = "store",
-): Promise<CreatorMetaResolved> {
-  const cleanSlug = slug.trim().toLowerCase();
-
-  // 1. Try server-side MongoDB lookup if running on Server (Node environment)
-  if (typeof window === "undefined") {
+export const fetchCreatorFromDatabase = createServerFn({ method: "GET" })
+  .validator((slug: string) => slug)
+  .handler(async ({ data: slug }) => {
+    const cleanSlug = slug.trim().toLowerCase();
     try {
       const mongoose = await import("mongoose");
       if (mongoose.default?.connection?.readyState === 1) {
@@ -88,7 +81,6 @@ export async function getCreatorOrStoreResolved(
           let bio = store.shortDescription || store.fullDescription || store.tagline;
           let name = store.name;
 
-          // Populate profile details from ArtistProfile or GalleryProfile if available
           if (store.ownerId) {
             if (store.ownerType === "artist") {
               const artistProfile = await ArtistProfileModel.findOne({
@@ -126,8 +118,27 @@ export async function getCreatorOrStoreResolved(
         }
       }
     } catch {
-      // Fallthrough to sample/seed lookup if DB is unavailable or during build
+      // Ignore database errors
     }
+    return null;
+  });
+
+/**
+ * Resolves creator/store data by slug from MongoDB (via server function),
+ * seeded static creators/stores, or title-case fallbacks.
+ */
+export async function getCreatorOrStoreResolved(
+  slug: string,
+  routePrefix: "store" | "creator" = "store",
+): Promise<CreatorMetaResolved> {
+  const cleanSlug = slug.trim().toLowerCase();
+
+  // 1. Try DB lookup via server function
+  try {
+    const dbRecord = await fetchCreatorFromDatabase({ data: cleanSlug });
+    if (dbRecord) return dbRecord;
+  } catch {
+    // Ignore RPC failure
   }
 
   // 2. Check sample creator seed dataset

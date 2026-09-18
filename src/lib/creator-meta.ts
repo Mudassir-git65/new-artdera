@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createIsomorphicFn } from "@tanstack/react-start";
 import { generateCreatorStoreSocialMeta } from "./seo";
 
 export interface CreatorMetaResolved {
@@ -50,7 +50,7 @@ const SAMPLE_CREATORS: Array<{
       bio: "Documentary photographer and printmaker. Ayla's fine-art editions focus on the intersection of architecture, natural light and the Pakistani landscape.",
       verified: true,
       portrait: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&q=50&auto=format&fit=crop",
-      cover: "https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?w=800&q=50&auto=format&fit=crop",
+      cover: "https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?w=800&q=80&auto=format&fit=crop",
     },
     {
       slug: "ayesha-khan",
@@ -77,6 +77,15 @@ export const fetchCreatorFromDatabase = createServerFn({ method: "GET" })
     return await queryCreatorFromDatabase(slug);
   });
 
+const resolveCreatorDbIsomorphic = createIsomorphicFn()
+  .server(async (cleanSlug: string) => {
+    const { queryCreatorFromDatabase } = await import("./creator-db.server");
+    return await queryCreatorFromDatabase(cleanSlug);
+  })
+  .client(async (cleanSlug: string) => {
+    return await fetchCreatorFromDatabase({ data: cleanSlug });
+  });
+
 /**
  * Resolves creator/store data by slug from MongoDB (via direct server query or server function),
  * seeded static creators/stores, or title-case fallbacks.
@@ -87,18 +96,12 @@ export async function getCreatorOrStoreResolved(
 ): Promise<CreatorMetaResolved> {
   const cleanSlug = slug.trim().toLowerCase();
 
-  // 1. Direct DB lookup via server helper (with RPC fallback)
+  // 1. Database lookup (isomorphic: server queries DB directly, client calls RPC)
   try {
-    const { queryCreatorFromDatabase } = await import("./creator-db.server");
-    const dbRecord = await queryCreatorFromDatabase(cleanSlug);
+    const dbRecord = await resolveCreatorDbIsomorphic(cleanSlug);
     if (dbRecord) return dbRecord;
   } catch {
-    try {
-      const dbRecord = await fetchCreatorFromDatabase({ data: cleanSlug });
-      if (dbRecord) return dbRecord;
-    } catch {
-      // Ignore RPC failure
-    }
+    // Ignore DB query or RPC failure
   }
 
   // 2. Check sample creator seed dataset

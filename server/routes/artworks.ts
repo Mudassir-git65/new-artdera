@@ -264,21 +264,44 @@ artworksRouter.get(
             { $skip: skipOrganic },
             { $limit: limit },
             {
+              $project: {
+                title: 1,
+                slug: 1,
+                price: 1,
+                medium: 1,
+                artworkType: 1,
+                width: 1,
+                height: 1,
+                measurementUnit: 1,
+                yearCreated: 1,
+                isFramed: 1,
+                colours: 1,
+                images: 1,
+                isSponsored: 1,
+                storeId: 1,
+                artistId: 1,
+                category: 1,
+                status: 1,
+                moderationStatus: 1,
+                createdAt: 1,
+              },
+            },
+            {
               $lookup: {
-                from: "users", // Assuming artist profiles map to users collection, verify if needed
+                from: "users",
                 localField: "artistId",
                 foreignField: "_id",
-                as: "artistDetails"
-              }
+                as: "artistDetails",
+              },
             },
             {
               $lookup: {
                 from: "stores",
                 localField: "storeId",
                 foreignField: "_id",
-                as: "storeDetails"
-              }
-            }
+                as: "storeDetails",
+              },
+            },
           ],
           totalCount: [
             { $count: "count" }

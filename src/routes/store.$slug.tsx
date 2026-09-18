@@ -63,13 +63,20 @@ function sliderToPrice(pos: number): number {
   return Math.round(raw / 5000) * 5000;
 }
 
+import { fetchProductsList } from "@/lib/server-loaders";
+
 export const Route = createFileRoute("/store/$slug")({
   loader: async ({ params }) => {
-    return await getCreatorOrStoreResolved(params.slug, "store");
+    const [storeMeta, works] = await Promise.all([
+      getCreatorOrStoreResolved(params.slug, "store"),
+      fetchProductsList({ data: { creatorSlug: params.slug } }),
+    ]);
+    return { storeMeta, works };
   },
   head: ({ loaderData, params }) => {
+    const storeMeta = loaderData?.storeMeta;
     const storeName =
-      loaderData?.name ||
+      storeMeta?.name ||
       decodeURIComponent(params.slug)
         .replace(/[-_]+/g, " ")
         .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -77,18 +84,18 @@ export const Route = createFileRoute("/store/$slug")({
     const seo = generateCreatorStoreSocialMeta({
       name: storeName,
       slug: params.slug,
-      bio: loaderData?.bio,
-      profileImage: loaderData?.profileImage,
-      coverImage: loaderData?.coverImage,
+      bio: storeMeta?.bio,
+      profileImage: storeMeta?.profileImage,
+      coverImage: storeMeta?.coverImage,
       routePrefix: "store",
     });
 
     const gallerySchema = generateGallerySchema({
       name: storeName,
       slug: params.slug,
-      bio: loaderData?.bio || `Discover original artwork by ${storeName} on ArtDera.`,
-      location: loaderData?.location,
-      portrait: loaderData?.profileImage,
+      bio: storeMeta?.bio || `Discover original artwork by ${storeName} on ArtDera.`,
+      location: storeMeta?.location,
+      portrait: storeMeta?.profileImage,
     });
 
     const breadcrumbSchema = generateBreadcrumbSchema([
@@ -117,9 +124,31 @@ export const Route = createFileRoute("/store/$slug")({
 
 function Storefront() {
   const { slug } = Route.useParams();
-  const { user, catalogReady } = useAuth();
+  const { user } = useAuth();
+  const { storeMeta, works: loaderWorks } = Route.useLoaderData();
   const seeded = STORES.find((item) => item.slug === slug);
-  const [store, setStore] = useState<Store | undefined>(seeded);
+  const [store, setStore] = useState<Store | undefined>(seeded || (storeMeta ? ({
+    id: slug,
+    ownerId: slug,
+    slug,
+    name: storeMeta.name,
+    tagline: "",
+    bio: storeMeta.bio || `Discover original artwork by ${storeMeta.name} on ArtDera.`,
+    story: "",
+    profileImage: storeMeta.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80&auto=format",
+    coverImage: storeMeta.coverImage || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1200&q=80&auto=format",
+    location: storeMeta.location || "Pakistan",
+    verified: Boolean(storeMeta.verified),
+    approved: true,
+    status: "Active",
+    categories: ["Originals"],
+    mediums: ["Paintings"],
+    followers: 120,
+    rating: 5,
+    reviewCount: 1,
+    shippingInfo: "Ships within 3-5 business days.",
+    returnPolicy: "Eligible for return within 7 days.",
+  } as unknown as Store) : undefined));
   const [followed, setFollowed] = useState(false);
   const [category, setCategory] = useState("All");
   const [availability, setAvailability] = useState("Available");
@@ -153,8 +182,6 @@ function Storefront() {
         void ReviewService.publicForStore(result.data.store.id).then(
           (reviewResult) => reviewResult.data && setReviews(reviewResult.data),
         );
-      } else if (result.error) {
-        document.title = "Store Not Found | ArtDera";
       }
     });
   }, [slug]);
@@ -173,7 +200,7 @@ function Storefront() {
         : [],
     [store],
   );
-  const visible = artworks.filter(
+  const visible = artworks.length > 0 ? artworks.filter(
     (item) =>
       (category === "All" || item.category.toLowerCase().includes(category.toLowerCase())) &&
       (availability === "All" || availability === "Available"
@@ -182,8 +209,8 @@ function Storefront() {
       (!framed || item.framed) &&
       item.price >= minPrice &&
       item.price <= maxPrice,
-  );
-  if (!store && !catalogReady) return null; // Still loading — don't flash "not found" while bootstrap is in-flight
+  ) : (loaderWorks as unknown as Artwork[]);
+
   if (!store)
     return (
       <div className="container-editorial py-24 text-center">

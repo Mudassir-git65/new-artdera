@@ -72,7 +72,8 @@ describe("Creator & Store Social Sharing Previews", () => {
     expect(img1).toBe("https://example.com/profile.jpg");
 
     // 2. Profile missing, cover image present
-    const img2 = buildAbsoluteImageUrl(undefined || "https://example.com/cover.jpg");
+    const coverImg: string | undefined = "https://example.com/cover.jpg";
+    const img2 = buildAbsoluteImageUrl(undefined, coverImg);
     expect(img2).toBe("https://example.com/cover.jpg");
 
     // 3. Both missing -> fallback to default creator OG image

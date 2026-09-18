@@ -60,10 +60,15 @@ export function generateMeta({
   const formattedTitle = title.includes("ArtDera") ? title : `${title} | ArtDera`;
   const absoluteOgImage = buildAbsoluteImageUrl(ogImage, DEFAULT_OG_IMAGE);
 
+  const googleVerification =
+    (typeof process !== "undefined" ? process.env?.VITE_GOOGLE_SITE_VERIFICATION : undefined) ||
+    (typeof import.meta !== "undefined" ? (import.meta as any).env?.VITE_GOOGLE_SITE_VERIFICATION : undefined);
+
   const meta = [
     { title: formattedTitle },
     { name: "description", content: description },
     { name: "robots", content: noIndex ? "noindex, follow" : "index, follow" },
+    ...(googleVerification ? [{ name: "google-site-verification", content: googleVerification }] : []),
     { property: "og:site_name", content: "ArtDera" },
     { property: "og:title", content: formattedTitle },
     { property: "og:description", content: description },

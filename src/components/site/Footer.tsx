@@ -157,7 +157,7 @@ export function Footer() {
                 label="Currency"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-                options={CURRENCIES.map((c) => ({ value: c.code, label: c.code }))}
+                options={CURRENCIES.map((c) => ({ value: c.code, label: c.label }))}
               />
               <FooterSelect label="Language" value="English" />
             </div>

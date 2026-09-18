@@ -65,66 +65,20 @@ const SAMPLE_CREATORS: Array<{
 ];
 
 export const fetchCreatorFromDatabase = createServerFn({ method: "GET" })
-  .validator((slug: string) => slug)
-  .handler(async ({ data: slug }) => {
-    const cleanSlug = slug.trim().toLowerCase();
-    try {
-      const mongoose = await import("mongoose");
-      if (mongoose.default?.connection?.readyState === 1) {
-        const { StoreModel, ArtistProfileModel, GalleryProfileModel } = await import(
-          "../../server/models"
-        );
-        const store = await StoreModel.findOne({ slug: cleanSlug }).lean();
-        if (store) {
-          let profileImg = store.logoUrl;
-          let coverImg = store.coverImageUrl;
-          let bio = store.shortDescription || store.fullDescription || store.tagline;
-          let name = store.name;
-
-          if (store.ownerId) {
-            if (store.ownerType === "artist") {
-              const artistProfile = await ArtistProfileModel.findOne({
-                userId: store.ownerId,
-              }).lean();
-              if (artistProfile) {
-                if (artistProfile.displayName) name = artistProfile.displayName;
-                if (artistProfile.shortBio || artistProfile.fullBio)
-                  bio = artistProfile.shortBio || artistProfile.fullBio;
-                if (artistProfile.profileImageUrl) profileImg = artistProfile.profileImageUrl;
-                if (artistProfile.coverImageUrl) coverImg = artistProfile.coverImageUrl;
-              }
-            } else if (store.ownerType === "gallery") {
-              const galleryProfile = await GalleryProfileModel.findOne({
-                userId: store.ownerId,
-              }).lean();
-              if (galleryProfile) {
-                if (galleryProfile.galleryName) name = galleryProfile.galleryName;
-                if (galleryProfile.description) bio = galleryProfile.description;
-                if (galleryProfile.logoUrl) profileImg = galleryProfile.logoUrl;
-                if (galleryProfile.coverImageUrl) coverImg = galleryProfile.coverImageUrl;
-              }
-            }
-          }
-
-          return {
-            name,
-            slug: cleanSlug,
-            bio,
-            profileImage: profileImg,
-            coverImage: coverImg,
-            location: [store.city, store.country].filter(Boolean).join(", "),
-            verified: store.verificationStatus === "approved",
-          };
-        }
-      }
-    } catch {
-      // Ignore database errors
+  .validator((data: unknown) => {
+    if (typeof data === "string") return data;
+    if (typeof data === "object" && data !== null && "data" in data && typeof (data as any).data === "string") {
+      return (data as any).data;
     }
-    return null;
+    return String(data || "");
+  })
+  .handler(async ({ data: slug }) => {
+    const { queryCreatorFromDatabase } = await import("./creator-db.server");
+    return await queryCreatorFromDatabase(slug);
   });
 
 /**
- * Resolves creator/store data by slug from MongoDB (via server function),
+ * Resolves creator/store data by slug from MongoDB (via direct server query or server function),
  * seeded static creators/stores, or title-case fallbacks.
  */
 export async function getCreatorOrStoreResolved(
@@ -133,7 +87,18 @@ export async function getCreatorOrStoreResolved(
 ): Promise<CreatorMetaResolved> {
   const cleanSlug = slug.trim().toLowerCase();
 
-  // 1. Try DB lookup via server function
+  // 1. Direct DB lookup in Node server & test environment
+  if (typeof window === "undefined") {
+    try {
+      const { queryCreatorFromDatabase } = await import("./creator-db.server");
+      const directRecord = await queryCreatorFromDatabase(cleanSlug);
+      if (directRecord) return directRecord;
+    } catch {
+      // Ignore server import error
+    }
+  }
+
+  // 2. Try DB lookup via server function
   try {
     const dbRecord = await fetchCreatorFromDatabase({ data: cleanSlug });
     if (dbRecord) return dbRecord;

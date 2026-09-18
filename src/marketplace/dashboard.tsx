@@ -604,8 +604,8 @@ function Overview({
     (payout) =>
       payout.sellerId === userId &&
       payout.status !== "Paid" &&
-      payout.status !== "Cancelled" &&
-      payout.status !== "cancelled",
+      (payout.status as string) !== "Cancelled" &&
+      (payout.status as string) !== "cancelled",
   ).reduce((sum, payout) => sum + payout.net, 0);
   const storeViewsCount = activity.storeViews ?? 0;
   const savesCount = activity.saves ?? 0;

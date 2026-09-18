@@ -1,23 +1,56 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BadgeCheck, MapPin, Star } from "lucide-react";
 import { STORES } from "@/marketplace/data";
+import { fetchCreatorsList } from "@/lib/server-loaders";
+import { generateMeta, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/galleries")({
-  head: () => ({
-    meta: [
-      { title: "Art Galleries — ArtDera" },
-      {
-        name: "description",
-        content:
-          "Discover independent art galleries and curated programmes across Pakistan on ArtDera.",
-      },
-    ],
-    links: [{ rel: "canonical", href: "/galleries" }],
-  }),
+  loader: async () => {
+    return await fetchCreatorsList({ data: { type: "gallery" } });
+  },
+  head: () => {
+    const seo = generateMeta({
+      title: "Art Galleries — Curated Programmes | ArtDera",
+      description: "Discover independent art galleries and curated exhibition programmes across Pakistan on ArtDera.",
+      canonicalPath: "/galleries",
+    });
+
+    const breadcrumbSchema = generateBreadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Galleries", path: "/galleries" },
+    ]);
+
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(breadcrumbSchema),
+        },
+      ],
+    };
+  },
   component: Galleries,
 });
+
 function Galleries() {
-  const galleries = STORES.filter((store) => store.id.includes("gallery"));
+  const loaderGalleries = Route.useLoaderData();
+  const clientGalleries = STORES.filter((store) => store.id.includes("gallery"));
+  const galleries = clientGalleries.length > 0 ? clientGalleries : (loaderGalleries.map((g) => ({
+    id: `gallery-${g.slug}`,
+    slug: g.slug,
+    name: g.name,
+    bio: g.bio,
+    location: g.location,
+    verified: g.verified,
+    profileImage: g.portrait,
+    coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1200&q=80&auto=format",
+    rating: 5,
+    reviewCount: 1,
+    followers: 180,
+  })));
+
   return (
     <div className="container-editorial py-14">
       <div className="eyebrow">Galleries</div>
@@ -85,3 +118,4 @@ function Galleries() {
     </div>
   );
 }
+

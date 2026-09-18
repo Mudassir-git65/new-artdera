@@ -1,23 +1,42 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CREATORS } from "@/lib/artdera";
+import { CREATORS, type Creator } from "@/lib/artdera";
+import { fetchCreatorsList } from "@/lib/server-loaders";
+import { generateMeta, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/creators")({
-  head: () => ({
-    meta: [
-      { title: "Creators — ArtDera" },
-      {
-        name: "description",
-        content: "Meet the independent artists, calligraphers and photographers on ArtDera.",
-      },
-      { property: "og:title", content: "Creators — ArtDera" },
-      { property: "og:url", content: "/creators" },
-    ],
-    links: [{ rel: "canonical", href: "/creators" }],
-  }),
+  loader: async () => {
+    return await fetchCreatorsList({ data: { type: "artist" } });
+  },
+  head: () => {
+    const seo = generateMeta({
+      title: "Verified Artists & Creators | ArtDera",
+      description: "Meet independent artists, calligraphers, sculptors, and fine art photographers verified on ArtDera.",
+      canonicalPath: "/creators",
+    });
+
+    const breadcrumbSchema = generateBreadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Creators", path: "/creators" },
+    ]);
+
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(breadcrumbSchema),
+        },
+      ],
+    };
+  },
   component: Creators,
 });
 
 function Creators() {
+  const loaderCreators = Route.useLoaderData();
+  const creators: Creator[] = CREATORS.length > 0 ? CREATORS : (loaderCreators as unknown as Creator[]);
+
   return (
     <div className="container-editorial py-14">
       <div className="max-w-2xl">
@@ -33,7 +52,7 @@ function Creators() {
         </p>
       </div>
       <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {CREATORS.map((c) => (
+        {creators.map((c) => (
           <Link key={c.slug} to="/creator/$slug" params={{ slug: c.slug }} className="group block">
             <div className="relative aspect-[4/5] overflow-hidden rounded-lg">
               <img
@@ -64,3 +83,4 @@ function Creators() {
     </div>
   );
 }
+

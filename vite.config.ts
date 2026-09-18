@@ -59,7 +59,6 @@ export default defineConfig({
       cssCodeSplit: true,
       rollupOptions: {
         output: {
-          experimentalMinChunkSize: 10000,
           manualChunks: (id: string) => {
             // Drop react-query devtools from production
             if (id.includes("@tanstack/react-query-devtools")) return "empty";

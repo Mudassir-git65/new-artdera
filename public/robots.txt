@@ -1,35 +1,26 @@
 User-agent: *
 Allow: /
+Allow: /discover
+Allow: /creator/
+Allow: /store/
+Allow: /product/
+Allow: /creators
+Allow: /galleries
+Allow: /collections
+Allow: /journal
+Allow: /about
+Allow: /how-it-works
+Allow: /buyer-protection
 
-Disallow: /admin/
-Disallow: /dashboard/
+Disallow: /admin
+Disallow: /dashboard
 Disallow: /artist/dashboard
-Disallow: /account/
-Disallow: /checkout/
-Disallow: /cart/
-Disallow: /wishlist/
-Disallow: /api/
+Disallow: /account
+Disallow: /checkout
+Disallow: /cart
+Disallow: /messages
 Disallow: /auth/
-Disallow: /artist/signup
-Disallow: /artist/verify
-Disallow: /artist/checkout
-Disallow: /artist/payment-success
-Disallow: /artist/payment-failed
-Disallow: /artist/onboarding
-Disallow: /artist/store-created
-Disallow: /*?sort=
-Disallow: /*?filter=
-
-User-agent: Googlebot
-Allow: /
-
-User-agent: Googlebot-Image
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: OAI-SearchBot
-Allow: /
+Disallow: /api/
+Disallow: /*?*
 
 Sitemap: https://www.artdera.com/sitemap.xml

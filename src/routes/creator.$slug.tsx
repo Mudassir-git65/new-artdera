@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProBadge } from "@/components/ui/ProBadge";
-import { getCreator, productsByCreator } from "@/lib/artdera";
+import { getCreator, productsByCreator, type Creator } from "@/lib/artdera";
+import { fetchProductsList } from "@/lib/server-loaders";
 import { ProductCard } from "@/components/site/ProductCard";
 import { toast } from "sonner";
 import { useAuth } from "@/marketplace/auth";
 import { ARTWORKS, STORES } from "@/marketplace/data";
 import { FollowService, MessageService, MarketplaceService } from "@/marketplace/services";
-import { generateMeta, generatePersonSchema, generateBreadcrumbSchema, generateCreatorStoreSocialMeta } from "@/lib/seo";
+import { generatePersonSchema, generateBreadcrumbSchema, generateCreatorStoreSocialMeta } from "@/lib/seo";
 import { getCreatorOrStoreResolved } from "@/lib/creator-meta";
 import { hasActiveProfessionalSubscription } from "@/lib/subscription-status";
 
@@ -15,11 +16,16 @@ export const Route = createFileRoute("/creator/$slug")({
     if (typeof window !== "undefined") {
       void MarketplaceService.loadArtworksForStore(params.slug);
     }
-    return await getCreatorOrStoreResolved(params.slug, "creator");
+    const [creatorMeta, works] = await Promise.all([
+      getCreatorOrStoreResolved(params.slug, "creator"),
+      fetchProductsList({ data: { creatorSlug: params.slug } }),
+    ]);
+    return { creatorMeta, works };
   },
   head: ({ loaderData, params }) => {
+    const creatorMeta = loaderData?.creatorMeta;
     const creatorName =
-      loaderData?.name ||
+      creatorMeta?.name ||
       decodeURIComponent(params.slug)
         .replace(/[-_]+/g, " ")
         .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -27,19 +33,19 @@ export const Route = createFileRoute("/creator/$slug")({
     const seo = generateCreatorStoreSocialMeta({
       name: creatorName,
       slug: params.slug,
-      bio: loaderData?.bio,
-      profileImage: loaderData?.profileImage,
-      coverImage: loaderData?.coverImage,
+      bio: creatorMeta?.bio,
+      profileImage: creatorMeta?.profileImage,
+      coverImage: creatorMeta?.coverImage,
       routePrefix: "creator",
     });
 
     const personSchema = generatePersonSchema({
       name: creatorName,
       slug: params.slug,
-      bio: loaderData?.bio || `Discover original artwork by ${creatorName} on ArtDera.`,
-      location: loaderData?.location,
-      portrait: loaderData?.profileImage,
-      verified: loaderData?.verified,
+      bio: creatorMeta?.bio || `Discover original artwork by ${creatorName} on ArtDera.`,
+      location: creatorMeta?.location,
+      portrait: creatorMeta?.profileImage,
+      verified: creatorMeta?.verified,
     });
 
     const breadcrumbSchema = generateBreadcrumbSchema([
@@ -76,20 +82,26 @@ export const Route = createFileRoute("/creator/$slug")({
 
 function CreatorPage() {
   const { slug } = Route.useParams();
-  const { user, catalogReady } = useAuth();
-  const creator = getCreator(slug);
-  // Don't flash "Creator not found" while the server bootstrap is still loading.
-  if (!creator && !catalogReady) return null;
-  if (!creator)
-    return (
-      <div className="container-editorial py-24 text-center">
-        <h1 className="font-display text-4xl">Creator not found</h1>
-        <a href="/creators" className="btn-primary mt-6">
-          Meet the creators
-        </a>
-      </div>
-    );
-  const works = productsByCreator(creator.slug);
+  const { user } = useAuth();
+  const { creatorMeta, works: loaderWorks } = Route.useLoaderData();
+  const staticCreator = getCreator(slug);
+
+  const creator: Creator = staticCreator || {
+    slug,
+    name: creatorMeta?.name || decodeURIComponent(slug).replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    handle: `@${slug}`,
+    location: creatorMeta?.location || "Pakistan",
+    discipline: "Visual Art",
+    bio: creatorMeta?.bio || `Discover original artwork by ${creatorMeta?.name || slug} on ArtDera.`,
+    verified: Boolean(creatorMeta?.verified),
+    accountType: "artist",
+    approvedSeller: true,
+    portrait: creatorMeta?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80&auto=format",
+    works: [],
+  };
+
+  const clientWorks = productsByCreator(creator.slug);
+  const works = clientWorks.length > 0 ? clientWorks : loaderWorks;
   const firstArtwork = ARTWORKS.find((artwork) => works.some((work) => work.slug === artwork.slug));
   const store =
     STORES.find((item) => item.slug === creator.slug) ??

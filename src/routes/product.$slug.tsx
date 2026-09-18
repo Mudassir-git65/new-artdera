@@ -35,11 +35,23 @@ import { hasActiveProfessionalSubscription } from "@/lib/subscription-status";
 
 import { generateMeta, generateProductSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
+import { fetchProductBySlug } from "@/lib/server-loaders";
+import { getCreatorOrStoreResolved } from "@/lib/creator-meta";
+
 export const Route = createFileRoute("/product/$slug")({
-  head: ({ params }) => {
-    const p = getProduct(params.slug);
+  loader: async ({ params }) => {
+    const productData = await fetchProductBySlug({ data: params.slug });
+    let creatorData = null;
+    if (productData?.creatorSlug) {
+      creatorData = await getCreatorOrStoreResolved(productData.creatorSlug, "creator");
+    }
+    return { productData, creatorData };
+  },
+  head: ({ loaderData, params }) => {
+    const staticP = getProduct(params.slug);
+    const p = staticP || loaderData?.productData;
     const title = p
-      ? `${p.title} by ${getCreator(p.creatorSlug)?.name ?? "Independent Artist"} | ArtDera`
+      ? `${p.title} by ${loaderData?.creatorData?.name ?? getCreator(p.creatorSlug)?.name ?? "Independent Artist"} | ArtDera`
       : `${decodeURIComponent(params.slug)
           .replace(/[-_]+/g, " ")
           .replace(/\b\w/g, (c) => c.toUpperCase())} | ArtDera`;
@@ -52,12 +64,15 @@ export const Route = createFileRoute("/product/$slug")({
       return { meta: seo.meta, links: seo.links };
     }
 
-    const creator = getCreator(p.creatorSlug);
+    const creatorName = loaderData?.creatorData?.name ?? getCreator(p.creatorSlug)?.name ?? "Independent Artist";
+    const ogImage = p.images?.[0] || "https://www.artdera.com/images/hero-interior.jpg";
+    const dynamicOgUrl = `https://www.artdera.com/api/og/product/${p.slug}`;
+
     const seo = generateMeta({
-      title: `${p.title} by ${creator?.name ?? "Independent Artist"}`,
+      title: `${p.title} by ${creatorName}`,
       description: `${p.title} — ${p.kind} ${p.medium} (${p.dimensions}). Discover original artwork and fine-art editions on ArtDera. Tracked delivery & authenticity disclosures included.`,
       canonicalPath: `/product/${p.slug}`,
-      ogImage: p.images[0],
+      ogImage: dynamicOgUrl,
       ogType: "product",
     });
 
@@ -71,8 +86,8 @@ export const Route = createFileRoute("/product/$slug")({
       medium: p.medium,
       dimensions: p.dimensions,
       kind: p.kind,
-      creatorName: creator?.name,
-      creatorSlug: creator?.slug,
+      creatorName,
+      creatorSlug: p.creatorSlug,
       framed: p.framed,
     });
 
@@ -111,8 +126,10 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { slug } = Route.useParams();
-  const product = getProduct(slug);
-  const { user, catalogReady } = useAuth();
+  const { productData, creatorData } = Route.useLoaderData();
+  const staticProduct = getProduct(slug);
+  const product = staticProduct || productData;
+  const { user } = useAuth();
   const { formatPrice } = useCurrency();
   const [active, setActive] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -125,10 +142,7 @@ function ProductPage() {
   );
   if (!product && privateArtwork && canManagePrivateArtwork)
     return <ArtworkModerationNotice artwork={privateArtwork} isAdmin={user?.role === "admin"} />;
-  // Don't flash "Work not found" while the server bootstrap is still loading.
-  // The parent MarketplaceLayout already shows a loading screen for most cases,
-  // but this guard handles direct navigation after the shell has mounted.
-  if (!product && !catalogReady) return null;
+
   if (!product)
     return (
       <div className="container-editorial py-24 text-center">
@@ -138,7 +152,21 @@ function ProductPage() {
         </a>
       </div>
     );
-  const creator = getCreator(product.creatorSlug)!;
+
+  const staticCreator = getCreator(product.creatorSlug);
+  const creator = staticCreator || {
+    slug: product.creatorSlug,
+    name: creatorData?.name || (product as { creatorName?: string }).creatorName || "Independent Artist",
+    handle: `@${product.creatorSlug}`,
+    location: creatorData?.location || "Pakistan",
+    discipline: "Visual Art",
+    bio: creatorData?.bio || `Discover original artwork by ${creatorData?.name || product.creatorSlug} on ArtDera.`,
+    verified: Boolean(creatorData?.verified),
+    accountType: "artist" as const,
+    approvedSeller: true,
+    portrait: creatorData?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80&auto=format",
+    works: [],
+  };
   const artwork = ARTWORKS.find((item) => item.slug === product.slug);
   const storyText = artwork?.story?.text || product.story?.text;
   const more = productsByCreator(product.creatorSlug).filter((p) => p.slug !== product.slug);
@@ -269,7 +297,7 @@ function ProductPage() {
 
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <div className="flex flex-wrap items-center gap-2">
-            {hasActiveProfessionalSubscription(creator) && <ProBadge size="md" />}
+            {hasActiveProfessionalSubscription(creator as any) && <ProBadge size="md" />}
             <span className="chip" style={{ background: "var(--ink)", color: "var(--ivory)" }}>
               {product.kind}
               {product.editionOf ? ` / Ed. of ${product.editionOf}` : ""}

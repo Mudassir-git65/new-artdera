@@ -63,6 +63,9 @@ export function ProductCard({ product }: { product: Product }) {
     else toast.success("Added to your secure cart");
   };
 
+  const creatorName = creator?.name || (product as { creatorName?: string }).creatorName || "Independent Artist";
+  const altText = `${product.title} by ${creatorName} — ${product.kind.toLowerCase()} ${product.medium.toLowerCase()}`;
+
   return (
     <article className="group relative">
       <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-[#ebe7df]">
@@ -74,7 +77,7 @@ export function ProductCard({ product }: { product: Product }) {
           {primaryImage ? (
             <img
               src={primaryImage}
-              alt={product.title}
+              alt={altText}
               loading="lazy"
               decoding="async"
               width={800}

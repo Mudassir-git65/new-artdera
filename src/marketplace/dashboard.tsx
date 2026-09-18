@@ -1284,22 +1284,37 @@ function ArtworkCard({
   onStatusChange?: (status: ArtworkStatus) => void;
   onDelete?: () => void;
 }) {
+  const [loaded, setLoaded] = useState(false);
+  const imageUrl = item.images[0]?.url;
+  const imageAlt = item.images[0]?.alt || item.title;
+
   return (
     <article
       className={`overflow-hidden rounded-2xl border bg-[var(--porcelain)] ${selected ? "border-[var(--oxblood)] ring-1 ring-[var(--oxblood)]" : "border-[var(--color-border)]"}`}
     >
-      <div className="relative">
-        <img
-          src={item.images[0].url}
-          alt={item.images[0].alt}
-          className="aspect-[4/3] w-full object-cover"
-        />
+      <div className="relative aspect-[4/3] w-full bg-[#ebe7df] overflow-hidden">
+        {!loaded && imageUrl && (
+          <div className="absolute inset-0 z-0 animate-pulse bg-gradient-to-r from-[#e3ded5] via-[#f0ede6] to-[#e3ded5]" />
+        )}
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={imageAlt}
+            onLoad={() => setLoaded(true)}
+            decoding="async"
+            className={`h-full w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+            No image
+          </div>
+        )}
         {item.sponsored && (
-          <span className="absolute left-3 top-3 rounded-full bg-[var(--porcelain)] px-2 py-1 text-[10px] font-bold">
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-[var(--porcelain)] px-2 py-1 text-[10px] font-bold">
             Sponsored
           </span>
         )}
-        <label className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--porcelain)] shadow-sm">
+        <label className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--porcelain)] shadow-sm">
           <input
             type="checkbox"
             checked={selected}

@@ -19,12 +19,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  priority = false,
+}: {
+  product: Product;
+  priority?: boolean;
+}) {
   const { formatPrice } = useCurrency();
   const { user } = useAuth();
   const creator = CREATORS.find((c) => c.slug === product.creatorSlug);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState<"wishlist" | "cart" | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const artwork = ARTWORKS.find((item) => item.slug === product.slug);
   const primaryImage = product.images[0];
   const secondaryImage = product.images[1] ?? primaryImage;
@@ -69,6 +76,9 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="group relative">
       <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-[#ebe7df]">
+        {!loaded && primaryImage && (
+          <div className="absolute inset-0 z-0 animate-pulse bg-gradient-to-r from-[#e3ded5] via-[#f0ede6] to-[#e3ded5]" />
+        )}
         <Link
           to="/product/$slug"
           params={{ slug: product.slug }}
@@ -78,11 +88,15 @@ export function ProductCard({ product }: { product: Product }) {
             <img
               src={primaryImage}
               alt={altText}
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
               decoding="async"
+              fetchPriority={priority ? "high" : "auto"}
+              onLoad={() => setLoaded(true)}
               width={800}
               height={1000}
-              className="h-full w-full object-contain transition-transform duration-700 md:group-hover:scale-[1.02]"
+              className={`h-full w-full object-contain transition-all duration-500 md:group-hover:scale-[1.02] ${
+                loaded ? "opacity-100" : "opacity-0"
+              }`}
             />
           ) : (
             <span className="flex h-full w-full items-center justify-center p-6 text-center text-sm text-muted-foreground">

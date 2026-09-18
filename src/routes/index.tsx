@@ -64,72 +64,85 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const { formatPrice } = useCurrency();
-  const usedIds = new Set<string>();
+  const {
+    featuredArtistsWorks,
+    collector,
+    editPicks,
+    shopThisSpacePicks,
+    creatorSpotlightArtist,
+    creatorSpotlightWorks,
+    affordablePicks,
+    remainingProducts,
+  } = useMemo(() => {
+    const usedIds = new Set<string>();
+    const consumeUnique = (candidates: typeof PRODUCTS, count: number) => {
+      const result = candidates.filter((p) => !usedIds.has(p.slug)).slice(0, count);
+      result.forEach((p) => usedIds.add(p.slug));
+      return result;
+    };
 
-  const consumeUnique = (candidates: typeof PRODUCTS, count: number) => {
-    const result = candidates.filter((p) => !usedIds.has(p.slug)).slice(0, count);
-    result.forEach((p) => usedIds.add(p.slug));
-    return result;
-  };
+    const allProductsPremium = [...PRODUCTS].sort((a, b) => {
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      return b.price - a.price;
+    });
 
-  const allProductsPremium = [...PRODUCTS].sort((a, b) => {
-    if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    return b.price - a.price;
-  });
+    const featuredArtistSlugs = ["kausar-bhatti", "kamran-qazi-student", "abdul-rasheed-studio"];
+    let featuredArtists = featuredArtistSlugs
+      .map((slug) => CREATORS.find((c) => c.slug === slug))
+      .filter(Boolean) as typeof CREATORS;
 
-  // Step 1: Resolve featured artists first
-  const featuredArtistSlugs = ["kausar-bhatti", "kamran-qazi-student", "abdul-rasheed-studio"];
-  let featuredArtists = featuredArtistSlugs
-    .map((slug) => CREATORS.find((c) => c.slug === slug))
-    .filter(Boolean) as typeof CREATORS;
+    if (featuredArtists.length === 0 && CREATORS.length > 0) {
+      featuredArtists = CREATORS.slice(0, 3);
+    }
 
-  // Fallback to first 3 creators if the named ones aren't found
-  if (featuredArtists.length === 0 && CREATORS.length > 0) {
-    featuredArtists = CREATORS.slice(0, 3);
-  }
+    const featuredArtistsWorks = featuredArtists.map((artist) => {
+      const ownWorks = PRODUCTS.filter(
+        (p) => (artist.works || []).includes(p.slug) || p.creatorSlug === artist.slug
+      ).sort((a, b) => b.price - a.price).slice(0, 3);
+      ownWorks.forEach((p) => usedIds.add(p.slug));
+      return { artist, works: ownWorks };
+    });
 
-  // Step 2: For each featured artist, collect ALL of their own artworks (never stolen by other sections)
-  const featuredArtistsWorks = featuredArtists.map((artist) => {
-    // Match by works array AND by creatorSlug — covers all DB linking patterns
-    const ownWorks = PRODUCTS.filter(
-      (p) => (artist.works || []).includes(p.slug) || p.creatorSlug === artist.slug
-    ).sort((a, b) => b.price - a.price).slice(0, 3);
+    const collectorCandidate = allProductsPremium.find((p) => !usedIds.has(p.slug) && p.kind === "Original");
+    const collectorCandidateList = collectorCandidate
+      ? [collectorCandidate, ...allProductsPremium]
+      : allProductsPremium;
+    const collectorProducts = consumeUnique(collectorCandidateList, 1);
+    const collector = collectorProducts[0];
 
-    // Pre-reserve these slugs so NO other section can steal them
-    ownWorks.forEach((p) => usedIds.add(p.slug));
+    const collectionPicks = (COLLECTIONS[0]?.products ?? [])
+      .map((s) => PRODUCTS.find((p) => p.slug === s)!)
+      .filter(Boolean);
+    let editPicks = consumeUnique(collectionPicks, 4);
+    if (editPicks.length < 4) {
+      editPicks = [...editPicks, ...consumeUnique(allProductsPremium, 4 - editPicks.length)];
+    }
 
-    return { artist, works: ownWorks };
-  });
+    const shopThisSpacePicks = consumeUnique(allProductsPremium, 3);
 
-  // Step 3: Now allocate remaining artworks to other sections (featured artists' works are already blocked)
-  const collectorCandidate = allProductsPremium.find((p) => !usedIds.has(p.slug) && p.kind === "Original");
-  const collectorCandidateList = collectorCandidate
-    ? [collectorCandidate, ...allProductsPremium]
-    : allProductsPremium;
-  const collectorProducts = consumeUnique(collectorCandidateList, 1);
-  const collector = collectorProducts[0];
+    const creatorSpotlightArtist = CREATORS.find((c) => !featuredArtistSlugs.includes(c.slug)) ?? CREATORS[0];
+    const creatorSpotlightWorks = creatorSpotlightArtist
+      ? consumeUnique(
+          PRODUCTS.filter((p) => p.creatorSlug === creatorSpotlightArtist.slug || (creatorSpotlightArtist.works || []).includes(p.slug)),
+          3
+        )
+      : [];
 
-  const collectionPicks = (COLLECTIONS[0]?.products ?? [])
-    .map((s) => PRODUCTS.find((p) => p.slug === s)!)
-    .filter(Boolean);
-  let editPicks = consumeUnique(collectionPicks, 4);
-  if (editPicks.length < 4) {
-    editPicks = [...editPicks, ...consumeUnique(allProductsPremium, 4 - editPicks.length)];
-  }
+    const affordableCandidates = allProductsPremium.filter((p) => p.price < 50000);
+    const affordablePicks = consumeUnique(affordableCandidates, 6);
+    const remainingProducts = allProductsPremium.filter((p) => !usedIds.has(p.slug));
 
-  const shopThisSpacePicks = consumeUnique(allProductsPremium, 3);
-
-  const creatorSpotlightArtist = CREATORS.find((c) => !featuredArtistSlugs.includes(c.slug)) ?? CREATORS[0];
-  const creatorSpotlightWorks = creatorSpotlightArtist
-    ? consumeUnique(
-        PRODUCTS.filter((p) => p.creatorSlug === creatorSpotlightArtist.slug || (creatorSpotlightArtist.works || []).includes(p.slug)),
-        3
-      )
-    : [];
-
-  const affordableCandidates = allProductsPremium.filter((p) => p.price < 50000);
-  const affordablePicks = consumeUnique(affordableCandidates, 6);
-  const remainingProducts = allProductsPremium.filter((p) => !usedIds.has(p.slug));
+    return {
+      featuredArtistsWorks,
+      collector,
+      editPicks,
+      shopThisSpacePicks,
+      creatorSpotlightArtist,
+      creatorSpotlightWorks,
+      affordablePicks,
+      remainingProducts,
+    };
+  }, []);
 
   return (
     <div>
@@ -211,19 +224,28 @@ function FeaturedArtistsSection({
           </a>
         </div>
         <div className="mt-10 grid gap-8 md:grid-cols-3">
-          {artistsData.map(({ artist, works }) => {
+          {artistsData.map(({ artist }) => {
+            const portraitUrl =
+              artist.portrait && artist.portrait.trim().length > 0
+                ? artist.portrait
+                : "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=50&auto=format&fit=crop";
             return (
-            <div
-              key={artist.slug}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-white/12 bg-white/5 transition duration-500 hover:border-white/30 hover:bg-white/10"
-            >
-              <div className="relative h-64 overflow-hidden">
-                <img
-                  src={artist.portrait}
-                  alt={artist.name}
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                  loading="lazy"
-                />
+              <div
+                key={artist.slug}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-white/12 bg-white/5 transition duration-500 hover:border-white/30 hover:bg-white/10"
+              >
+                <div className="relative h-64 overflow-hidden bg-white/5">
+                  <img
+                    src={portraitUrl}
+                    alt={artist.name}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    loading="eager"
+                    fetchPriority="high"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=50&auto=format&fit=crop";
+                    }}
+                  />
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)] to-transparent opacity-80" />
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="font-display text-3xl">{artist.name}</div>
@@ -456,6 +478,8 @@ function ArtDeraEdit({
             <img
               src={dominant.images[0]}
               alt={dominant.title}
+              loading="eager"
+              fetchPriority="high"
               className="absolute inset-0 h-full w-full bg-[#ebe7df] object-contain opacity-88 transition duration-700 group-hover:scale-[1.025]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/18 to-transparent" />

@@ -110,13 +110,15 @@ function Discover() {
   const [catalogVersion, setCatalogVersion] = useState(0);
   const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [shuffledProducts, setShuffledProducts] = useState<typeof PRODUCTS>([]);
+  const [shuffledProducts, setShuffledProducts] = useState<typeof PRODUCTS>(() => [...PRODUCTS]);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(() => PRODUCTS.length === 0);
 
   const ARTWORKS_PER_PAGE = 24;
+
+  const [visibleLimit, setVisibleLimit] = useState(24);
 
   useEffect(() => {
     setShuffledProducts((prev) => {
@@ -136,7 +138,6 @@ function Discover() {
   useEffect(() => {
     let active = true;
     async function loadFirstPage() {
-      setInitialLoading(true);
       const result = await MarketplaceService.loadArtworkPage(1, ARTWORKS_PER_PAGE);
       if (!active) return;
       if (result.data) {
@@ -149,17 +150,20 @@ function Discover() {
     return () => { active = false; };
   }, []);
 
-  const loadNextPage = async () => {
-    if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
-    const nextPage = currentPage + 1;
-    const result = await MarketplaceService.loadArtworkPage(nextPage, ARTWORKS_PER_PAGE);
-    if (result.data) {
-      setHasMore(result.data.page < result.data.pages);
-      setCurrentPage(result.data.page);
-      setCatalogVersion((v) => v + 1);
+  const loadNextPage = () => {
+    setVisibleLimit((limit) => limit + 24);
+    if (!isLoadingMore && hasMore) {
+      setIsLoadingMore(true);
+      const nextPage = currentPage + 1;
+      void MarketplaceService.loadArtworkPage(nextPage, ARTWORKS_PER_PAGE).then((result) => {
+        if (result.data) {
+          setHasMore(result.data.page < result.data.pages);
+          setCurrentPage(result.data.page);
+          setCatalogVersion((v) => v + 1);
+        }
+        setIsLoadingMore(false);
+      });
     }
-    setIsLoadingMore(false);
   };
 
   useEffect(() => {
@@ -211,11 +215,31 @@ function Discover() {
   }, []);
 
   const filtered = useMemo(() => {
-    // The catalog is hydrated into a stable shared array. Reading the version
-    // here makes each successful pagination request recompute this view.
     let list = catalogVersion >= 0 ? shuffledProducts.slice() : [];
     const q = query.trim().toLowerCase();
-    if (category) list = list.filter((p) => p.categorySlug === category);
+    if (category) {
+      const catLower = category.toLowerCase().replace(/[^a-z0-9]+/g, "");
+      const catSingular = catLower.replace(/s$/, "");
+      list = list.filter((p) => {
+        const slugLower = p.categorySlug.toLowerCase().replace(/[^a-z0-9]+/g, "");
+        const slugSingular = slugLower.replace(/s$/, "");
+        const mediumLower = p.medium.toLowerCase();
+        const titleLower = p.title.toLowerCase();
+        return (
+          slugLower === catLower ||
+          slugSingular === catSingular ||
+          slugLower.includes(catSingular) ||
+          catSingular.includes(slugSingular) ||
+          mediumLower.includes(catSingular) ||
+          titleLower.includes(catSingular) ||
+          (catSingular.includes("paint") && (slugLower.includes("original") || mediumLower.includes("oil") || mediumLower.includes("acrylic") || mediumLower.includes("canvas"))) ||
+          (catSingular.includes("original") && (slugLower.includes("original") || p.kind === "Original")) ||
+          (catSingular.includes("photo") && slugLower.includes("photo")) ||
+          (catSingular.includes("calligraph") && slugLower.includes("calligraph")) ||
+          (catSingular.includes("print") && (slugLower.includes("print") || p.kind.includes("Edition")))
+        );
+      });
+    }
     if (kinds.length) list = list.filter((p) => kinds.includes(p.kind));
     if (room)
       list = list.filter((p) => p.room.some((r) => r.toLowerCase().replace(/ /g, "-") === room));
@@ -248,6 +272,8 @@ function Discover() {
     if (sort === "Price: high to low") list.sort((a, b) => b.price - a.price);
     return list;
   }, [catalogVersion, shuffledProducts, category, kinds, room, selectedColour, framedOnly, query, minPrice, maxPrice, sort]);
+
+  const visibleProducts = useMemo(() => filtered.slice(0, visibleLimit), [filtered, visibleLimit]);
 
   const activeCategory = category ? CATEGORIES.find((c) => c.slug === category) : undefined;
   const applied: Array<readonly [string, string, () => void]> = [];
@@ -472,8 +498,8 @@ function Discover() {
           ) : (
             <>
               <div className="grid grid-cols-1 gap-x-5 gap-y-12 min-[480px]:grid-cols-2 lg:grid-cols-3">
-                {filtered.map((p, index) => {
-                  const sponsored = filtered.length >= 5 && index === 4;
+                {visibleProducts.map((p, index) => {
+                  const sponsored = visibleProducts.length >= 5 && index === 4;
                   return (
                     <div key={p.slug} className="relative">
                       {sponsored && (
@@ -487,7 +513,7 @@ function Discover() {
                 })}
               </div>
               {/* Load More pagination button */}
-              {hasMore && (
+              {(hasMore || visibleLimit < filtered.length) && (
                 <div className="mt-12 flex justify-center">
                   <button
                     type="button"

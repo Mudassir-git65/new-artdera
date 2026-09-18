@@ -81,15 +81,15 @@ export type EditorialCollection = {
 // These are overwritten by live /api/bootstrap data when available.
 // ---------------------------------------------------------------------------
 const UNSPLASH = {
-  originals: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800&q=75&auto=format",
+  originals: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&q=50&auto=format&fit=crop",
   calligraphy:
-    "https://images.unsplash.com/photo-1588497859490-85d1c17db96d?w=800&q=75&auto=format",
+    "https://images.unsplash.com/photo-1588497859490-85d1c17db96d?w=400&q=50&auto=format&fit=crop",
   photography:
-    "https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?w=800&q=75&auto=format",
-  prints: "https://images.unsplash.com/photo-1549289524-06cf8837ace5?w=800&q=75&auto=format",
-  decor: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&q=75&auto=format",
+    "https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?w=400&q=50&auto=format&fit=crop",
+  prints: "https://images.unsplash.com/photo-1549289524-06cf8837ace5?w=400&q=50&auto=format&fit=crop",
+  decor: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&q=50&auto=format&fit=crop",
   commissions:
-    "https://images.unsplash.com/photo-1503428593586-e225b39bcd26?w=800&q=75&auto=format",
+    "https://images.unsplash.com/photo-1503428593586-e225b39bcd26?w=400&q=50&auto=format&fit=crop",
 };
 
 // ---------------------------------------------------------------------------
@@ -437,12 +437,10 @@ function replace<T>(target: T[], source: T[]) {
 
 // Pre-seeded with fallback data — overwritten by /api/bootstrap when available.
 export const CATEGORIES: Category[] = [...SEED_CATEGORIES];
-// Marketplace inventory must come from the API. The unused sample constants
-// above are retained only as source-level design references and are tree-shaken
-// from production builds.
-export const CREATORS: Creator[] = [];
-export const PRODUCTS: Product[] = [];
-export const COLLECTIONS: EditorialCollection[] = [];
+// Pre-seeded with sample data — overwritten by /api/bootstrap when available so artwork renders immediately.
+export const CREATORS: Creator[] = [...SAMPLE_CREATORS];
+export const PRODUCTS: Product[] = [...SAMPLE_PRODUCTS];
+export const COLLECTIONS: EditorialCollection[] = [...SAMPLE_COLLECTIONS];
 
 export function hydrateEditorialData(input: {
   categories: Category[];

@@ -396,7 +396,7 @@ function hydratePublicCatalog(data: Record<string, any>) {
     subscriptionExpiresAt: creator.subscriptionExpiresAt,
     portrait:
       creator.portrait ||
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=75&auto=format",
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=50&auto=format&fit=crop",
     works: artworks
       .filter(
         (artwork) =>

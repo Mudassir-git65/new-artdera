@@ -87,18 +87,7 @@ export async function getCreatorOrStoreResolved(
 ): Promise<CreatorMetaResolved> {
   const cleanSlug = slug.trim().toLowerCase();
 
-  // 1. Direct DB lookup in Node server & test environment
-  if (typeof window === "undefined") {
-    try {
-      const { queryCreatorFromDatabase } = await import("./creator-db.server");
-      const directRecord = await queryCreatorFromDatabase(cleanSlug);
-      if (directRecord) return directRecord;
-    } catch {
-      // Ignore server import error
-    }
-  }
-
-  // 2. Try DB lookup via server function
+  // 1. DB lookup via server function
   try {
     const dbRecord = await fetchCreatorFromDatabase({ data: cleanSlug });
     if (dbRecord) return dbRecord;

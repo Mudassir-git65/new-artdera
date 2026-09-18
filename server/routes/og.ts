@@ -141,7 +141,7 @@ async function renderProductOgSvg(slug: string) {
   try {
     const mongoose = await import("mongoose");
     if (mongoose.default?.connection?.readyState === 1) {
-      const { ArtworkModel, StoreModel } = await import("../models");
+      const { ArtworkModel, StoreModel, ArtistProfileModel } = await import("../models");
       const art = await ArtworkModel.findOne({ slug: cleanSlug }).lean();
       if (art) {
         title = art.title;
@@ -153,13 +153,42 @@ async function renderProductOgSvg(slug: string) {
           imageUrl = buildAbsoluteImageUrl(art.images[0].url, imageUrl);
         }
         if (art.storeId) {
-          const store = await StoreModel.findById(art.storeId).select("name").lean();
-          if (store?.name) creatorName = store.name;
+          const store = await StoreModel.findById(art.storeId).select("name ownerId ownerType").lean();
+          if (store) {
+            creatorName = store.name;
+            if (store.ownerId && store.ownerType === "artist") {
+              const artistProfile = await ArtistProfileModel.findOne({ userId: store.ownerId }).select("displayName").lean();
+              if (artistProfile?.displayName) creatorName = artistProfile.displayName;
+            }
+          }
         }
       }
     }
   } catch {
     // Fallback gracefully
+  }
+
+  if (title === "Original Artwork") {
+    try {
+      const { getProduct, getCreator, PRODUCTS } = await import("../../src/lib/artdera");
+      const sample = getProduct(cleanSlug) || PRODUCTS.find((p) => p.slug === cleanSlug);
+      if (sample) {
+        title = sample.title;
+        const creator = getCreator(sample.creatorSlug);
+        if (creator) creatorName = creator.name;
+        medium = `${sample.kind} ${sample.medium} (${sample.dimensions})`;
+        if (sample.price) priceText = `PKR ${sample.price.toLocaleString("en-PK")}`;
+        if (sample.images?.[0]) imageUrl = buildAbsoluteImageUrl(sample.images[0], imageUrl);
+      } else {
+        title = decodeURIComponent(cleanSlug)
+          .replace(/[-_]+/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+      }
+    } catch {
+      title = decodeURIComponent(cleanSlug)
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    }
   }
 
   const escTitle = escapeXml(title);

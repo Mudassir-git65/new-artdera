@@ -29,11 +29,24 @@ export function buildAbsoluteImageUrl(url?: string, fallbackUrl?: string): strin
   if (!url || typeof url !== "string" || !url.trim()) return fallback;
   const trimmed = url.trim();
 
-  // Return data URLs unchanged if present (though social tags should be https)
+  if (
+    trimmed === "undefined" ||
+    trimmed === "null" ||
+    trimmed === "[object Object]" ||
+    /^[0-9a-fA-F]{24}$/.test(trimmed)
+  ) {
+    return fallback;
+  }
+
+  // Return data URLs unchanged if present
   if (trimmed.startsWith("data:")) return trimmed;
 
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    if (trimmed.startsWith("http://localhost") || trimmed.startsWith("http://127.0.0.1")) {
+    if (
+      trimmed.includes("localhost") ||
+      trimmed.includes("127.0.0.1") ||
+      trimmed.includes(".vercel.app")
+    ) {
       try {
         const pathname = new URL(trimmed).pathname;
         return `${SITE_URL}${pathname}`;
@@ -112,9 +125,9 @@ export function generateCreatorStoreSocialMeta({
   const cleanName = name.trim();
   const title = cleanName.includes("ArtDera") ? cleanName : `${cleanName} | ArtDera`;
 
-  // Format Description: short creator/store bio or fallback
+  // Format Description: short creator/store bio or refined fallback
   const cleanBio = bio?.trim();
-  const fallbackDesc = `Discover original artwork by ${cleanName} on ArtDera.`;
+  const fallbackDesc = `Discover original artworks by ${cleanName} on ArtDera — where hidden talent finds recognition.`;
   const rawDescription = cleanBio && cleanBio.length > 0 ? cleanBio : fallbackDesc;
   // Truncate description to 200 chars max for optimal crawler previews
   const description =
@@ -141,17 +154,19 @@ export function generateCreatorStoreSocialMeta({
     { property: "og:description", content: description },
     { property: "og:type", content: "profile" },
     { property: "og:url", content: canonicalUrl },
+    // Direct profile picture FIRST for crawlers requiring direct raster images (e.g. WhatsApp, iMessage, LinkedIn)
+    { property: "og:image", content: absoluteProfileImage },
+    { property: "og:image:secure_url", content: absoluteProfileImage },
+    { property: "og:image:alt", content: `${cleanName} profile on ArtDera` },
+    // Secondary dynamic 1200x630 OG card preview endpoint
     { property: "og:image", content: dynamicOgUrl },
     { property: "og:image:secure_url", content: dynamicOgUrl },
     { property: "og:image:width", content: "1200" },
     { property: "og:image:height", content: "630" },
-    { property: "og:image:alt", content: `${cleanName} profile on ArtDera` },
-    // Direct profile picture fallback for crawlers requiring non-SVG/direct images
-    { property: "og:image", content: absoluteProfileImage },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
-    { name: "twitter:image", content: dynamicOgUrl },
+    { name: "twitter:image", content: absoluteProfileImage },
     { name: "twitter:image:alt", content: `${cleanName} profile on ArtDera` },
   ];
 

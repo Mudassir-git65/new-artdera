@@ -20,6 +20,7 @@ Disallow: /checkout
 Disallow: /cart
 Disallow: /messages
 Disallow: /auth/
+Allow: /api/og/
 Disallow: /api/
 Disallow: /*?*
 

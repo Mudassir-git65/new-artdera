@@ -59,6 +59,24 @@ export function createApp() {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
+
+  // Enforce canonical production domain (https://www.artdera.com)
+  app.use((req, res, next) => {
+    const host = req.get("host") || "";
+    const proto = req.get("x-forwarded-proto") || req.protocol;
+    if (env.NODE_ENV === "production" && (proto === "http" || host === "artdera.com")) {
+      return res.redirect(301, `https://www.artdera.com${req.originalUrl}`);
+    }
+    next();
+  });
+
+  // Serve static public assets (images, favicon, robots.txt)
+  app.use(
+    express.static(path.resolve(process.cwd(), "public"), {
+      maxAge: env.NODE_ENV === "production" ? "1d" : 0,
+    }),
+  );
+
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },

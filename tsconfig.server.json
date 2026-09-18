@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["server/**/*.ts", "nitro/**/*.ts", "tests/**/*.ts", "vitest.config.ts"],
+  "include": ["server/**/*.ts", "nitro/**/*.ts", "tests/**/*.ts", "vitest.config.ts", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist", ".output"],
   "compilerOptions": {
     "allowImportingTsExtensions": false,

@@ -64,15 +64,20 @@ export const Route = createFileRoute("/product/$slug")({
       return { meta: seo.meta, links: seo.links };
     }
 
-    const creatorName = loaderData?.creatorData?.name ?? getCreator(p.creatorSlug)?.name ?? "Independent Artist";
-    const ogImage = p.images?.[0] || "https://www.artdera.com/images/hero-interior.jpg";
-    const dynamicOgUrl = `https://www.artdera.com/api/og/product/${p.slug}`;
+    const creatorName = loaderData?.creatorData?.name ?? getCreator(p.creatorSlug)?.name ?? (p as any)?.creatorName ?? "Independent Artist";
+    const artworkImage = p.images?.[0] || "https://www.artdera.com/images/hero-interior.jpg";
+
+    const descKind = p.kind || "Original";
+    const descMedium = p.medium || "artwork";
+    const descDim = p.dimensions ? ` (${p.dimensions})` : "";
+    const description = `${descKind} ${descMedium.toLowerCase()}${descDim} by ${creatorName}. Discover this original artwork on ArtDera. ${p.description || ""}`.trim();
+    const truncatedDesc = description.length > 200 ? `${description.slice(0, 197)}...` : description;
 
     const seo = generateMeta({
       title: `${p.title} by ${creatorName}`,
-      description: `${p.title} — ${p.kind} ${p.medium} (${p.dimensions}). Discover original artwork and fine-art editions on ArtDera. Tracked delivery & authenticity disclosures included.`,
+      description: truncatedDesc,
       canonicalPath: `/product/${p.slug}`,
-      ogImage: dynamicOgUrl,
+      ogImage: artworkImage,
       ogType: "product",
     });
 

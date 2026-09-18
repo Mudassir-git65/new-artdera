@@ -63,7 +63,7 @@ describe("Creator & Store Social Sharing Previews", () => {
     });
 
     const desc = meta.meta.find((m) => "name" in m && m.name === "description")?.content;
-    expect(desc).toBe("Discover original artwork by Farhan Ahmed on ArtDera.");
+    expect(desc).toBe("Discover original artworks by Farhan Ahmed on ArtDera — where hidden talent finds recognition.");
   });
 
   it("applies fallback chain (profile -> cover -> default image) when picture is missing", async () => {

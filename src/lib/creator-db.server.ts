@@ -4,10 +4,24 @@ export async function queryCreatorFromDatabase(cleanSlug: string): Promise<Creat
   try {
     const mongoose = await import("mongoose");
     if (mongoose.default?.connection?.readyState === 1) {
-      const { StoreModel, ArtistProfileModel, GalleryProfileModel } = await import(
+      const { StoreModel, ArtistProfileModel, GalleryProfileModel, UserModel } = await import(
         "../../server/models"
       );
-      const store = await StoreModel.findOne({ slug: cleanSlug }).lean();
+
+      const normalizedSlug = cleanSlug.trim().toLowerCase();
+
+      // 1. Search by exact store slug
+      let store = await StoreModel.findOne({ slug: normalizedSlug }).lean();
+
+      // 2. Search by case-insensitive store slug or store name regex if not found by exact slug
+      if (!store) {
+        const escaped = normalizedSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const slugPattern = new RegExp(`^${escaped.replace(/[-_]+/g, "[-\\s_]*")}$`, "i");
+        store = await StoreModel.findOne({
+          $or: [{ slug: normalizedSlug }, { name: slugPattern }],
+        }).lean();
+      }
+
       if (store) {
         let profileImg = store.logoUrl;
         let coverImg = store.coverImageUrl;
@@ -37,11 +51,16 @@ export async function queryCreatorFromDatabase(cleanSlug: string): Promise<Creat
               if (galleryProfile.coverImageUrl) coverImg = galleryProfile.coverImageUrl;
             }
           }
+
+          if (!profileImg) {
+            const userObj = await UserModel.findById(store.ownerId).select("avatarUrl").lean();
+            if (userObj?.avatarUrl) profileImg = userObj.avatarUrl;
+          }
         }
 
         return {
           name,
-          slug: cleanSlug,
+          slug: normalizedSlug,
           bio,
           profileImage: profileImg,
           coverImage: coverImg,
@@ -49,9 +68,33 @@ export async function queryCreatorFromDatabase(cleanSlug: string): Promise<Creat
           verified: store.verificationStatus === "approved",
         };
       }
+
+      // 3. Search directly by ArtistProfileModel displayName if store record not found
+      const escapedName = normalizedSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const namePattern = new RegExp(`^${escapedName.replace(/[-_]+/g, "[-\\s_]*")}$`, "i");
+      const artist = await ArtistProfileModel.findOne({ displayName: namePattern }).lean();
+      if (artist) {
+        let bio = artist.shortBio || artist.fullBio;
+        let profileImg = artist.profileImageUrl;
+        let coverImg = artist.coverImageUrl;
+        if (!profileImg && artist.userId) {
+          const userObj = await UserModel.findById(artist.userId).select("avatarUrl").lean();
+          if (userObj?.avatarUrl) profileImg = userObj.avatarUrl;
+        }
+
+        return {
+          name: artist.displayName,
+          slug: normalizedSlug,
+          bio,
+          profileImage: profileImg,
+          coverImage: coverImg,
+          location: [artist.city, artist.country].filter(Boolean).join(", "),
+          verified: artist.verificationBadge || artist.verificationStatus === "approved",
+        };
+      }
     }
-  } catch {
-    // Ignore DB errors
+  } catch (error) {
+    console.error("queryCreatorFromDatabase error:", error);
   }
   return null;
 }

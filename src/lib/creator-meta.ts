@@ -22,47 +22,47 @@ const SAMPLE_CREATORS: Array<{
   portrait: string;
   cover?: string;
 }> = [
-  {
-    slug: "sana-mirza",
-    name: "Sana Mirza",
-    location: "Lahore, Pakistan",
-    discipline: "Oil painting",
-    bio: "Sana Mirza's canvases are exercises in remembered light — warm amber rooms, slow afternoons, and the weight of colour held at the edge of a brushstroke. Based in Lahore's old city, she works predominantly in oil on linen.",
-    verified: true,
-    portrait: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=50&auto=format&fit=crop",
-    cover: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800&q=50&auto=format&fit=crop",
-  },
-  {
-    slug: "omar-farooq",
-    name: "Omar Farooq",
-    location: "Karachi, Pakistan",
-    discipline: "Calligraphy & ink",
-    bio: "Omar's practice bridges classical Nastaliq calligraphy and contemporary abstraction. His work has been shown in galleries across Karachi, Dubai and London.",
-    verified: true,
-    portrait: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=50&auto=format&fit=crop",
-    cover: "https://images.unsplash.com/photo-1588497859490-85d1c17db96d?w=800&q=50&auto=format&fit=crop",
-  },
-  {
-    slug: "ayla-hussain",
-    name: "Ayla Hussain",
-    location: "Islamabad, Pakistan",
-    discipline: "Photography",
-    bio: "Documentary photographer and printmaker. Ayla's fine-art editions focus on the intersection of architecture, natural light and the Pakistani landscape.",
-    verified: true,
-    portrait: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&q=50&auto=format&fit=crop",
-    cover: "https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?w=800&q=50&auto=format&fit=crop",
-  },
-  {
-    slug: "ayesha-khan",
-    name: "Ayesha Khan",
-    location: "Lahore, Pakistan",
-    discipline: "Miniature Painting",
-    bio: "Ayesha Khan creates contemporary miniature paintings blending traditional gouache on Wasli paper with modern geometric narratives.",
-    verified: true,
-    portrait: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=50&auto=format&fit=crop",
-    cover: "https://images.unsplash.com/photo-1503428593586-e225b39bcd26?w=800&q=50&auto=format&fit=crop",
-  },
-];
+    {
+      slug: "sana-mirza",
+      name: "Sana Mirza",
+      location: "Lahore, Pakistan",
+      discipline: "Oil painting",
+      bio: "Sana Mirza's canvases are exercises in remembered light — warm amber rooms, slow afternoons, and the weight of colour held at the edge of a brushstroke. Based in Lahore's old city, she works predominantly in oil on linen.",
+      verified: true,
+      portrait: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=50&auto=format&fit=crop",
+      cover: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800&q=50&auto=format&fit=crop",
+    },
+    {
+      slug: "omar-farooq",
+      name: "Omar Farooq",
+      location: "Karachi, Pakistan",
+      discipline: "Calligraphy & ink",
+      bio: "Omar's practice bridges classical Nastaliq calligraphy and contemporary abstraction. His work has been shown in galleries across Karachi, Dubai and London.",
+      verified: true,
+      portrait: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=50&auto=format&fit=crop",
+      cover: "https://images.unsplash.com/photo-1588497859490-85d1c17db96d?w=800&q=50&auto=format&fit=crop",
+    },
+    {
+      slug: "ayla-hussain",
+      name: "Ayla Hussain",
+      location: "Islamabad, Pakistan",
+      discipline: "Photography",
+      bio: "Documentary photographer and printmaker. Ayla's fine-art editions focus on the intersection of architecture, natural light and the Pakistani landscape.",
+      verified: true,
+      portrait: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&q=50&auto=format&fit=crop",
+      cover: "https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?w=800&q=50&auto=format&fit=crop",
+    },
+    {
+      slug: "ayesha-khan",
+      name: "Ayesha Khan",
+      location: "Lahore, Pakistan",
+      discipline: "Miniature Painting",
+      bio: "Ayesha Khan creates contemporary miniature paintings blending traditional gouache on Wasli paper with modern geometric narratives.",
+      verified: true,
+      portrait: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=50&auto=format&fit=crop",
+      cover: "https://images.unsplash.com/photo-1503428593586-e225b39bcd26?w=800&q=50&auto=format&fit=crop",
+    },
+  ];
 
 export const fetchCreatorFromDatabase = createServerFn({ method: "GET" })
   .validator((data: unknown) => {
@@ -87,12 +87,18 @@ export async function getCreatorOrStoreResolved(
 ): Promise<CreatorMetaResolved> {
   const cleanSlug = slug.trim().toLowerCase();
 
-  // 1. DB lookup via server function
+  // 1. Direct DB lookup via server helper (with RPC fallback)
   try {
-    const dbRecord = await fetchCreatorFromDatabase({ data: cleanSlug });
+    const { queryCreatorFromDatabase } = await import("./creator-db.server");
+    const dbRecord = await queryCreatorFromDatabase(cleanSlug);
     if (dbRecord) return dbRecord;
   } catch {
-    // Ignore RPC failure
+    try {
+      const dbRecord = await fetchCreatorFromDatabase({ data: cleanSlug });
+      if (dbRecord) return dbRecord;
+    } catch {
+      // Ignore RPC failure
+    }
   }
 
   // 2. Check sample creator seed dataset

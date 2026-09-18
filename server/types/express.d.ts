@@ -12,4 +12,13 @@ declare global {
   }
 }
 
+declare module "express-serve-static-core" {
+  interface Request {
+    auth?: {
+      user: HydratedDocument<UserDocument>;
+      sessionId: string;
+    };
+  }
+}
+
 export {};

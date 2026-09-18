@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import type {} from "../types/express.d.ts";
 import mongoose from "mongoose";
 import { AuthSessionModel, UserModel } from "../models";
 import { ApiError } from "../lib/http";

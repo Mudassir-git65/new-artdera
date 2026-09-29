@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as WallArtRouteImport } from './routes/wall-art'
 import { Route as TradeRouteImport } from './routes/trade'
@@ -64,6 +65,11 @@ import { Route as AccountSectionRouteImport } from './routes/account.$section'
 import { Route as ArtistDashboardSectionRouteImport } from './routes/artist.dashboard.$section'
 import { Route as ArtistDashboardArtworksNewRouteImport } from './routes/artist.dashboard.artworks.new'
 
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WishlistRoute = WishlistRouteImport.update({
   id: '/wishlist',
   path: '/wishlist',
@@ -368,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/trade': typeof TradeRoute
   '/wall-art': typeof WallArtRoute
   '/wishlist': typeof WishlistRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/account/$section': typeof AccountSectionRoute
   '/admin/$section': typeof AdminSectionRoute
   '/artist/checkout': typeof ArtistCheckoutRoute
@@ -424,6 +431,7 @@ export interface FileRoutesByTo {
   '/trade': typeof TradeRoute
   '/wall-art': typeof WallArtRoute
   '/wishlist': typeof WishlistRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/account/$section': typeof AccountSectionRoute
   '/admin/$section': typeof AdminSectionRoute
   '/artist/checkout': typeof ArtistCheckoutRoute
@@ -481,6 +489,7 @@ export interface FileRoutesById {
   '/trade': typeof TradeRoute
   '/wall-art': typeof WallArtRoute
   '/wishlist': typeof WishlistRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/account/$section': typeof AccountSectionRoute
   '/admin/$section': typeof AdminSectionRoute
   '/artist/checkout': typeof ArtistCheckoutRoute
@@ -539,6 +548,7 @@ export interface FileRouteTypes {
     | '/trade'
     | '/wall-art'
     | '/wishlist'
+    | '/delete-account'
     | '/account/$section'
     | '/admin/$section'
     | '/artist/checkout'
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
     | '/trade'
     | '/wall-art'
     | '/wishlist'
+    | '/delete-account'
     | '/account/$section'
     | '/admin/$section'
     | '/artist/checkout'
@@ -651,6 +662,7 @@ export interface FileRouteTypes {
     | '/trade'
     | '/wall-art'
     | '/wishlist'
+    | '/delete-account'
     | '/account/$section'
     | '/admin/$section'
     | '/artist/checkout'
@@ -708,6 +720,7 @@ export interface RootRouteChildren {
   TradeRoute: typeof TradeRoute
   WallArtRoute: typeof WallArtRoute
   WishlistRoute: typeof WishlistRoute
+  DeleteAccountRoute: typeof DeleteAccountRoute
   ArtistCheckoutRoute: typeof ArtistCheckoutRoute
   ArtistDashboardRoute: typeof ArtistDashboardRouteWithChildren
   ArtistOnboardingRoute: typeof ArtistOnboardingRoute
@@ -728,6 +741,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wishlist': {
       id: '/wishlist'
       path: '/wishlist'
@@ -1200,6 +1220,7 @@ const rootRouteChildren: RootRouteChildren = {
   TradeRoute: TradeRoute,
   WallArtRoute: WallArtRoute,
   WishlistRoute: WishlistRoute,
+  DeleteAccountRoute: DeleteAccountRoute,
   ArtistCheckoutRoute: ArtistCheckoutRoute,
   ArtistDashboardRoute: ArtistDashboardRouteWithChildren,
   ArtistOnboardingRoute: ArtistOnboardingRoute,

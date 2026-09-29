@@ -39,6 +39,7 @@ import {
   Truck,
   UserRoundCheck,
   Users,
+  UserX,
   Globe,
   type LucideIcon,
 } from "lucide-react";
@@ -60,6 +61,7 @@ import {
 import { AdminService, UserService, UploadService } from "./services";
 import { PageLoading } from "@/components/site/PageLoading";
 import { AdminAffiliateManagement } from "./admin-affiliates";
+import { AccountDeletionQueue } from "./admin-deletions";
 
 const adminNavigation = [
   ["Overview", "overview", LayoutDashboard],
@@ -94,6 +96,7 @@ const adminNavigation = [
   ["Support Tickets", "support", LifeBuoy],
   ["Analytics", "analytics", Activity],
   ["Audit Log", "audit-log", ShieldCheck],
+  ["Account Deletion Requests", "account-deletion-requests", UserX],
   ["Settings", "settings", Settings],
 ] as const;
 
@@ -252,6 +255,8 @@ function AdminSection({ section }: { section: string }) {
       return <AdminShippingQuotes />;
     case "audit-log":
       return <AuditLog />;
+    case "account-deletion-requests":
+      return <AccountDeletionQueue />;
     case "settings":
       return <AdminSecurity />;
     default:
@@ -1837,7 +1842,7 @@ function GenericAdminSection({ section }: { section: string }) {
     </div>
   );
 }
-function AdminPanel({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
+export function AdminPanel({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
   return (
     <section
       className={`rounded-2xl border border-[var(--color-border)] bg-[var(--porcelain)] ${compact ? "p-5" : "p-5 md:p-6"}`}
@@ -1846,7 +1851,7 @@ function AdminPanel({ children, compact = false }: { children: ReactNode; compac
     </section>
   );
 }
-function AdminStatus({ status }: { status: string }) {
+export function AdminStatus({ status }: { status: string }) {
   const positive = /Active|Approved|Published|Verified|Current|schedule|Completed|Unlocked/i.test(
     status,
   );

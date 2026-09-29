@@ -611,7 +611,23 @@ export interface DemoSession {
   email: string;
   expiresAt: number;
 }
+export interface AccountDeletionRequest {
+  id: string;
+  name: string;
+  email: string;
+  userId?: string;
+  reason?: string;
+  status: "pending" | "processing" | "completed" | "rejected";
+  rejectionReason?: string;
+  adminNotes?: string;
+  processedBy?: string;
+  processedAt?: string;
+  createdAt: string;
+  user?: Partial<User>;
+}
+
 export interface ServiceResult<T> {
   data?: T;
   error?: { code: string; message: string };
 }
+

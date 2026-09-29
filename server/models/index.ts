@@ -1565,3 +1565,33 @@ export const shippingQuoteSchema = new Schema(
 );
 export type ShippingQuoteDocument = InferSchemaType<typeof shippingQuoteSchema>;
 export const ShippingQuoteModel = modelFor("ShippingQuote", shippingQuoteSchema);
+
+export const accountDeletionRequestSchema = new Schema(
+  {
+    name: { ...requiredString, maxlength: 120 },
+    email: { ...requiredString, maxlength: 254 },
+    emailNormalized: { ...requiredString, lowercase: true, maxlength: 254, index: true },
+    userId: { type: objectId, ref: "User", index: true },
+    reason: { type: String, trim: true, maxlength: 2000, default: "" },
+    status: {
+      type: String,
+      enum: ["pending", "processing", "completed", "rejected"],
+      default: "pending",
+      index: true,
+    },
+    rejectionReason: { type: String, trim: true, maxlength: 1000 },
+    adminNotes: { type: String, trim: true, maxlength: 2000 },
+    processedBy: { type: objectId, ref: "User" },
+    processedAt: Date,
+    ipAddress: { type: String, trim: true, maxlength: 100 },
+    userAgent: { type: String, trim: true, maxlength: 300 },
+  },
+  timestamps,
+);
+accountDeletionRequestSchema.index({ createdAt: -1 });
+export type AccountDeletionRequestDocument = InferSchemaType<typeof accountDeletionRequestSchema>;
+export const AccountDeletionRequestModel = modelFor(
+  "AccountDeletionRequest",
+  accountDeletionRequestSchema,
+);
+

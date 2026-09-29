@@ -33,6 +33,7 @@ const COLS = [
       ["Messages", "/messages"],
       ["Cart", "/cart"],
       ["Help centre", "/help"],
+      ["Delete Account", "/delete-account"],
     ],
   },
   {

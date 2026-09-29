@@ -20,6 +20,7 @@ import {
   Video,
   Globe,
   Handshake,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -795,6 +796,28 @@ function Security() {
           The API validates this session and the account role again for every protected request.
         </p>
       </BuyerPanel>
+      <BuyerPanel>
+        <div className="eyebrow text-red-700">Account Control & Privacy</div>
+        <h2 className="mt-2 font-display text-2xl">Delete Account</h2>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Request permanent deletion of your profile, listings, and stored account data in compliance with Google Play guidelines.
+        </p>
+        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50/50 p-4">
+          <div>
+            <div className="font-semibold text-xs text-red-900">Permanent Account & Data Erasure</div>
+            <div className="mt-0.5 text-[11px] text-red-700">
+              Submits a formal deletion request. Processed by an administrator upon identity verification.
+            </div>
+          </div>
+          <a
+            href="/delete-account"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--oxblood)] px-4 py-2 text-xs font-semibold text-white hover:opacity-90 transition shrink-0"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete Account Page
+          </a>
+        </div>
+      </BuyerPanel>
     </div>
   );
 }
@@ -849,6 +872,29 @@ function BuyerSettings() {
         >
           Save preferences
         </button>
+      </BuyerPanel>
+
+      <BuyerPanel>
+        <div className="eyebrow text-red-700">Danger Zone</div>
+        <h2 className="mt-2 font-display text-2xl">Delete Account</h2>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Submit an account deletion request to permanently erase your profile, saved works, messages, and listings.
+        </p>
+        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50/50 p-4">
+          <div>
+            <div className="font-semibold text-xs text-red-900">Google Play Compliant Account Deletion</div>
+            <div className="mt-0.5 text-[11px] text-red-700">
+              Open the public account deletion request page to proceed.
+            </div>
+          </div>
+          <a
+            href="/delete-account"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--oxblood)] px-4 py-2 text-xs font-semibold text-white hover:opacity-90 transition shrink-0"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete Account
+          </a>
+        </div>
       </BuyerPanel>
     </div>
   );

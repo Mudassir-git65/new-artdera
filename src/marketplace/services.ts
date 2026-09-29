@@ -44,6 +44,7 @@ import { DEMO_PAYMENT_MODE, PLANS, ROLE_HOME, hydrateRuntimeConfig } from "./con
 import { prepareImageForUpload } from "./image-upload";
 import { uploadResponseResult } from "./upload-response";
 import type {
+  AccountDeletionRequest,
   Artwork,
   ArtistFlowState,
   BillingCycle,
@@ -2144,6 +2145,52 @@ export class SignupProgressService {
   }
   static clear() {
     signupDraft = undefined;
+  }
+}
+
+export class AccountDeletionService {
+  static submitRequest(input: {
+    name: string;
+    email: string;
+    reason?: string;
+    confirmation: boolean;
+  }) {
+    return apiClient.post<{ requestId: string; email: string; matchedAccount: boolean }>(
+      "/api/account-deletion",
+      input,
+    );
+  }
+
+  static listRequests(page = 1, status = "all", query = "") {
+    const params = new URLSearchParams({ page: String(page), limit: "50" });
+    if (status) params.set("status", status);
+    if (query) params.set("q", query);
+    return apiClient.get<{
+      items: AccountDeletionRequest[];
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    }>(`/api/admin/account-deletions?${params.toString()}`);
+  }
+
+  static updateStatus(
+    id: string,
+    status: AccountDeletionRequest["status"],
+    adminNotes?: string,
+    rejectionReason?: string,
+  ) {
+    return apiClient.patch<AccountDeletionRequest>(`/api/admin/account-deletions/${id}/status`, {
+      status,
+      adminNotes,
+      rejectionReason,
+    });
+  }
+
+  static executeDeletion(id: string, adminNotes?: string) {
+    return apiClient.delete<{ success: true; requestId: string }>(
+      `/api/admin/account-deletions/${id}/execute`,
+    );
   }
 }
 

@@ -26,6 +26,7 @@ import { feedsRouter } from "./routes/feeds";
 import { adminAffiliatesRouter, affiliatesRouter } from "./routes/affiliates";
 import { ogRouter } from "./routes/og";
 import { currencyRouter } from "./routes/currency";
+import { accountDeletionRouter, adminAccountDeletionRouter } from "./routes/account-deletion";
 import mongoose from "mongoose";
 
 function rateLimitKey(req: Request) {
@@ -213,7 +214,9 @@ export function createApp() {
   app.use("/api", operationsRouter);
   app.use("/api/gallery", galleryRouter);
   app.use("/api/admin/affiliate", adminAffiliatesRouter);
+  app.use("/api/admin/account-deletions", adminAccountDeletionRouter);
   app.use("/api/admin", adminRouter);
+  app.use("/api/account-deletion", accountDeletionRouter);
   app.use("/api/bootstrap", bootstrapRouter);
   app.use("/api/indexnow", indexnowRouter);
   app.use("/api/og", ogRouter);

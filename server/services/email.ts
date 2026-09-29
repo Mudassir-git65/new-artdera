@@ -124,16 +124,16 @@ export interface EmailResult {
   error?: string;
 }
 
-export async function sendPasswordResetEmail(
+
+export async function sendEmailMessage(
   recipientEmail: string,
-  recipientName: string,
-  resetUrl: string,
+  subject: string,
+  html: string,
+  templateParams?: Record<string, string>,
 ): Promise<EmailResult> {
   const env = getEnv();
-  const subject = "Reset your ArtDera password";
-  const html = buildPasswordResetHtml(recipientName, resetUrl);
 
-  // 1. Gmail SMTP via Nodemailer (Works directly with artdera4@gmail.com and a Google App Password)
+  // 1. Gmail SMTP via Nodemailer
   if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
     try {
       const nodemailer = await import("nodemailer");
@@ -153,9 +153,7 @@ export async function sendPasswordResetEmail(
         html,
       });
 
-      console.info(
-        `[email] Successfully sent password reset email via Gmail SMTP to ${recipientEmail}`,
-      );
+      console.info(`[email] Successfully sent email via Gmail SMTP to ${recipientEmail}`);
       return { ok: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gmail SMTP error";
@@ -177,9 +175,8 @@ export async function sendPasswordResetEmail(
           accessToken: env.EMAILJS_PRIVATE_KEY,
           template_params: {
             to_email: recipientEmail,
-            to_name: recipientName,
-            reset_url: resetUrl,
             subject,
+            ...(templateParams ?? {}),
           },
         }),
       });
@@ -190,9 +187,7 @@ export async function sendPasswordResetEmail(
         return { ok: false, error: text || "EmailJS failed" };
       }
 
-      console.info(
-        `[email] Successfully sent password reset email via EmailJS to ${recipientEmail}`,
-      );
+      console.info(`[email] Successfully sent email via EmailJS to ${recipientEmail}`);
       return { ok: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : "EmailJS network error";
@@ -218,9 +213,7 @@ export async function sendPasswordResetEmail(
         return { ok: false, error: error.message };
       }
 
-      console.info(
-        `[email] Successfully sent password reset email via Resend to ${recipientEmail}`,
-      );
+      console.info(`[email] Successfully sent email via Resend to ${recipientEmail}`);
       return { ok: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown Resend send error";
@@ -229,15 +222,211 @@ export async function sendPasswordResetEmail(
     }
   }
 
-  // 4. Console fallback is development-only. Never write a live reset token
-  // to production logs when an email provider has not been configured.
   if (env.NODE_ENV === "production") {
-    console.error("[email] Password reset delivery is not configured");
+    console.error("[email] Email delivery is not configured");
     return { ok: false, error: "Email delivery is not configured" };
   }
+
   console.info("📧  [EMAIL — dev console fallback]");
-  console.info(`  To:        ${recipientEmail}`);
-  console.info(`  Subject:   ${subject}`);
-  console.info(`  Reset URL: ${resetUrl}`);
+  console.info(`  To:      ${recipientEmail}`);
+  console.info(`  Subject: ${subject}`);
+  if (templateParams?.reset_url) {
+    console.info(`  Reset URL: ${templateParams.reset_url}`);
+  }
   return { ok: true };
 }
+
+export async function sendPasswordResetEmail(
+  recipientEmail: string,
+  recipientName: string,
+  resetUrl: string,
+): Promise<EmailResult> {
+  const subject = "Reset your ArtDera password";
+  const html = buildPasswordResetHtml(recipientName, resetUrl);
+  return sendEmailMessage(recipientEmail, subject, html, {
+    to_name: recipientName,
+    reset_url: resetUrl,
+  });
+}
+
+function buildAccountDeletionSubmittedHtml(recipientName: string, requestId: string): string {
+  const firstName = recipientName.split(" ")[0] ?? recipientName;
+  const year = new Date().getFullYear();
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Deletion Request Received — ArtDera</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f6f1e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f6f1e8;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;">
+          <tr>
+            <td align="center" style="padding-bottom:28px;">
+              <span style="font-family:'Georgia',serif;font-size:22px;font-weight:700;color:#171717;letter-spacing:0.06em;">ARTDERA</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#fffdfc;border-radius:16px;border:1px solid #e8e2d8;overflow:hidden;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="background-color:#6e2334;height:4px;"></td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding:40px 44px 36px;">
+                    <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#a89f94;">Account Security</p>
+                    <h1 style="margin:0 0 20px;font-size:28px;font-weight:400;color:#171717;font-family:'Georgia',serif;line-height:1.25;">Account deletion request received</h1>
+                    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4a4a4a;">Hi ${escapeHtml(firstName)},</p>
+                    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#4a4a4a;">
+                      We have received your account deletion request for ArtDera.
+                    </p>
+                    <div style="background-color:#f8f6f2;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #ebe5da;">
+                      <p style="margin:0 0 6px;font-size:12px;color:#7a7267;text-transform:uppercase;letter-spacing:0.08em;">Request Reference</p>
+                      <p style="margin:0;font-size:18px;font-weight:700;color:#6e2334;font-family:monospace;">${escapeHtml(requestId)}</p>
+                    </div>
+                    <h3 style="margin:24px 0 12px;font-size:16px;font-weight:600;color:#171717;">What happens next?</h3>
+                    <ul style="margin:0 0 24px;padding-left:20px;font-size:14px;line-height:1.6;color:#4a4a4a;">
+                      <li>An ArtDera administrator will review and verify your request within 3 to 5 business days.</li>
+                      <li>Upon approval, your personal profile, credentials, and saved artwork preferences will be permanently erased.</li>
+                      <li>Financial transaction records and invoices are retained for legal and tax compliance in accordance with applicable laws.</li>
+                    </ul>
+                    <hr style="border:none;border-top:1px solid #e8e2d8;margin:0 0 24px;" />
+                    <p style="margin:0;font-size:13px;line-height:1.6;color:#7a7267;">
+                      If you did not request account deletion, please contact ArtDera Support immediately at <a href="mailto:support@artdera.com" style="color:#6e2334;text-decoration:underline;">support@artdera.com</a>.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 0 0;text-align:center;">
+              <p style="margin:0 0 6px;font-size:13px;color:#a89f94;">Regards, The ArtDera Team</p>
+              <p style="margin:0;font-size:12px;color:#c4b9ad;">&copy; ${year} ArtDera &mdash; www.artdera.com</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildAccountDeletionProcessedHtml(
+  recipientName: string,
+  status: "completed" | "rejected",
+  rejectionReason?: string,
+): string {
+  const firstName = recipientName.split(" ")[0] ?? recipientName;
+  const year = new Date().getFullYear();
+  const isCompleted = status === "completed";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${isCompleted ? "Account Deletion Completed" : "Account Deletion Request Update"} — ArtDera</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f6f1e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f6f1e8;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;">
+          <tr>
+            <td align="center" style="padding-bottom:28px;">
+              <span style="font-family:'Georgia',serif;font-size:22px;font-weight:700;color:#171717;letter-spacing:0.06em;">ARTDERA</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#fffdfc;border-radius:16px;border:1px solid #e8e2d8;overflow:hidden;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="background-color:${isCompleted ? "#1b4332" : "#a83232"};height:4px;"></td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding:40px 44px 36px;">
+                    <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#a89f94;">Account Status Update</p>
+                    <h1 style="margin:0 0 20px;font-size:28px;font-weight:400;color:#171717;font-family:'Georgia',serif;line-height:1.25;">
+                      ${isCompleted ? "Account and data deleted" : "Deletion request declined"}
+                    </h1>
+                    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4a4a4a;">Hi ${escapeHtml(firstName)},</p>
+                    ${
+                      isCompleted
+                        ? `<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#4a4a4a;">
+                            Your ArtDera account and associated profile data have been permanently deleted in accordance with your request.
+                          </p>
+                          <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#7a7267;">
+                            All personal data, login access, preferences, and store listings have been erased. Mandatory transaction invoices and tax records are retained securely as required by financial regulations.
+                          </p>`
+                        : `<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#4a4a4a;">
+                            Your request to delete your ArtDera account could not be processed at this time.
+                          </p>
+                          <div style="background-color:#fdf2f2;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #f8d7da;">
+                            <p style="margin:0 0 6px;font-size:12px;color:#a83232;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Reason</p>
+                            <p style="margin:0;font-size:14px;color:#4a4a4a;">${escapeHtml(rejectionReason || "Ownership verification could not be completed.")}</p>
+                          </div>`
+                    }
+                    <hr style="border:none;border-top:1px solid #e8e2d8;margin:0 0 24px;" />
+                    <p style="margin:0;font-size:13px;line-height:1.6;color:#7a7267;">
+                      If you have any questions, you can contact our team anytime at <a href="mailto:support@artdera.com" style="color:#6e2334;text-decoration:underline;">support@artdera.com</a>.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 0 0;text-align:center;">
+              <p style="margin:0 0 6px;font-size:13px;color:#a89f94;">Regards, The ArtDera Team</p>
+              <p style="margin:0;font-size:12px;color:#c4b9ad;">&copy; ${year} ArtDera &mdash; www.artdera.com</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendAccountDeletionSubmittedEmail(
+  recipientEmail: string,
+  recipientName: string,
+  requestId: string,
+): Promise<EmailResult> {
+  const subject = "Account Deletion Request Received — ArtDera";
+  const html = buildAccountDeletionSubmittedHtml(recipientName, requestId);
+  return sendEmailMessage(recipientEmail, subject, html, {
+    to_name: recipientName,
+    request_id: requestId,
+  });
+}
+
+export async function sendAccountDeletionProcessedEmail(
+  recipientEmail: string,
+  recipientName: string,
+  status: "completed" | "rejected",
+  rejectionReason?: string,
+): Promise<EmailResult> {
+  const subject =
+    status === "completed"
+      ? "Account Deletion Completed — ArtDera"
+      : "Account Deletion Request Update — ArtDera";
+  const html = buildAccountDeletionProcessedHtml(recipientName, status, rejectionReason);
+  return sendEmailMessage(recipientEmail, subject, html, {
+    to_name: recipientName,
+    status,
+    rejection_reason: rejectionReason ?? "",
+  });
+}
+

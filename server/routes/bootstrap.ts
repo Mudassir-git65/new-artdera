@@ -33,6 +33,7 @@ import { PROMOTION_PRICES } from "../config/plans";
 import { getEnv } from "../config/env";
 import { refreshPromotionStates } from "../services/sponsored";
 import { isActiveProfessionalSubscription } from "../services/plans";
+import { getAvailablePaymentMethods } from "../services/manual-payments";
 
 export const bootstrapRouter = Router();
 
@@ -120,6 +121,13 @@ bootstrapRouter.get(
     const publicData: Record<string, unknown> = {
       runtime: {
         demoPaymentMode: getEnv().DEMO_PAYMENT_MODE,
+        availablePaymentMethods: getAvailablePaymentMethods().map((method) => ({
+          id: method.method,
+          label: method.label,
+          accountTitle: method.accountTitle,
+          accountNumber: method.accountNumber,
+          iban: method.iban,
+        })),
         promotionPlacements: Object.entries(PROMOTION_PRICES).map(([id, value]) => ({
           id: id.replaceAll("_", "-"),
           name: id.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),

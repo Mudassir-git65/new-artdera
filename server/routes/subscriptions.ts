@@ -21,6 +21,8 @@ import { PLAN_RANK } from "../config/plans";
 import {
   MANUAL_PAYMENT_INSTRUCTION,
   manualPaymentAccount,
+  isPaymentMethodAvailable,
+  getAvailablePaymentMethods,
   type ManualPaymentMethod,
 } from "../services/manual-payments";
 
@@ -52,17 +54,39 @@ subscriptionsRouter.post(
       .object({
         planId: z.enum(["professional", "gallery"]).optional(),
         billingCycle: z.enum(["monthly", "annual"]).optional(),
-        method: z.enum(["card", "bank-transfer", "easypaisa", "jazzcash", "raast"]).default("card"),
+        method: z
+          .enum(["card", "bank-transfer", "easypaisa", "jazzcash", "raast", "hbl"])
+          .default("card"),
       })
       .strict()
       .parse(req.body);
-    const isManualPayment = input.method === "jazzcash" || input.method === "easypaisa";
-    if (!isManualPayment && !getEnv().DEMO_PAYMENT_MODE)
+    const normalizedMethod = (
+      input.method === "bank-transfer" ? "hbl" : input.method
+    ) as ManualPaymentMethod | "card" | "raast";
+    const isManualPayment =
+      normalizedMethod === "jazzcash" ||
+      normalizedMethod === "easypaisa" ||
+      normalizedMethod === "hbl";
+    if (isManualPayment && !isPaymentMethodAvailable(normalizedMethod as ManualPaymentMethod)) {
+      const available = getAvailablePaymentMethods();
+      const availableNames = available.map((m) => m.label).join(", ");
+      throw new ApiError(
+        422,
+        "PAYMENT_METHOD_NOT_CONFIGURED",
+        available.length
+          ? `The requested payment method is not available. Please choose from: ${availableNames}`
+          : "Payment processing is temporarily unavailable. Please try again shortly.",
+      );
+    }
+    if (!isManualPayment && !getEnv().DEMO_PAYMENT_MODE) {
+      const available = getAvailablePaymentMethods();
+      const availableNames = available.map((m) => m.label).join(", ");
       throw new ApiError(
         422,
         "PAYMENT_METHOD_NOT_AVAILABLE",
-        "Choose JazzCash or Easypaisa to continue",
+        `Choose an active payment method (${availableNames || "JazzCash or Easypaisa"}) to continue`,
       );
+    }
     let subscription = await SubscriptionModel.findOne({ userId: req.auth!.user._id }).sort({
       createdAt: -1,
     });
@@ -98,9 +122,22 @@ subscriptionsRouter.post(
       },
       "metadata.targetPlanId": plan.planId,
       "metadata.billingCycle": cycle,
-      "metadata.method": input.method,
+      "metadata.method": normalizedMethod,
     }).lean();
-    if (existing) return ok(res, serializePayment(existing));
+    if (existing) {
+      return ok(res, {
+        ...serializePayment(existing),
+        paymentInstructions: isManualPayment
+          ? {
+              ...manualPaymentAccount(normalizedMethod as ManualPaymentMethod),
+              amount: price,
+              paymentId: String(existing._id),
+              referenceLabel: `${plan.name} ${cycle} subscription`,
+              instruction: MANUAL_PAYMENT_INSTRUCTION,
+            }
+          : undefined,
+      });
+    }
     const intent = isManualPayment
       ? {
           reference: `manual_subscription_${randomUUID()}`,
@@ -122,15 +159,18 @@ subscriptionsRouter.post(
       amount: price,
       currency: "PKR",
       status: "pending",
-      metadata: { targetPlanId: plan.planId, billingCycle: cycle, method: input.method },
+      metadata: { targetPlanId: plan.planId, billingCycle: cycle, method: normalizedMethod },
     });
+    console.log(
+      `[Subscription Payment] Initiated payment ${payment._id} for user ${req.auth!.user._id}, plan ${plan.planId}, method ${normalizedMethod}, amount ${price} PKR`,
+    );
     return ok(
       res,
       {
         ...serializePayment(payment.toObject()),
         paymentInstructions: isManualPayment
           ? {
-              ...manualPaymentAccount(input.method as ManualPaymentMethod),
+              ...manualPaymentAccount(normalizedMethod as ManualPaymentMethod),
               amount: price,
               paymentId: String(payment._id),
               referenceLabel: `${plan.name} ${cycle} subscription`,

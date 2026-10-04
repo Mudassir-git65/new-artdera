@@ -2009,12 +2009,8 @@ export class PaymentService {
       method: input.method,
     });
     if (initiated.error) return initiated as ServiceResult<Payment>;
-    if (input.pendingReview) {
-      const pending = mapPayment(initiated.data!);
-      payments.unshift(pending);
-      return { data: pending };
-    }
-    if (!DEMO_PAYMENT_MODE) {
+    const isManual = ["easypaisa", "jazzcash", "hbl", "bank-transfer"].includes(input.method);
+    if (input.pendingReview || isManual || !DEMO_PAYMENT_MODE) {
       const pending = mapPayment(initiated.data!);
       payments.unshift(pending);
       return { data: pending };

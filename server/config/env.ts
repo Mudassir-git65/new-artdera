@@ -77,29 +77,35 @@ const envSchema = z.object({
   MAX_PROFILE_IMAGE_SIZE_MB: z.coerce.number().positive().max(10).default(5).catch(5),
   MAX_PAYMENT_PROOF_SIZE_MB: z.coerce.number().positive().max(10).default(5).catch(5),
   JAZZCASH_ACCOUNT_TITLE: z
-    .preprocess((v) => normalizeVercelScalar(v) || undefined, z.string().min(2).max(120).optional())
-    .catch(undefined),
+    .preprocess(
+      (v) => normalizeVercelScalar(v) || undefined,
+      z.string().min(2).max(120).default("MUHAMMAD MUDASSAR MUNIR"),
+    )
+    .catch("MUHAMMAD MUDASSAR MUNIR"),
   JAZZCASH_ACCOUNT_NUMBER: z
     .preprocess(
       (v) => normalizeVercelScalar(v) || undefined,
       z
         .string()
         .regex(/^\+?[0-9][0-9 -]{6,20}$/)
-        .optional(),
+        .default("03355818818"),
     )
-    .catch(undefined),
+    .catch("03355818818"),
   EASYPAISA_ACCOUNT_TITLE: z
-    .preprocess((v) => normalizeVercelScalar(v) || undefined, z.string().min(2).max(120).optional())
-    .catch(undefined),
+    .preprocess(
+      (v) => normalizeVercelScalar(v) || undefined,
+      z.string().min(2).max(120).default("MUHAMMAD MUDASSAR MUNIR"),
+    )
+    .catch("MUHAMMAD MUDASSAR MUNIR"),
   EASYPAISA_ACCOUNT_NUMBER: z
     .preprocess(
       (v) => normalizeVercelScalar(v) || undefined,
       z
         .string()
         .regex(/^\+?[0-9][0-9 -]{6,20}$/)
-        .optional(),
+        .default("03355818818"),
     )
-    .catch(undefined),
+    .catch("03355818818"),
   HBL_ACCOUNT_TITLE: z
     .preprocess((v) => normalizeVercelScalar(v) || undefined, z.string().min(2).max(120).optional())
     .catch(undefined),

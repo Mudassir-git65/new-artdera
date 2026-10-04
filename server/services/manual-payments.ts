@@ -22,9 +22,9 @@ export function manualPaymentAccount(method: ManualPaymentMethod) {
         : env.HBL_ACCOUNT_NUMBER;
   if (!title || !number || (method === "hbl" && !env.HBL_IBAN))
     throw new ApiError(
-      503,
-      "PAYMENT_ACCOUNT_NOT_CONFIGURED",
-      "This payment method is temporarily unavailable. Please choose another method.",
+      422,
+      "PAYMENT_METHOD_NOT_CONFIGURED",
+      `The payment method "${method}" is temporarily unavailable. Please choose another method.`,
     );
   return {
     method,
@@ -39,3 +39,18 @@ export function manualPaymentAccount(method: ManualPaymentMethod) {
     ...(method === "hbl" ? { iban: env.HBL_IBAN, qrCode: env.HBL_QR_CODE_PATH } : {}),
   };
 }
+
+export function isPaymentMethodAvailable(method: ManualPaymentMethod): boolean {
+  try {
+    manualPaymentAccount(method);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getAvailablePaymentMethods() {
+  const methods: ManualPaymentMethod[] = ["easypaisa", "jazzcash", "hbl"];
+  return methods.filter(isPaymentMethodAvailable).map((method) => manualPaymentAccount(method));
+}
+

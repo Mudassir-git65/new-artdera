@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, LoaderCircle, Smartphone, WalletCards } from "lucide-react";
+import { Building2, Check, LoaderCircle, Smartphone, WalletCards } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/marketplace/auth";
 import { formatPKR, PLANS } from "@/marketplace/config";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/artist/checkout")({
 const methods: Array<[PaymentMethod, string, typeof Smartphone]> = [
   ["easypaisa", "Easypaisa", Smartphone],
   ["jazzcash", "JazzCash", WalletCards],
+  ["hbl", "HBL (Bank Transfer)", Building2],
 ];
 
 function ArtistCheckout() {
@@ -73,7 +74,7 @@ function ArtistCheckout() {
             className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--porcelain)] p-5 sm:p-6 md:p-8"
           >
             <div className="eyebrow">Payment method</div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-3 gap-2">
               {methods.map(([id, label, Icon]) => (
                 <button
                   key={id}

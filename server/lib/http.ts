@@ -41,6 +41,12 @@ export function errorHandler(error: unknown, req: Request, res: Response, _next:
     });
   }
   if (error instanceof ApiError) {
+    if (error.status >= 500) {
+      console.error(
+        `[API Error ${error.status}] ${req.method} ${req.path}: ${error.code} - ${error.message}`,
+        error,
+      );
+    }
     return res.status(error.status).json({
       success: false,
       error: {

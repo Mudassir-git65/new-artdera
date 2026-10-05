@@ -75,7 +75,13 @@ export type SubscriptionStatus =
   | "Cancelled"
   | "Expired"
   | "Suspended";
-export type PaymentMethod = "card" | "bank-transfer" | "easypaisa" | "jazzcash" | "raast";
+export type PaymentMethod =
+  | "card"
+  | "bank-transfer"
+  | "easypaisa"
+  | "jazzcash"
+  | "raast"
+  | "hbl";
 export type AnalyticsLevel = "Basic" | "Detailed" | "Advanced";
 
 export interface PlanFeature {

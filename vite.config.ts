@@ -57,25 +57,6 @@ export default defineConfig({
       minify: "esbuild",
       // Produce smaller, parallel-loadable chunks
       cssCodeSplit: true,
-      rollupOptions: {
-        output: {
-          manualChunks: (id: string) => {
-            // Drop react-query devtools from production
-            if (id.includes("@tanstack/react-query-devtools")) return "empty";
-            // Radix UI components — loaded on first interactive page
-            if (id.includes("@radix-ui")) return "radix";
-            // Charting library — only used in dashboards
-            if (id.includes("recharts")) return "recharts";
-            // Carousel — used on homepage and discover
-            if (id.includes("embla-carousel")) return "embla";
-            // Core React runtime — always needed, cache forever
-            if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/"))
-              return "react-vendor";
-            // TanStack Router/Query — framework core
-            if (id.includes("@tanstack")) return "tanstack";
-          },
-        },
-      },
     },
   },
   tanstackStart: {

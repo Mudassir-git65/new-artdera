@@ -9,210 +9,65 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WishlistRouteImport } from './routes/wishlist'
-import { Route as WallArtRouteImport } from './routes/wall-art'
-import { Route as TradeRouteImport } from './routes/trade'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ShippingRouteImport } from './routes/shipping'
-import { Route as SellRouteImport } from './routes/sell'
-import { Route as ReturnsRouteImport } from './routes/returns'
-import { Route as RequestQuoteRouteImport } from './routes/request-quote'
-import { Route as PrintsRouteImport } from './routes/prints'
-import { Route as PhotographyRouteImport } from './routes/photography'
-import { Route as PaintingsRouteImport } from './routes/paintings'
-import { Route as MessagesRouteImport } from './routes/messages'
-import { Route as JournalRouteImport } from './routes/journal'
-import { Route as HowItWorksRouteImport } from './routes/how-it-works'
-import { Route as HelpRouteImport } from './routes/help'
-import { Route as GalleriesRouteImport } from './routes/galleries'
-import { Route as ForInteriorDesignersRouteImport } from './routes/for-interior-designers'
-import { Route as DiscoverRouteImport } from './routes/discover'
-import { Route as DeleteAccountRouteImport } from './routes/delete-account'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as CreatorsRouteImport } from './routes/creators'
-import { Route as CollectionsRouteImport } from './routes/collections'
-import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as CartRouteImport } from './routes/cart'
-import { Route as CalligraphyRouteImport } from './routes/calligraphy'
-import { Route as BuyerProtectionRouteImport } from './routes/buyer-protection'
-import { Route as AuthenticityRouteImport } from './routes/authenticity'
-import { Route as AffiliateRouteImport } from './routes/affiliate'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AccountRouteImport } from './routes/account'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as StoreSlugRouteImport } from './routes/store.$slug'
-import { Route as SellPlansRouteImport } from './routes/sell.plans'
-import { Route as SellArtRouteImport } from './routes/sell.art'
-import { Route as ProductSlugRouteImport } from './routes/product.$slug'
-import { Route as PaymentPaymentIdRouteImport } from './routes/payment.$paymentId'
-import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
-import { Route as DashboardSectionRouteImport } from './routes/dashboard.$section'
-import { Route as CreatorSlugRouteImport } from './routes/creator.$slug'
-import { Route as AuthSignupRouteImport } from './routes/auth.signup'
-import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
-import { Route as AuthLoginRouteImport } from './routes/auth.login'
-import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
-import { Route as ArtistStoreCreatedRouteImport } from './routes/artist.store-created'
-import { Route as ArtistSignupRouteImport } from './routes/artist.signup'
-import { Route as ArtistPaymentSuccessRouteImport } from './routes/artist.payment-success'
-import { Route as ArtistPaymentFailedRouteImport } from './routes/artist.payment-failed'
-import { Route as ArtistOnboardingRouteImport } from './routes/artist.onboarding'
-import { Route as ArtistDashboardRouteImport } from './routes/artist.dashboard'
-import { Route as ArtistCheckoutRouteImport } from './routes/artist.checkout'
-import { Route as AdminSectionRouteImport } from './routes/admin.$section'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AffiliateRouteImport } from './routes/affiliate'
+import { Route as AuthenticityRouteImport } from './routes/authenticity'
+import { Route as BuyerProtectionRouteImport } from './routes/buyer-protection'
+import { Route as CalligraphyRouteImport } from './routes/calligraphy'
+import { Route as CartRouteImport } from './routes/cart'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CollectionsRouteImport } from './routes/collections'
+import { Route as CreatorsRouteImport } from './routes/creators'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
+import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as ForInteriorDesignersRouteImport } from './routes/for-interior-designers'
+import { Route as GalleriesRouteImport } from './routes/galleries'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as JournalRouteImport } from './routes/journal'
+import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as PaintingsRouteImport } from './routes/paintings'
+import { Route as PhotographyRouteImport } from './routes/photography'
+import { Route as PrintsRouteImport } from './routes/prints'
+import { Route as RequestQuoteRouteImport } from './routes/request-quote'
+import { Route as ReturnsRouteImport } from './routes/returns'
+import { Route as SellRouteImport } from './routes/sell'
+import { Route as ShippingRouteImport } from './routes/shipping'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TradeRouteImport } from './routes/trade'
+import { Route as WallArtRouteImport } from './routes/wall-art'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as AccountSectionRouteImport } from './routes/account.$section'
+import { Route as AdminSectionRouteImport } from './routes/admin.$section'
+import { Route as ArtistCheckoutRouteImport } from './routes/artist.checkout'
+import { Route as ArtistDashboardRouteImport } from './routes/artist.dashboard'
+import { Route as ArtistOnboardingRouteImport } from './routes/artist.onboarding'
+import { Route as ArtistPaymentFailedRouteImport } from './routes/artist.payment-failed'
+import { Route as ArtistPaymentSuccessRouteImport } from './routes/artist.payment-success'
+import { Route as ArtistSignupRouteImport } from './routes/artist.signup'
+import { Route as ArtistStoreCreatedRouteImport } from './routes/artist.store-created'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
+import { Route as AuthSignupRouteImport } from './routes/auth.signup'
+import { Route as CreatorSlugRouteImport } from './routes/creator.$slug'
+import { Route as DashboardSectionRouteImport } from './routes/dashboard.$section'
+import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
+import { Route as PaymentPaymentIdRouteImport } from './routes/payment.$paymentId'
+import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as SellArtRouteImport } from './routes/sell.art'
+import { Route as SellPlansRouteImport } from './routes/sell.plans'
+import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 import { Route as ArtistDashboardSectionRouteImport } from './routes/artist.dashboard.$section'
 import { Route as ArtistDashboardArtworksNewRouteImport } from './routes/artist.dashboard.artworks.new'
 
-const WishlistRoute = WishlistRouteImport.update({
-  id: '/wishlist',
-  path: '/wishlist',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WallArtRoute = WallArtRouteImport.update({
-  id: '/wall-art',
-  path: '/wall-art',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TradeRoute = TradeRouteImport.update({
-  id: '/trade',
-  path: '/trade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ShippingRoute = ShippingRouteImport.update({
-  id: '/shipping',
-  path: '/shipping',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SellRoute = SellRouteImport.update({
-  id: '/sell',
-  path: '/sell',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReturnsRoute = ReturnsRouteImport.update({
-  id: '/returns',
-  path: '/returns',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RequestQuoteRoute = RequestQuoteRouteImport.update({
-  id: '/request-quote',
-  path: '/request-quote',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrintsRoute = PrintsRouteImport.update({
-  id: '/prints',
-  path: '/prints',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PhotographyRoute = PhotographyRouteImport.update({
-  id: '/photography',
-  path: '/photography',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PaintingsRoute = PaintingsRouteImport.update({
-  id: '/paintings',
-  path: '/paintings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MessagesRoute = MessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalRoute = JournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HowItWorksRoute = HowItWorksRouteImport.update({
-  id: '/how-it-works',
-  path: '/how-it-works',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HelpRoute = HelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GalleriesRoute = GalleriesRouteImport.update({
-  id: '/galleries',
-  path: '/galleries',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForInteriorDesignersRoute = ForInteriorDesignersRouteImport.update({
-  id: '/for-interior-designers',
-  path: '/for-interior-designers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiscoverRoute = DiscoverRouteImport.update({
-  id: '/discover',
-  path: '/discover',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeleteAccountRoute = DeleteAccountRouteImport.update({
-  id: '/delete-account',
-  path: '/delete-account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreatorsRoute = CreatorsRouteImport.update({
-  id: '/creators',
-  path: '/creators',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CollectionsRoute = CollectionsRouteImport.update({
-  id: '/collections',
-  path: '/collections',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckoutRoute = CheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CartRoute = CartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalligraphyRoute = CalligraphyRouteImport.update({
-  id: '/calligraphy',
-  path: '/calligraphy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BuyerProtectionRoute = BuyerProtectionRouteImport.update({
-  id: '/buyer-protection',
-  path: '/buyer-protection',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticityRoute = AuthenticityRouteImport.update({
-  id: '/authenticity',
-  path: '/authenticity',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AffiliateRoute = AffiliateRouteImport.update({
-  id: '/affiliate',
-  path: '/affiliate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountRoute = AccountRouteImport.update({
-  id: '/account',
-  path: '/account',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -220,94 +75,169 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StoreSlugRoute = StoreSlugRouteImport.update({
-  id: '/store/$slug',
-  path: '/store/$slug',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SellPlansRoute = SellPlansRouteImport.update({
-  id: '/plans',
-  path: '/plans',
-  getParentRoute: () => SellRoute,
-} as any)
-const SellArtRoute = SellArtRouteImport.update({
-  id: '/art',
-  path: '/art',
-  getParentRoute: () => SellRoute,
-} as any)
-const ProductSlugRoute = ProductSlugRouteImport.update({
-  id: '/product/$slug',
-  path: '/product/$slug',
+const AffiliateRoute = AffiliateRouteImport.update({
+  id: '/affiliate',
+  path: '/affiliate',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PaymentPaymentIdRoute = PaymentPaymentIdRouteImport.update({
-  id: '/payment/$paymentId',
-  path: '/payment/$paymentId',
+const AuthenticityRoute = AuthenticityRouteImport.update({
+  id: '/authenticity',
+  path: '/authenticity',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LegalSlugRoute = LegalSlugRouteImport.update({
-  id: '/legal/$slug',
-  path: '/legal/$slug',
+const BuyerProtectionRoute = BuyerProtectionRouteImport.update({
+  id: '/buyer-protection',
+  path: '/buyer-protection',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardSectionRoute = DashboardSectionRouteImport.update({
+const CalligraphyRoute = CalligraphyRouteImport.update({
+  id: '/calligraphy',
+  path: '/calligraphy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollectionsRoute = CollectionsRouteImport.update({
+  id: '/collections',
+  path: '/collections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatorsRoute = CreatorsRouteImport.update({
+  id: '/creators',
+  path: '/creators',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscoverRoute = DiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForInteriorDesignersRoute = ForInteriorDesignersRouteImport.update({
+  id: '/for-interior-designers',
+  path: '/for-interior-designers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalleriesRoute = GalleriesRouteImport.update({
+  id: '/galleries',
+  path: '/galleries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaintingsRoute = PaintingsRouteImport.update({
+  id: '/paintings',
+  path: '/paintings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhotographyRoute = PhotographyRouteImport.update({
+  id: '/photography',
+  path: '/photography',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrintsRoute = PrintsRouteImport.update({
+  id: '/prints',
+  path: '/prints',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestQuoteRoute = RequestQuoteRouteImport.update({
+  id: '/request-quote',
+  path: '/request-quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReturnsRoute = ReturnsRouteImport.update({
+  id: '/returns',
+  path: '/returns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellRoute = SellRouteImport.update({
+  id: '/sell',
+  path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShippingRoute = ShippingRouteImport.update({
+  id: '/shipping',
+  path: '/shipping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TradeRoute = TradeRouteImport.update({
+  id: '/trade',
+  path: '/trade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WallArtRoute = WallArtRouteImport.update({
+  id: '/wall-art',
+  path: '/wall-art',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountSectionRoute = AccountSectionRouteImport.update({
   id: '/$section',
   path: '/$section',
-  getParentRoute: () => DashboardRoute,
+  getParentRoute: () => AccountRoute,
 } as any)
-const CreatorSlugRoute = CreatorSlugRouteImport.update({
-  id: '/creator/$slug',
-  path: '/creator/$slug',
-  getParentRoute: () => rootRouteImport,
+const AdminSectionRoute = AdminSectionRouteImport.update({
+  id: '/$section',
+  path: '/$section',
+  getParentRoute: () => AdminRoute,
 } as any)
-const AuthSignupRoute = AuthSignupRouteImport.update({
-  id: '/auth/signup',
-  path: '/auth/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/auth/reset-password',
-  path: '/auth/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/auth/forgot-password',
-  path: '/auth/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistStoreCreatedRoute = ArtistStoreCreatedRouteImport.update({
-  id: '/artist/store-created',
-  path: '/artist/store-created',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistSignupRoute = ArtistSignupRouteImport.update({
-  id: '/artist/signup',
-  path: '/artist/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistPaymentSuccessRoute = ArtistPaymentSuccessRouteImport.update({
-  id: '/artist/payment-success',
-  path: '/artist/payment-success',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistPaymentFailedRoute = ArtistPaymentFailedRouteImport.update({
-  id: '/artist/payment-failed',
-  path: '/artist/payment-failed',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistOnboardingRoute = ArtistOnboardingRouteImport.update({
-  id: '/artist/onboarding',
-  path: '/artist/onboarding',
+const ArtistCheckoutRoute = ArtistCheckoutRouteImport.update({
+  id: '/artist/checkout',
+  path: '/artist/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArtistDashboardRoute = ArtistDashboardRouteImport.update({
@@ -315,20 +245,90 @@ const ArtistDashboardRoute = ArtistDashboardRouteImport.update({
   path: '/artist/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ArtistCheckoutRoute = ArtistCheckoutRouteImport.update({
-  id: '/artist/checkout',
-  path: '/artist/checkout',
+const ArtistOnboardingRoute = ArtistOnboardingRouteImport.update({
+  id: '/artist/onboarding',
+  path: '/artist/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminSectionRoute = AdminSectionRouteImport.update({
-  id: '/$section',
-  path: '/$section',
-  getParentRoute: () => AdminRoute,
+const ArtistPaymentFailedRoute = ArtistPaymentFailedRouteImport.update({
+  id: '/artist/payment-failed',
+  path: '/artist/payment-failed',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AccountSectionRoute = AccountSectionRouteImport.update({
+const ArtistPaymentSuccessRoute = ArtistPaymentSuccessRouteImport.update({
+  id: '/artist/payment-success',
+  path: '/artist/payment-success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtistSignupRoute = ArtistSignupRouteImport.update({
+  id: '/artist/signup',
+  path: '/artist/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtistStoreCreatedRoute = ArtistStoreCreatedRouteImport.update({
+  id: '/artist/store-created',
+  path: '/artist/store-created',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatorSlugRoute = CreatorSlugRouteImport.update({
+  id: '/creator/$slug',
+  path: '/creator/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardSectionRoute = DashboardSectionRouteImport.update({
   id: '/$section',
   path: '/$section',
-  getParentRoute: () => AccountRoute,
+  getParentRoute: () => DashboardRoute,
+} as any)
+const LegalSlugRoute = LegalSlugRouteImport.update({
+  id: '/legal/$slug',
+  path: '/legal/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentPaymentIdRoute = PaymentPaymentIdRouteImport.update({
+  id: '/payment/$paymentId',
+  path: '/payment/$paymentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductSlugRoute = ProductSlugRouteImport.update({
+  id: '/product/$slug',
+  path: '/product/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellArtRoute = SellArtRouteImport.update({
+  id: '/art',
+  path: '/art',
+  getParentRoute: () => SellRoute,
+} as any)
+const SellPlansRoute = SellPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => SellRoute,
+} as any)
+const StoreSlugRoute = StoreSlugRouteImport.update({
+  id: '/store/$slug',
+  path: '/store/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ArtistDashboardSectionRoute = ArtistDashboardSectionRouteImport.update({
   id: '/$section',
@@ -741,214 +741,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wishlist': {
-      id: '/wishlist'
-      path: '/wishlist'
-      fullPath: '/wishlist'
-      preLoaderRoute: typeof WishlistRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/wall-art': {
-      id: '/wall-art'
-      path: '/wall-art'
-      fullPath: '/wall-art'
-      preLoaderRoute: typeof WallArtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/trade': {
-      id: '/trade'
-      path: '/trade'
-      fullPath: '/trade'
-      preLoaderRoute: typeof TradeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/shipping': {
-      id: '/shipping'
-      path: '/shipping'
-      fullPath: '/shipping'
-      preLoaderRoute: typeof ShippingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sell': {
-      id: '/sell'
-      path: '/sell'
-      fullPath: '/sell'
-      preLoaderRoute: typeof SellRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/returns': {
-      id: '/returns'
-      path: '/returns'
-      fullPath: '/returns'
-      preLoaderRoute: typeof ReturnsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/request-quote': {
-      id: '/request-quote'
-      path: '/request-quote'
-      fullPath: '/request-quote'
-      preLoaderRoute: typeof RequestQuoteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/prints': {
-      id: '/prints'
-      path: '/prints'
-      fullPath: '/prints'
-      preLoaderRoute: typeof PrintsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/photography': {
-      id: '/photography'
-      path: '/photography'
-      fullPath: '/photography'
-      preLoaderRoute: typeof PhotographyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/paintings': {
-      id: '/paintings'
-      path: '/paintings'
-      fullPath: '/paintings'
-      preLoaderRoute: typeof PaintingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/messages': {
-      id: '/messages'
-      path: '/messages'
-      fullPath: '/messages'
-      preLoaderRoute: typeof MessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal': {
-      id: '/journal'
-      path: '/journal'
-      fullPath: '/journal'
-      preLoaderRoute: typeof JournalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/how-it-works': {
-      id: '/how-it-works'
-      path: '/how-it-works'
-      fullPath: '/how-it-works'
-      preLoaderRoute: typeof HowItWorksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/help': {
-      id: '/help'
-      path: '/help'
-      fullPath: '/help'
-      preLoaderRoute: typeof HelpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/galleries': {
-      id: '/galleries'
-      path: '/galleries'
-      fullPath: '/galleries'
-      preLoaderRoute: typeof GalleriesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/for-interior-designers': {
-      id: '/for-interior-designers'
-      path: '/for-interior-designers'
-      fullPath: '/for-interior-designers'
-      preLoaderRoute: typeof ForInteriorDesignersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/discover': {
-      id: '/discover'
-      path: '/discover'
-      fullPath: '/discover'
-      preLoaderRoute: typeof DiscoverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/delete-account': {
-      id: '/delete-account'
-      path: '/delete-account'
-      fullPath: '/delete-account'
-      preLoaderRoute: typeof DeleteAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/creators': {
-      id: '/creators'
-      path: '/creators'
-      fullPath: '/creators'
-      preLoaderRoute: typeof CreatorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/collections': {
-      id: '/collections'
-      path: '/collections'
-      fullPath: '/collections'
-      preLoaderRoute: typeof CollectionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout': {
-      id: '/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cart': {
-      id: '/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof CartRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calligraphy': {
-      id: '/calligraphy'
-      path: '/calligraphy'
-      fullPath: '/calligraphy'
-      preLoaderRoute: typeof CalligraphyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/buyer-protection': {
-      id: '/buyer-protection'
-      path: '/buyer-protection'
-      fullPath: '/buyer-protection'
-      preLoaderRoute: typeof BuyerProtectionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/authenticity': {
-      id: '/authenticity'
-      path: '/authenticity'
-      fullPath: '/authenticity'
-      preLoaderRoute: typeof AuthenticityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/affiliate': {
-      id: '/affiliate'
-      path: '/affiliate'
-      fullPath: '/affiliate'
-      preLoaderRoute: typeof AffiliateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account': {
-      id: '/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof AccountRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -958,130 +755,235 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/store/$slug': {
-      id: '/store/$slug'
-      path: '/store/$slug'
-      fullPath: '/store/$slug'
-      preLoaderRoute: typeof StoreSlugRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sell/plans': {
-      id: '/sell/plans'
-      path: '/plans'
-      fullPath: '/sell/plans'
-      preLoaderRoute: typeof SellPlansRouteImport
-      parentRoute: typeof SellRoute
-    }
-    '/sell/art': {
-      id: '/sell/art'
-      path: '/art'
-      fullPath: '/sell/art'
-      preLoaderRoute: typeof SellArtRouteImport
-      parentRoute: typeof SellRoute
-    }
-    '/product/$slug': {
-      id: '/product/$slug'
-      path: '/product/$slug'
-      fullPath: '/product/$slug'
-      preLoaderRoute: typeof ProductSlugRouteImport
+    '/affiliate': {
+      id: '/affiliate'
+      path: '/affiliate'
+      fullPath: '/affiliate'
+      preLoaderRoute: typeof AffiliateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/payment/$paymentId': {
-      id: '/payment/$paymentId'
-      path: '/payment/$paymentId'
-      fullPath: '/payment/$paymentId'
-      preLoaderRoute: typeof PaymentPaymentIdRouteImport
+    '/authenticity': {
+      id: '/authenticity'
+      path: '/authenticity'
+      fullPath: '/authenticity'
+      preLoaderRoute: typeof AuthenticityRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/legal/$slug': {
-      id: '/legal/$slug'
-      path: '/legal/$slug'
-      fullPath: '/legal/$slug'
-      preLoaderRoute: typeof LegalSlugRouteImport
+    '/buyer-protection': {
+      id: '/buyer-protection'
+      path: '/buyer-protection'
+      fullPath: '/buyer-protection'
+      preLoaderRoute: typeof BuyerProtectionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/$section': {
-      id: '/dashboard/$section'
+    '/calligraphy': {
+      id: '/calligraphy'
+      path: '/calligraphy'
+      fullPath: '/calligraphy'
+      preLoaderRoute: typeof CalligraphyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collections': {
+      id: '/collections'
+      path: '/collections'
+      fullPath: '/collections'
+      preLoaderRoute: typeof CollectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creators': {
+      id: '/creators'
+      path: '/creators'
+      fullPath: '/creators'
+      preLoaderRoute: typeof CreatorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discover': {
+      id: '/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for-interior-designers': {
+      id: '/for-interior-designers'
+      path: '/for-interior-designers'
+      fullPath: '/for-interior-designers'
+      preLoaderRoute: typeof ForInteriorDesignersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/galleries': {
+      id: '/galleries'
+      path: '/galleries'
+      fullPath: '/galleries'
+      preLoaderRoute: typeof GalleriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paintings': {
+      id: '/paintings'
+      path: '/paintings'
+      fullPath: '/paintings'
+      preLoaderRoute: typeof PaintingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/photography': {
+      id: '/photography'
+      path: '/photography'
+      fullPath: '/photography'
+      preLoaderRoute: typeof PhotographyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prints': {
+      id: '/prints'
+      path: '/prints'
+      fullPath: '/prints'
+      preLoaderRoute: typeof PrintsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/request-quote': {
+      id: '/request-quote'
+      path: '/request-quote'
+      fullPath: '/request-quote'
+      preLoaderRoute: typeof RequestQuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/returns': {
+      id: '/returns'
+      path: '/returns'
+      fullPath: '/returns'
+      preLoaderRoute: typeof ReturnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sell': {
+      id: '/sell'
+      path: '/sell'
+      fullPath: '/sell'
+      preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shipping': {
+      id: '/shipping'
+      path: '/shipping'
+      fullPath: '/shipping'
+      preLoaderRoute: typeof ShippingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trade': {
+      id: '/trade'
+      path: '/trade'
+      fullPath: '/trade'
+      preLoaderRoute: typeof TradeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wall-art': {
+      id: '/wall-art'
+      path: '/wall-art'
+      fullPath: '/wall-art'
+      preLoaderRoute: typeof WallArtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/$section': {
+      id: '/account/$section'
       path: '/$section'
-      fullPath: '/dashboard/$section'
-      preLoaderRoute: typeof DashboardSectionRouteImport
-      parentRoute: typeof DashboardRoute
+      fullPath: '/account/$section'
+      preLoaderRoute: typeof AccountSectionRouteImport
+      parentRoute: typeof AccountRoute
     }
-    '/creator/$slug': {
-      id: '/creator/$slug'
-      path: '/creator/$slug'
-      fullPath: '/creator/$slug'
-      preLoaderRoute: typeof CreatorSlugRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/$section': {
+      id: '/admin/$section'
+      path: '/$section'
+      fullPath: '/admin/$section'
+      preLoaderRoute: typeof AdminSectionRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/auth/signup': {
-      id: '/auth/signup'
-      path: '/auth/signup'
-      fullPath: '/auth/signup'
-      preLoaderRoute: typeof AuthSignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/reset-password': {
-      id: '/auth/reset-password'
-      path: '/auth/reset-password'
-      fullPath: '/auth/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/auth/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/forgot-password': {
-      id: '/auth/forgot-password'
-      path: '/auth/forgot-password'
-      fullPath: '/auth/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artist/store-created': {
-      id: '/artist/store-created'
-      path: '/artist/store-created'
-      fullPath: '/artist/store-created'
-      preLoaderRoute: typeof ArtistStoreCreatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artist/signup': {
-      id: '/artist/signup'
-      path: '/artist/signup'
-      fullPath: '/artist/signup'
-      preLoaderRoute: typeof ArtistSignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artist/payment-success': {
-      id: '/artist/payment-success'
-      path: '/artist/payment-success'
-      fullPath: '/artist/payment-success'
-      preLoaderRoute: typeof ArtistPaymentSuccessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artist/payment-failed': {
-      id: '/artist/payment-failed'
-      path: '/artist/payment-failed'
-      fullPath: '/artist/payment-failed'
-      preLoaderRoute: typeof ArtistPaymentFailedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artist/onboarding': {
-      id: '/artist/onboarding'
-      path: '/artist/onboarding'
-      fullPath: '/artist/onboarding'
-      preLoaderRoute: typeof ArtistOnboardingRouteImport
+    '/artist/checkout': {
+      id: '/artist/checkout'
+      path: '/artist/checkout'
+      fullPath: '/artist/checkout'
+      preLoaderRoute: typeof ArtistCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/artist/dashboard': {
@@ -1091,26 +993,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/artist/checkout': {
-      id: '/artist/checkout'
-      path: '/artist/checkout'
-      fullPath: '/artist/checkout'
-      preLoaderRoute: typeof ArtistCheckoutRouteImport
+    '/artist/onboarding': {
+      id: '/artist/onboarding'
+      path: '/artist/onboarding'
+      fullPath: '/artist/onboarding'
+      preLoaderRoute: typeof ArtistOnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/$section': {
-      id: '/admin/$section'
-      path: '/$section'
-      fullPath: '/admin/$section'
-      preLoaderRoute: typeof AdminSectionRouteImport
-      parentRoute: typeof AdminRoute
+    '/artist/payment-failed': {
+      id: '/artist/payment-failed'
+      path: '/artist/payment-failed'
+      fullPath: '/artist/payment-failed'
+      preLoaderRoute: typeof ArtistPaymentFailedRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/account/$section': {
-      id: '/account/$section'
+    '/artist/payment-success': {
+      id: '/artist/payment-success'
+      path: '/artist/payment-success'
+      fullPath: '/artist/payment-success'
+      preLoaderRoute: typeof ArtistPaymentSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artist/signup': {
+      id: '/artist/signup'
+      path: '/artist/signup'
+      fullPath: '/artist/signup'
+      preLoaderRoute: typeof ArtistSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artist/store-created': {
+      id: '/artist/store-created'
+      path: '/artist/store-created'
+      fullPath: '/artist/store-created'
+      preLoaderRoute: typeof ArtistStoreCreatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/auth/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creator/$slug': {
+      id: '/creator/$slug'
+      path: '/creator/$slug'
+      fullPath: '/creator/$slug'
+      preLoaderRoute: typeof CreatorSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/$section': {
+      id: '/dashboard/$section'
       path: '/$section'
-      fullPath: '/account/$section'
-      preLoaderRoute: typeof AccountSectionRouteImport
-      parentRoute: typeof AccountRoute
+      fullPath: '/dashboard/$section'
+      preLoaderRoute: typeof DashboardSectionRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/legal/$slug': {
+      id: '/legal/$slug'
+      path: '/legal/$slug'
+      fullPath: '/legal/$slug'
+      preLoaderRoute: typeof LegalSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/$paymentId': {
+      id: '/payment/$paymentId'
+      path: '/payment/$paymentId'
+      fullPath: '/payment/$paymentId'
+      preLoaderRoute: typeof PaymentPaymentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product/$slug': {
+      id: '/product/$slug'
+      path: '/product/$slug'
+      fullPath: '/product/$slug'
+      preLoaderRoute: typeof ProductSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sell/art': {
+      id: '/sell/art'
+      path: '/art'
+      fullPath: '/sell/art'
+      preLoaderRoute: typeof SellArtRouteImport
+      parentRoute: typeof SellRoute
+    }
+    '/sell/plans': {
+      id: '/sell/plans'
+      path: '/plans'
+      fullPath: '/sell/plans'
+      preLoaderRoute: typeof SellPlansRouteImport
+      parentRoute: typeof SellRoute
+    }
+    '/store/$slug': {
+      id: '/store/$slug'
+      path: '/store/$slug'
+      fullPath: '/store/$slug'
+      preLoaderRoute: typeof StoreSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/artist/dashboard/$section': {
       id: '/artist/dashboard/$section'

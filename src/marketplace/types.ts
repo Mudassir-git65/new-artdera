@@ -121,6 +121,8 @@ export interface User {
   emailVerified?: boolean;
   phoneVerified?: boolean;
   createdAt: string;
+  planId?: PlanId;
+  subscriptionStatus?: string;
 }
 
 export interface Buyer extends User {

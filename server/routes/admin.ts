@@ -239,6 +239,109 @@ adminRouter.patch(
 );
 
 adminRouter.patch(
+  "/users/:id/plan",
+  asyncRoute(async (req, res) => {
+    const { planId } = z
+      .object({ planId: z.enum(["free", "professional", "gallery"]) })
+      .strict()
+      .parse(req.body);
+
+    const user = await UserModel.findById(req.params.id);
+    if (!user) throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+
+    const cycle = planId === "free" ? "free" : planId === "professional" ? "annual" : "monthly";
+    const { plan, price } = await getActivePlan(planId, cycle);
+
+    const now = new Date();
+    const currentPeriodEnd = new Date(
+      now.getTime() + (cycle === "annual" ? 365 : cycle === "monthly" ? 30 : 3650) * 24 * 60 * 60 * 1000,
+    );
+
+    let subscription = await SubscriptionModel.findOne({ userId: user._id });
+    const oldPlanId = subscription?.planId ?? "free";
+    if (!subscription) {
+      subscription = new SubscriptionModel({
+        userId: user._id,
+        startedAt: now,
+      });
+    }
+
+    subscription.planId = plan.planId;
+    subscription.billingCycle = cycle;
+    subscription.status = "active";
+    subscription.price = price;
+    subscription.commissionRate = plan.commissionRate;
+    subscription.listingLimit = plan.listingLimit;
+    subscription.featuresSnapshot = [...plan.permissions];
+    subscription.currentPeriodStart = now;
+    subscription.currentPeriodEnd = currentPeriodEnd;
+    subscription.nextBillingAt = currentPeriodEnd;
+    subscription.pendingPlanId = undefined;
+    subscription.pendingChangeAt = undefined;
+    subscription.cancelAtPeriodEnd = false;
+    await subscription.save();
+
+    if (planId === "gallery") {
+      user.sellerType = "gallery";
+      if (user.role === "buyer") user.role = "gallery";
+    } else {
+      user.sellerType = "artist";
+      if (user.role === "buyer") user.role = "artist";
+    }
+    await user.save();
+
+    const activeArtworks = await ArtworkModel.find({
+      artistId: user._id,
+      status: { $in: ["published", "pending_review", "reserved"] },
+    }).sort({ createdAt: 1 });
+
+    const allowed = plan.listingLimit ?? activeArtworks.length;
+    let archivedArtworkIds: string[] = [];
+    if (plan.listingLimit !== null && activeArtworks.length > plan.listingLimit) {
+      const toArchive = activeArtworks.slice(plan.listingLimit).map((a) => a._id);
+      if (toArchive.length > 0) {
+        await ArtworkModel.updateMany({ _id: { $in: toArchive } }, { $set: { status: "archived" } });
+        archivedArtworkIds = toArchive.map((id) => String(id));
+      }
+    }
+
+    await ListingQuotaModel.updateOne(
+      { userId: user._id },
+      { $set: { activeListings: Math.min(activeArtworks.length, allowed) } },
+      { upsert: true },
+    );
+
+    await audit(
+      req,
+      "admin.user_plan_changed",
+      "User",
+      user._id,
+      { planId: oldPlanId },
+      { planId: plan.planId },
+    );
+    await notify(
+      user._id,
+      "subscription_updated",
+      "Subscription Plan Updated",
+      `Your account plan was manually updated to ${plan.name} by an administrator.`,
+      "/artist/dashboard/subscription",
+    );
+
+    const serialized = serializeUser(user);
+    return ok(
+      res,
+      {
+        ...serialized,
+        planId: plan.planId,
+        subscriptionStatus: "active",
+        archivedArtworkIds,
+      },
+      `User plan updated to ${plan.name}`,
+    );
+  }),
+);
+
+adminRouter.patch(
   "/artworks/:id/moderation",
   asyncRoute(async (req, res) => {
     const input = z
@@ -1132,7 +1235,22 @@ adminRouter.get(
     const [items, total] = await Promise.all([query, config.model.countDocuments(filter)]);
     let safeItems: any[];
     if (resource === "users") {
-      safeItems = items.map(serializeUser);
+      const userIds = items.map((item: any) => item._id);
+      const subscriptions = await SubscriptionModel.find({
+        userId: { $in: userIds },
+      }).lean();
+      const subMap = new Map(subscriptions.map((s) => [String(s.userId), s]));
+      safeItems = items.map((u: any) => {
+        const serialized = serializeUser(u);
+        const sub = subMap.get(String(u._id));
+        const defaultPlan =
+          u.role === "gallery" || u.sellerType === "gallery" ? "gallery" : "free";
+        return {
+          ...serialized,
+          planId: sub?.planId ?? defaultPlan,
+          subscriptionStatus: sub?.status ?? "active",
+        };
+      });
     } else if (resource === "stores") {
       safeItems = items.map(publicStore);
     } else if (resource === "artworks") {

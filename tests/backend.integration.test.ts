@@ -849,6 +849,54 @@ describe("plans, payments, and listing limits", () => {
       code: "LISTING_LIMIT_REACHED",
     });
   });
+
+  it("allows admin to manually upgrade or downgrade an artist plan and immediately sync permissions and limits", async () => {
+    const admin = await directUser("admin", "plan-admin@example.com");
+    const adminAgent = await login(admin.email);
+
+    const artist = await directUser("artist", "artist-plan-change@example.com");
+    await activeSubscription(artist._id, "free");
+
+    // Admin upgrades artist from Free to Professional
+    const upgradeRes = await adminAgent
+      .patch(`/api/admin/users/${artist._id}/plan`)
+      .send({ planId: "professional" });
+
+    expect(upgradeRes.status).toBe(200);
+    expect(upgradeRes.body.data.planId).toBe("professional");
+
+    const upgradedSub = await SubscriptionModel.findOne({ userId: artist._id }).lean();
+    expect(upgradedSub?.planId).toBe("professional");
+    expect(upgradedSub?.status).toBe("active");
+    expect(upgradedSub?.listingLimit).toBe(200);
+    expect(upgradedSub?.commissionRate).toBe(20);
+
+    // Admin upgrades artist from Professional to Gallery
+    const galleryRes = await adminAgent
+      .patch(`/api/admin/users/${artist._id}/plan`)
+      .send({ planId: "gallery" });
+
+    expect(galleryRes.status).toBe(200);
+    expect(galleryRes.body.data.planId).toBe("gallery");
+
+    const gallerySub = await SubscriptionModel.findOne({ userId: artist._id }).lean();
+    expect(gallerySub?.planId).toBe("gallery");
+    expect(gallerySub?.commissionRate).toBe(0);
+    expect(gallerySub?.listingLimit).toBeNull();
+    const updatedUser = await UserModel.findById(artist._id).lean();
+    expect(updatedUser?.sellerType).toBe("gallery");
+
+    // Admin downgrades artist to Free
+    const freeRes = await adminAgent
+      .patch(`/api/admin/users/${artist._id}/plan`)
+      .send({ planId: "free" });
+
+    expect(freeRes.status).toBe(200);
+    expect(freeRes.body.data.planId).toBe("free");
+    const freeSub = await SubscriptionModel.findOne({ userId: artist._id }).lean();
+    expect(freeSub?.planId).toBe("free");
+    expect(freeSub?.listingLimit).toBe(5);
+  });
 });
 
 describe("object authorization and gallery permissions", () => {

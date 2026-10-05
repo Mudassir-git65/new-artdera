@@ -1748,6 +1748,9 @@ export class AdminService {
   static userStatus(id: string, status: "active" | "suspended" | "locked" | "deleted") {
     return apiClient.patch<User>(`/api/admin/users/${id}/status`, { status });
   }
+  static changeUserPlan(id: string, planId: PlanId) {
+    return apiClient.patch<User>(`/api/admin/users/${id}/plan`, { planId });
+  }
   static changeUserPassword(id: string, newPassword: string) {
     return apiClient.patch<{ success: true }>(`/api/admin/users/${id}/password`, { newPassword });
   }

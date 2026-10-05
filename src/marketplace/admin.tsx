@@ -48,7 +48,7 @@ import { toast } from "sonner";
 import { useAuth } from "./auth";
 import { ADMIN_METRICS, ARTWORKS, AUDIT_LOG, PROMOTIONS, STORES } from "./data";
 import { formatPKR, PLAN_ORDER, PLANS, PROMOTION_PLACEMENTS } from "./config";
-import type { SubscriptionPlan, User } from "./types";
+import type { PlanId, SubscriptionPlan, User } from "./types";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -58,7 +58,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { AdminService, UserService, UploadService } from "./services";
+import { AdminService, UserService, UploadService, MarketplaceService } from "./services";
 import { PageLoading } from "@/components/site/PageLoading";
 import { AdminAffiliateManagement } from "./admin-affiliates";
 import { AccountDeletionQueue } from "./admin-deletions";
@@ -382,6 +382,10 @@ function UserManagement({ type }: { type: string }) {
   const [passwordModalUser, setPasswordModalUser] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [planModalUser, setPlanModalUser] = useState<User | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<PlanId>("free");
+  const [isSubmittingPlan, setIsSubmittingPlan] = useState(false);
+
   const role =
     type === "artists"
       ? "artist"
@@ -445,10 +449,11 @@ function UserManagement({ type }: { type: string }) {
         </div>
       </div>
       <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[780px] text-left text-sm">
+        <table className="w-full min-w-[850px] text-left text-sm">
           <thead>
             <tr className="border-b text-xs text-muted-foreground">
               <th className="p-3">Account</th>
+              <th className="p-3">Plan</th>
               <th className="p-3">Role</th>
               <th className="p-3">Location</th>
               <th className="p-3">Created</th>
@@ -459,13 +464,13 @@ function UserManagement({ type }: { type: string }) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
                   Loading accounts…
                 </td>
               </tr>
             ) : loadError ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-sm text-[var(--destructive)]">
+                <td colSpan={7} className="p-8 text-center text-sm text-[var(--destructive)]">
                   {loadError}
                 </td>
               </tr>
@@ -476,6 +481,30 @@ function UserManagement({ type }: { type: string }) {
                     <strong>{user.fullName}</strong>
                     <div className="text-xs text-muted-foreground">{user.email}</div>
                   </td>
+                  <td className="p-3">
+                    {(() => {
+                      const currentPlan = user.planId ?? "free";
+                      const label =
+                        currentPlan === "gallery"
+                          ? "Gallery"
+                          : currentPlan === "professional"
+                            ? "Professional"
+                            : "Free";
+                      const badgeClass =
+                        currentPlan === "gallery"
+                          ? "bg-purple-100 text-purple-900 border-purple-300"
+                          : currentPlan === "professional"
+                            ? "bg-amber-100 text-amber-900 border-amber-300 font-bold"
+                            : "bg-zinc-100 text-zinc-700 border-zinc-300";
+                      return (
+                        <span
+                          className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}
+                        >
+                          {label}
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td className="p-3 capitalize">{user.role}</td>
                   <td className="p-3">{user.city}</td>
                   <td className="p-3">{new Date(user.createdAt).toLocaleDateString("en-PK")}</td>
@@ -483,7 +512,16 @@ function UserManagement({ type }: { type: string }) {
                     <AdminStatus status={statusLabel(user.status)} />
                   </td>
                   <td className="p-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => {
+                          setPlanModalUser(user);
+                          setSelectedPlanId((user.planId as PlanId) ?? "free");
+                        }}
+                        className="admin-action text-xs"
+                      >
+                        Change Plan
+                      </button>
                       <button
                         onClick={() =>
                           void (async () => {
@@ -502,7 +540,7 @@ function UserManagement({ type }: { type: string }) {
                             );
                           })()
                         }
-                        className="admin-action disabled:cursor-not-allowed disabled:opacity-45"
+                        className="admin-action disabled:cursor-not-allowed disabled:opacity-45 text-xs"
                         disabled={user.id === currentUser?.id}
                       >
                         {user.id === currentUser?.id
@@ -511,7 +549,10 @@ function UserManagement({ type }: { type: string }) {
                             ? "Suspend"
                             : "Reactivate"}
                       </button>
-                      <button onClick={() => setPasswordModalUser(user)} className="admin-action">
+                      <button
+                        onClick={() => setPasswordModalUser(user)}
+                        className="admin-action text-xs"
+                      >
                         Reset Password
                       </button>
                     </div>
@@ -520,7 +561,7 @@ function UserManagement({ type }: { type: string }) {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
                   No matching accounts were found.
                 </td>
               </tr>
@@ -608,6 +649,125 @@ function UserManagement({ type }: { type: string }) {
               disabled={isSubmittingPassword}
             >
               {isSubmittingPassword ? "Saving..." : "Save Password"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!planModalUser} onOpenChange={(open) => !open && setPlanModalUser(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Subscription Plan</DialogTitle>
+            <DialogDescription>
+              Manually upgrade or downgrade <strong>{planModalUser?.fullName}</strong> (
+              {planModalUser?.email}). This immediately applies all permissions, limits, commission
+              rates, and features to their account in MongoDB.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              Select Plan
+            </label>
+            <div className="grid gap-2.5">
+              {[
+                {
+                  id: "free" as PlanId,
+                  name: "Free",
+                  desc: "5 active artworks limit · 20% sales commission · Standard artist profile",
+                  badge: "bg-zinc-100 text-zinc-800 border-zinc-300",
+                },
+                {
+                  id: "professional" as PlanId,
+                  name: "Professional",
+                  desc: "200 active artworks limit · 20% sales commission · PRO badge, detailed analytics & priority tools",
+                  badge: "bg-amber-100 text-amber-900 border-amber-300",
+                },
+                {
+                  id: "gallery" as PlanId,
+                  name: "Gallery",
+                  desc: "Fair-use unlimited listings · 0% sales commission · Staff accounts, managed artists, CRM & exhibitions",
+                  badge: "bg-purple-100 text-purple-900 border-purple-300",
+                },
+              ].map((p) => (
+                <label
+                  key={p.id}
+                  className={`flex items-start gap-3 rounded-xl border p-3.5 cursor-pointer transition ${
+                    selectedPlanId === p.id
+                      ? "border-[var(--oxblood)] bg-[var(--porcelain)] ring-1 ring-[var(--oxblood)]"
+                      : "border-[var(--color-border)] hover:bg-[var(--ivory)]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="subscriptionPlan"
+                    value={p.id}
+                    checked={selectedPlanId === p.id}
+                    onChange={() => setSelectedPlanId(p.id)}
+                    className="mt-1 accent-[var(--oxblood)]"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-sm">{p.name}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${p.badge}`}>
+                        {p.name.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{p.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setPlanModalUser(null)}
+              className="btn-ghost"
+              disabled={isSubmittingPlan}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (!planModalUser) return;
+                setIsSubmittingPlan(true);
+                AdminService.changeUserPlan(planModalUser.id, selectedPlanId)
+                  .then((res) => {
+                    if (res.error) toast.error(res.error.message);
+                    else {
+                      const planName =
+                        selectedPlanId === "gallery"
+                          ? "Gallery"
+                          : selectedPlanId === "professional"
+                            ? "Professional"
+                            : "Free";
+                      toast.success(`Artist plan changed to ${planName}`);
+                      setRows((current) =>
+                        current.map((item) =>
+                          item.id === planModalUser.id
+                            ? {
+                                ...item,
+                                planId: selectedPlanId,
+                                role:
+                                  selectedPlanId === "gallery"
+                                    ? "gallery"
+                                    : item.role === "buyer"
+                                      ? "artist"
+                                      : item.role,
+                                sellerType: selectedPlanId === "gallery" ? "gallery" : "artist",
+                              }
+                            : item,
+                        ),
+                      );
+                      setPlanModalUser(null);
+                      void MarketplaceService.bootstrap(true);
+                    }
+                  })
+                  .finally(() => setIsSubmittingPlan(false));
+              }}
+              className="btn-primary"
+              disabled={isSubmittingPlan}
+            >
+              {isSubmittingPlan ? "Saving..." : "Save Plan"}
             </button>
           </DialogFooter>
         </DialogContent>

@@ -20,6 +20,9 @@ export async function connectDatabase() {
           process.stdout.write("Database seed list resolved through the secure DNS fallback.\n");
         return mongoose.connect(uri, {
           dbName: env.MONGODB_DB_NAME,
+          // Index migrations are explicit; web cold starts must not build them.
+          autoIndex: env.NODE_ENV === "test",
+          autoCreate: env.NODE_ENV === "test",
           serverSelectionTimeoutMS: 10_000,
           connectTimeoutMS: 10_000,
           maxPoolSize: env.NODE_ENV === "production" ? 10 : 20,

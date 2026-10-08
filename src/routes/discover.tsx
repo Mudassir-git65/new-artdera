@@ -1,4 +1,6 @@
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { fetchCatalogPage } from "@/lib/server-loaders";
+import { uniqueById } from "@/lib/catalog-product";
+import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
 import { Filter, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   useEffect,
@@ -61,6 +63,20 @@ function sliderToPrice(pos: number): number {
 
 export const Route = createFileRoute("/discover")({
   validateSearch: (s) => searchSchema.parse(s),
+  loaderDeps: ({ search }) => search,
+  loader: ({ deps }) =>
+    fetchCatalogPage({
+      data: {
+        ...deps,
+        limit: 24,
+        sort:
+          deps.sort === "Price: low to high"
+            ? "price_asc"
+            : deps.sort === "Price: high to low"
+              ? "price_desc"
+              : "newest",
+      },
+    }),
   head: () => {
     const seo = generateMeta({
       title: "Discover Original Art, Calligraphy & Decor | ArtDera",
@@ -95,6 +111,7 @@ const COLOURS = ["oxblood", "terracotta", "indigo", "ivory", "ink", "stone", "go
 function Discover() {
   const { formatPrice } = useCurrency();
   const search = useSearch({ from: "/discover" });
+  const navigate = useNavigate({ from: "/discover" });
   const initialSort = SORTS.includes(search.sort as (typeof SORTS)[number])
     ? (search.sort as (typeof SORTS)[number])
     : "Recommended";
@@ -107,173 +124,136 @@ function Discover() {
   const [minPrice, setMinPrice] = useState<number>(search.min ?? PRICE_MIN);
   const [maxPrice, setMaxPrice] = useState<number>(search.max ?? PRICE_MAX);
   const [sort, setSort] = useState<(typeof SORTS)[number]>(initialSort);
-  const [catalogVersion, setCatalogVersion] = useState(0);
-  const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [shuffledProducts, setShuffledProducts] = useState<typeof PRODUCTS>(() => [...PRODUCTS]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const initial = Route.useLoaderData();
+  const [filtered, setFiltered] = useState(initial.products);
+  const [cursor, setCursor] = useState(initial.nextCursor);
+  const [total, setTotal] = useState(initial.total);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(() => PRODUCTS.length === 0);
-
-  const ARTWORKS_PER_PAGE = 24;
-
-  const [visibleLimit, setVisibleLimit] = useState(24);
-
+  const [initialLoading, setInitialLoading] = useState(false);
+  const [error, setError] = useState("");
+  const requestGeneration = useRef(0);
+  const searchRef = useRef(search);
+  searchRef.current = search;
   useEffect(() => {
-    setShuffledProducts((prev) => {
-      const existingIds = new Set(prev.map((p) => p.slug));
-      const newItems = PRODUCTS.filter((p) => !existingIds.has(p.slug));
-      if (newItems.length === 0) return prev;
-      const shuffledNew = [...newItems];
-      for (let i = shuffledNew.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledNew[i], shuffledNew[j]] = [shuffledNew[j], shuffledNew[i]];
-      }
-      return [...prev, ...shuffledNew];
-    });
-  }, [catalogVersion]);
-
-  // Load the FIRST page on mount — no while-loop, no bulk download
+    setCategory(search.category);
+    setRoom(search.room);
+    setQuery(search.q ?? "");
+    setKinds(search.kind ? search.kind.split(",") : []);
+    setSelectedColour(search.color);
+    setFramedOnly(search.framed === "true");
+    setMinPrice(search.min ?? PRICE_MIN);
+    setMaxPrice(search.max ?? PRICE_MAX);
+    setSort(
+      SORTS.includes(search.sort as (typeof SORTS)[number])
+        ? (search.sort as (typeof SORTS)[number])
+        : "Recommended",
+    );
+  }, [search]);
+  const loadingMore = useRef(false);
+  const searchKey = JSON.stringify({
+    category,
+    room,
+    q: query || undefined,
+    kind: kinds.length ? kinds.join(",") : undefined,
+    color: selectedColour,
+    framed: framedOnly ? "true" : undefined,
+    min: minPrice > PRICE_MIN ? minPrice : undefined,
+    max: maxPrice < PRICE_MAX ? maxPrice : undefined,
+    sort:
+      sort === "Price: low to high"
+        ? "price_asc"
+        : sort === "Price: high to low"
+          ? "price_desc"
+          : "newest",
+  });
   useEffect(() => {
-    let active = true;
-    async function loadFirstPage() {
-      const result = await MarketplaceService.loadArtworkPage(1, ARTWORKS_PER_PAGE);
-      if (!active) return;
-      if (result.data) {
-        setHasMore(result.data.page < result.data.pages);
-        setCurrentPage(result.data.page);
-      }
-      setInitialLoading(false);
-    }
-    void loadFirstPage();
-    return () => { active = false; };
-  }, []);
-
-  const loadNextPage = () => {
-    setVisibleLimit((limit) => limit + 24);
-    if (!isLoadingMore && hasMore) {
-      setIsLoadingMore(true);
-      const nextPage = currentPage + 1;
-      void MarketplaceService.loadArtworkPage(nextPage, ARTWORKS_PER_PAGE).then((result) => {
-        if (result.data) {
-          setHasMore(result.data.page < result.data.pages);
-          setCurrentPage(result.data.page);
-          setCatalogVersion((v) => v + 1);
-        }
-        setIsLoadingMore(false);
+    ++requestGeneration.current;
+    loadingMore.current = false;
+    setFiltered(initial.products);
+    setCursor(initial.nextCursor);
+    setTotal(initial.total);
+    setInitialLoading(false);
+    setIsLoadingMore(false);
+    setError("");
+    return () => {
+      // This ref is a request counter. Invalidate every outstanding response.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++requestGeneration.current;
+    };
+  }, [initial]);
+  const loadNextPage = async () => {
+    if (!cursor || loadingMore.current || initialLoading) return;
+    loadingMore.current = true;
+    setIsLoadingMore(true);
+    setError("");
+    const generation = requestGeneration.current;
+    try {
+      const result = await fetchCatalogPage({
+        data: { ...JSON.parse(searchKey), cursor, limit: 24 },
       });
+      if (generation !== requestGeneration.current) return;
+      setFiltered((items) => uniqueById([...items, ...result.products]));
+      setCursor(result.nextCursor);
+      setTotal(result.total);
+    } catch {
+      if (generation === requestGeneration.current)
+        setError("Could not load more artworks. Please try again.");
+    } finally {
+      if (generation === requestGeneration.current) {
+        loadingMore.current = false;
+        setIsLoadingMore(false);
+      }
     }
   };
-
+  const visibleProducts = filtered;
+  const hasMore = Boolean(cursor);
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (category) params.set("category", category);
-    if (room) params.set("room", room);
-    if (query.trim()) params.set("q", query.trim());
-    if (kinds.length) params.set("kind", kinds.join(","));
-    if (selectedColour) params.set("color", selectedColour);
-    if (framedOnly) params.set("framed", "true");
-    if (minPrice > PRICE_MIN) params.set("min", String(minPrice));
-    if (maxPrice < PRICE_MAX) params.set("max", String(maxPrice));
-    if (sort !== "Recommended") params.set("sort", sort);
-    const next = params.toString() ? `/discover?${params}` : "/discover";
-    if (`${window.location.pathname}${window.location.search}` === next) return;
-    if (urlTimer.current) clearTimeout(urlTimer.current);
-    urlTimer.current = setTimeout(
-      () => window.history.pushState({ artderaFilters: true }, "", next),
-      300,
-    );
-    return () => {
-      if (urlTimer.current) clearTimeout(urlTimer.current);
+    const next = {
+      category,
+      room,
+      q: query.trim() || undefined,
+      kind: kinds.length ? kinds.join(",") : undefined,
+      color: selectedColour,
+      framed: framedOnly ? "true" : undefined,
+      min: minPrice > PRICE_MIN ? minPrice : undefined,
+      max: maxPrice < PRICE_MAX ? maxPrice : undefined,
+      sort: sort !== "Recommended" ? sort : undefined,
     };
-  }, [category, framedOnly, kinds, minPrice, maxPrice, query, room, selectedColour, sort]);
-
-  useEffect(() => {
-    const restoreFromUrl = () => {
-      const parsed = searchSchema.safeParse(
-        Object.fromEntries(new URLSearchParams(window.location.search)),
-      );
-      if (!parsed.success) return;
-      const next = parsed.data;
-      setCategory(next.category);
-      setRoom(next.room);
-      setQuery(next.q ?? "");
-      setKinds(next.kind ? next.kind.split(",") : []);
-      setSelectedColour(next.color);
-      setFramedOnly(next.framed === "true");
-      setMinPrice(next.min ?? PRICE_MIN);
-      setMaxPrice(next.max ?? PRICE_MAX);
-      setSort(
-        SORTS.includes(next.sort as (typeof SORTS)[number])
-          ? (next.sort as (typeof SORTS)[number])
-          : "Recommended",
-      );
-    };
-    window.addEventListener("popstate", restoreFromUrl);
-    return () => window.removeEventListener("popstate", restoreFromUrl);
-  }, []);
-
-  const filtered = useMemo(() => {
-    let list = catalogVersion >= 0 ? shuffledProducts.slice() : [];
-    const q = query.trim().toLowerCase();
-    if (category) {
-      const catLower = category.toLowerCase().replace(/[^a-z0-9]+/g, "");
-      const catSingular = catLower.replace(/s$/, "");
-      list = list.filter((p) => {
-        const slugLower = p.categorySlug.toLowerCase().replace(/[^a-z0-9]+/g, "");
-        const slugSingular = slugLower.replace(/s$/, "");
-        const mediumLower = p.medium.toLowerCase();
-        const titleLower = p.title.toLowerCase();
-        return (
-          slugLower === catLower ||
-          slugSingular === catSingular ||
-          slugLower.includes(catSingular) ||
-          catSingular.includes(slugSingular) ||
-          mediumLower.includes(catSingular) ||
-          titleLower.includes(catSingular) ||
-          (catSingular.includes("paint") && (slugLower.includes("original") || mediumLower.includes("oil") || mediumLower.includes("acrylic") || mediumLower.includes("canvas"))) ||
-          (catSingular.includes("original") && (slugLower.includes("original") || p.kind === "Original")) ||
-          (catSingular.includes("photo") && slugLower.includes("photo")) ||
-          (catSingular.includes("calligraph") && slugLower.includes("calligraph")) ||
-          (catSingular.includes("print") && (slugLower.includes("print") || p.kind.includes("Edition")))
-        );
-      });
-    }
-    if (kinds.length) list = list.filter((p) => kinds.includes(p.kind));
-    if (room)
-      list = list.filter((p) => p.room.some((r) => r.toLowerCase().replace(/ /g, "-") === room));
-    if (selectedColour) list = list.filter((p) => p.colours.includes(selectedColour));
-    if (framedOnly) list = list.filter((p) => p.framed);
-    if (q) {
-      list = list.filter((p) => {
-        const creator = CREATORS.find((c) => c.slug === p.creatorSlug);
-        const categoryName = CATEGORIES.find((c) => c.slug === p.categorySlug)?.name;
-        return [
-          p.title,
-          p.description,
-          p.medium,
-          p.kind,
-          p.colours.join(" "),
-          creator?.name,
-          creator?.location,
-          categoryName,
-          p.style,
-          p.subject,
-          (p.tags ?? []).join(" "),
-        ]
-          .filter(Boolean)
-          .some((value) => value!.toLowerCase().includes(q));
-      });
-    }
-    list = list.filter((p) => p.price >= minPrice && p.price <= maxPrice);
-    if (sort === "Newest") list.sort((a, b) => (b.new ? 1 : 0) - (a.new ? 1 : 0));
-    if (sort === "Price: low to high") list.sort((a, b) => a.price - b.price);
-    if (sort === "Price: high to low") list.sort((a, b) => b.price - a.price);
-    return list;
-  }, [catalogVersion, shuffledProducts, category, kinds, room, selectedColour, framedOnly, query, minPrice, maxPrice, sort]);
-
-  const visibleProducts = useMemo(() => filtered.slice(0, visibleLimit), [filtered, visibleLimit]);
+    const current = searchRef.current;
+    if (
+      JSON.stringify(next) ===
+      JSON.stringify({
+        category: current.category,
+        room: current.room,
+        q: current.q,
+        kind: current.kind,
+        color: current.color,
+        framed: current.framed,
+        min: current.min,
+        max: current.max,
+        sort: current.sort,
+      })
+    )
+      return;
+    ++requestGeneration.current;
+    setInitialLoading(true);
+    setError("");
+    void navigate({ to: "/discover", search: next, replace: true }).catch(() => {
+      setError("Could not load artworks. Please try again.");
+      setInitialLoading(false);
+    });
+  }, [
+    category,
+    room,
+    query,
+    kinds,
+    selectedColour,
+    framedOnly,
+    minPrice,
+    maxPrice,
+    sort,
+    navigate,
+  ]);
 
   const activeCategory = category ? CATEGORIES.find((c) => c.slug === category) : undefined;
   const applied: Array<readonly [string, string, () => void]> = [];
@@ -337,8 +317,8 @@ function Discover() {
             {activeCategory ? activeCategory.name : "The full marketplace"}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "work" : "works"} from verified creators,
-            studios and galleries.
+            {total} {filtered.length === 1 ? "work" : "works"} from verified creators, studios and
+            galleries.
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap gap-3">
@@ -412,7 +392,7 @@ function Discover() {
         >
           All
         </button>
-        {CATEGORIES.filter((c) => PRODUCTS.some((p) => p.categorySlug === c.slug)).map((c) => (
+        {CATEGORIES.map((c) => (
           <button
             key={c.slug}
             onClick={() => setCategory(c.slug === category ? undefined : c.slug)}
@@ -499,21 +479,21 @@ function Discover() {
             <>
               <div className="grid grid-cols-1 gap-x-5 gap-y-12 min-[480px]:grid-cols-2 lg:grid-cols-3">
                 {visibleProducts.map((p, index) => {
-                  const sponsored = visibleProducts.length >= 5 && index === 4;
+                  const sponsored = Boolean(p.featured);
                   return (
-                    <div key={p.slug} className="relative">
+                    <div key={p.id} className="relative">
                       {sponsored && (
                         <span className="absolute left-3 top-3 z-10 rounded-full bg-[var(--porcelain)] px-2.5 py-1 text-[10px] font-bold shadow-sm">
                           Sponsored
                         </span>
                       )}
-                      <ProductCard product={p} />
+                      <ProductCard product={p} priority={index < 3} />
                     </div>
                   );
                 })}
               </div>
               {/* Load More pagination button */}
-              {(hasMore || visibleLimit < filtered.length) && (
+              {hasMore && (
                 <div className="mt-12 flex justify-center">
                   <button
                     type="button"
@@ -687,7 +667,7 @@ function FilterPanel({
       </FilterGroup>
       <FilterGroup title="Category">
         <div className="grid gap-1">
-          {CATEGORIES.filter((c) => PRODUCTS.some((p) => p.categorySlug === c.slug)).map((item) => (
+          {CATEGORIES.map((item) => (
             <button
               type="button"
               key={item.slug}

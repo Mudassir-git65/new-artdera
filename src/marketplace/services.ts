@@ -1,3 +1,4 @@
+import { catalogProduct, uniqueById } from "@/lib/catalog-product";
 import {
   PLAN_RANK,
   hydrateSubscriptionPlans,
@@ -135,6 +136,14 @@ export class HttpApiClient {
           },
         };
       }
+      if (
+        method !== "GET" &&
+        ["/api/artworks", "/api/stores", "/api/admin/artworks", "/api/admin/stores"].some(
+          (prefix) => path.startsWith(prefix),
+        ) &&
+        typeof window !== "undefined"
+      )
+        window.dispatchEvent(new Event("artdera:catalog-changed"));
       return { data: body.data };
     } catch {
       return {
@@ -146,8 +155,14 @@ export class HttpApiClient {
     }
   }
 
-  get<T>(path: string) {
-    return this.request<T>("GET", path);
+  private readonly pendingReads = new Map<string, Promise<ServiceResult<any>>>();
+  get<T>(path: string): Promise<ServiceResult<T>> {
+    if (typeof window === "undefined") return this.request<T>("GET", path);
+    const existing = this.pendingReads.get(path);
+    if (existing) return existing;
+    const request = this.request<T>("GET", path).finally(() => this.pendingReads.delete(path));
+    this.pendingReads.set(path, request);
+    return request;
   }
   post<T>(path: string, payload?: unknown) {
     return this.request<T>("POST", path, payload);
@@ -337,41 +352,10 @@ function editorialProductFromArtwork(
   stores: Store[],
   creators: EditorialCreator[],
 ): Product {
-  const store = stores.find((item) => item.id === artwork.storeId);
-  const creator = creators.find((item) => item.works.includes(artwork.slug));
-  return {
-    slug: artwork.slug,
-    title: artwork.title,
-    creatorSlug: creator?.slug ?? store?.slug ?? "artdera-creator",
-    categorySlug: slugify(artwork.category),
-    price: artwork.discountPrice ?? artwork.price,
-    currency: "PKR",
-    kind:
-      artwork.kind === "Limited Edition"
-        ? "Limited Edition"
-        : artwork.kind === "Print"
-          ? "Open Edition"
-          : "Original",
-    medium: artwork.medium,
-    dimensions:
-      typeof artwork.dimensions === "string"
-        ? artwork.dimensions.replace(/\bcm\b/gi, "inches")
-        : artwork.dimensions,
-    year: artwork.year,
-    framed: artwork.framed,
-    colours: artwork.colours ?? [],
-    style: artwork.style,
-    subject: artwork.subject,
-    tags: artwork.tags ?? [],
-    room: [],
-    description: artwork.description,
-    story: artwork.story,
-    images: (Array.isArray(artwork.images) ? artwork.images : [])
-      .map((image) => image?.url)
-      .filter((url): url is string => typeof url === "string" && url.length > 0),
-    featured: artwork.sponsored,
-    new: true,
-  };
+  return catalogProduct(
+    artwork,
+    stores.find((store) => store.id === artwork.storeId),
+  );
 }
 
 function hydratePublicCatalog(data: Record<string, any>) {
@@ -395,9 +379,7 @@ function hydratePublicCatalog(data: Record<string, any>) {
     planId: isPlanId(creator.planId) ? creator.planId : undefined,
     subscriptionStatus: creator.subscriptionStatus,
     subscriptionExpiresAt: creator.subscriptionExpiresAt,
-    portrait:
-      creator.portrait ||
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=50&auto=format&fit=crop",
+    portrait: creator.portrait || "",
     works: artworks
       .filter(
         (artwork) =>
@@ -509,15 +491,17 @@ export class MarketplaceService {
   }
 
   static async initialize() {
-    await this.loadSession();
     await this.bootstrap(true);
     return activeUser;
   }
 
   static async bootstrap(force = false) {
-    if (bootstrapPromise && !force) return bootstrapPromise;
+    if (bootstrapPromise) return bootstrapPromise;
     bootstrapPromise = (async () => {
-      const result = await apiClient.get<Record<string, any>>("/api/bootstrap");
+      const [result] = await Promise.all([
+        apiClient.get<Record<string, any>>("/api/bootstrap"),
+        this.loadSession(),
+      ]);
       if (result.error) throw new Error(result.error.message);
       hydratePublicCatalog(result.data!);
       hydratePrivate(result.data!.private);
@@ -567,14 +551,15 @@ export class MarketplaceService {
       pages: number;
     }>(`/api/artworks?page=${page}&limit=${limit}`);
     if (!result.data) return result;
-    const mergedArtworks = [
-      ...ARTWORKS,
-      ...result.data.items.filter((item) => !ARTWORKS.some((existing) => existing.id === item.id)),
-    ];
+    const mergedArtworks = uniqueById([...ARTWORKS, ...result.data.items]);
     hydrateMarketplaceData({ artworks: mergedArtworks });
-    const products = mergedArtworks.map((artwork) =>
-      editorialProductFromArtwork(artwork, STORES, CREATORS),
-    );
+    const products = mergedArtworks
+      .filter(
+        (artwork) =>
+          artwork.status === "Published" &&
+          (artwork as Artwork & { moderationStatus?: string }).moderationStatus === "approved",
+      )
+      .map((artwork) => editorialProductFromArtwork(artwork, STORES, CREATORS));
     PRODUCTS.splice(0, PRODUCTS.length, ...products);
     return result;
   }
@@ -586,9 +571,7 @@ export class MarketplaceService {
       const newProducts = result.data.artworks.map((artwork) =>
         editorialProductFromArtwork(artwork, STORES, CREATORS),
       );
-      const existingSlugs = new Set(PRODUCTS.map((p) => p.slug));
-      const toAdd = newProducts.filter((p) => !existingSlugs.has(p.slug));
-      PRODUCTS.push(...toAdd);
+      PRODUCTS.splice(0, PRODUCTS.length, ...uniqueById([...PRODUCTS, ...newProducts]));
 
       const creator = CREATORS.find((c) => c.slug === slug);
       if (creator) {
@@ -631,7 +614,7 @@ export class UserService {
       activeUser = result.data;
       if (!SEEDED_USERS.some((user) => user.id === result.data!.id))
         SEEDED_USERS.unshift(result.data);
-      await MarketplaceService.bootstrap(true);
+      await MarketplaceService.bootstrap();
     }
     return result;
   }
@@ -829,6 +812,21 @@ export class GalleryService {
 }
 
 export class ArtworkService {
+  static async fetchMine() {
+    const result = await apiClient.get<Artwork[]>("/api/artworks/mine");
+    if (result.data) {
+      const ownStores = new Set(
+        STORES.filter((store) => store.ownerId === activeUser?.id).map((store) => store.id),
+      );
+      hydrateMarketplaceData({
+        artworks: uniqueById([
+          ...ARTWORKS.filter((item) => !ownStores.has(item.storeId)),
+          ...result.data,
+        ]),
+      });
+    }
+    return result;
+  }
   static list() {
     return ARTWORKS;
   }

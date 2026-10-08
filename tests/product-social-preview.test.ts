@@ -33,31 +33,75 @@ describe("Artwork & Product Social Sharing Previews", () => {
 
     // Title requirement: Artwork title + by Creator Name + | ArtDera
     expect(metaMap.get("title")).toBe("Surah Fatiha ~ The Opening ✨ by Art By Ayesha | ArtDera");
-    expect(metaMap.get("og:title")).toBe("Surah Fatiha ~ The Opening ✨ by Art By Ayesha | ArtDera");
-    expect(metaMap.get("twitter:title")).toBe("Surah Fatiha ~ The Opening ✨ by Art By Ayesha | ArtDera");
+    expect(metaMap.get("og:title")).toBe(
+      "Surah Fatiha ~ The Opening ✨ by Art By Ayesha | ArtDera",
+    );
+    expect(metaMap.get("twitter:title")).toBe(
+      "Surah Fatiha ~ The Opening ✨ by Art By Ayesha | ArtDera",
+    );
 
     // Description requirement: medium, dimensions, artist name
-    expect(metaMap.get("description")).toContain("Original acrylic on canvas (36 × 24 cm) by Art By Ayesha");
-    expect(metaMap.get("og:description")).toContain("Original acrylic on canvas (36 × 24 cm) by Art By Ayesha");
+    expect(metaMap.get("description")).toContain(
+      "Original acrylic on canvas (36 × 24 cm) by Art By Ayesha",
+    );
+    expect(metaMap.get("og:description")).toContain(
+      "Original acrylic on canvas (36 × 24 cm) by Art By Ayesha",
+    );
 
     // Canonical URL requirement
-    expect(metaMap.get("og:url")).toBe("https://www.artdera.com/product/surah-fatiha-the-opening-mtearfcy-d0ade0");
+    expect(metaMap.get("og:url")).toBe(
+      "https://www.artdera.com/product/surah-fatiha-the-opening-mtearfcy-d0ade0",
+    );
     expect(seo.links.find((l) => l.rel === "canonical")?.href).toBe(
       "https://www.artdera.com/product/surah-fatiha-the-opening-mtearfcy-d0ade0",
     );
 
     // Primary artwork image requirement
-    expect(metaMap.get("og:image")).toBe("https://res.cloudinary.com/artdera/image/upload/v1234/surah-fatiha.jpg");
-    expect(metaMap.get("twitter:image")).toBe("https://res.cloudinary.com/artdera/image/upload/v1234/surah-fatiha.jpg");
+    expect(metaMap.get("og:image")).toBe(
+      "https://res.cloudinary.com/artdera/image/upload/v1234/surah-fatiha.jpg",
+    );
+    expect(metaMap.get("twitter:image")).toBe(
+      "https://res.cloudinary.com/artdera/image/upload/v1234/surah-fatiha.jpg",
+    );
     expect(metaMap.get("twitter:card")).toBe("summary_large_image");
   });
 
   it("serves dynamic 1200x630 OG preview cards via /api/og/product/:slug and /api/og/artwork/:slug", async () => {
+    const user = await UserModel.create({
+      fullName: "Art By Ayesha",
+      email: "og-product@test.com",
+      emailNormalized: "og-product@test.com",
+      passwordHash: "unused",
+      role: "artist",
+      termsAcceptedAt: new Date(),
+      privacyAcceptedAt: new Date(),
+    });
+    const store = await StoreModel.create({
+      ownerId: user._id,
+      ownerType: "artist",
+      name: "Art By Ayesha",
+      slug: "art-by-ayesha",
+      status: "active",
+      isPublished: true,
+    });
+    for (const [slug, title] of [
+      ["quiet-horizon", "Quiet Horizon"],
+      ["surah-fatiha-the-opening-mtearfcy-d0ade0", "Surah Fatiha The Opening"],
+    ])
+      await ArtworkModel.create({
+        storeId: store._id,
+        title,
+        slug,
+        category: "Painting",
+        medium: "Oil",
+        artworkType: "original",
+        price: 1000,
+        status: "published",
+        moderationStatus: "approved",
+      });
     const app = createApp();
 
-    const responseProduct = await request(app)
-      .get("/api/og/product/quiet-horizon")
-      .expect(200);
+    const responseProduct = await request(app).get("/api/og/product/quiet-horizon").expect(200);
 
     const svgTextProduct = responseProduct.text || responseProduct.body.toString("utf-8");
     expect(responseProduct.headers["content-type"]).toContain("image/svg+xml");
@@ -75,6 +119,6 @@ describe("Artwork & Product Social Sharing Previews", () => {
     expect(svgTextArtwork).toContain('width="1200"');
     expect(svgTextArtwork).toContain('height="630"');
     expect(svgTextArtwork).toContain("Surah Fatiha The Opening");
-    expect(svgTextArtwork).toContain("Mtearfcy");
+    expect(svgTextArtwork).toContain("Art By Ayesha");
   });
 });

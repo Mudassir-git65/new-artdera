@@ -10,7 +10,8 @@ export const Route = createFileRoute("/creators")({
   head: () => {
     const seo = generateMeta({
       title: "Verified Artists & Creators | ArtDera",
-      description: "Meet independent artists, calligraphers, sculptors, and fine art photographers verified on ArtDera.",
+      description:
+        "Meet independent artists, calligraphers, sculptors, and fine art photographers verified on ArtDera.",
       canonicalPath: "/creators",
     });
 
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/creators")({
 
 function Creators() {
   const loaderCreators = Route.useLoaderData();
-  const creators: Creator[] = CREATORS.length > 0 ? CREATORS : (loaderCreators as unknown as Creator[]);
+  const creators: Creator[] = loaderCreators;
 
   return (
     <div className="container-editorial py-14">
@@ -83,4 +84,3 @@ function Creators() {
     </div>
   );
 }
-

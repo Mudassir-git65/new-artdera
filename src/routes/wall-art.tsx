@@ -1,10 +1,13 @@
+import { fetchProductsList } from "@/lib/server-loaders";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PRODUCTS } from "@/lib/artdera";
 import { ProductCard } from "@/components/site/ProductCard";
 import { generateMeta, generateItemListSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/wall-art")({
-  head: () => {
+  loader: () => fetchProductsList({ data: {} }),
+  head: ({ loaderData }) => {
+    const PRODUCTS = loaderData ?? [];
     const wallArt = PRODUCTS.filter(
       (p) => p.categorySlug === "wall-decor" || p.categorySlug === "originals",
     );
@@ -53,6 +56,7 @@ export const Route = createFileRoute("/wall-art")({
 });
 
 function WallArtPage() {
+  const PRODUCTS = Route.useLoaderData();
   const wallArtWorks = PRODUCTS;
 
   return (

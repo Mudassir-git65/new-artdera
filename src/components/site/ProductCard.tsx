@@ -1,3 +1,5 @@
+import { artworkRouteSlug } from "@/lib/catalog-product";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
 import { Link } from "@tanstack/react-router";
 import { Eye, Heart, ShieldCheck, ShoppingBag, Sparkles } from "lucide-react";
 import { useState } from "react";
@@ -32,7 +34,7 @@ export function ProductCard({
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState<"wishlist" | "cart" | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const artwork = ARTWORKS.find((item) => item.slug === product.slug);
+  const artwork = product.artwork ?? ARTWORKS.find((item) => item.id === product.id);
   const primaryImage = product.images[0];
   const secondaryImage = product.images[1] ?? primaryImage;
   const hasStory = Boolean(
@@ -70,23 +72,26 @@ export function ProductCard({
     else toast.success("Added to your secure cart");
   };
 
-  const creatorName = creator?.name || (product as { creatorName?: string }).creatorName || "Independent Artist";
+  const creatorName =
+    creator?.name || (product as { creatorName?: string }).creatorName || "Independent Artist";
   const altText = `${product.title} by ${creatorName} — ${product.kind.toLowerCase()} ${product.medium.toLowerCase()}`;
 
   return (
-    <article className="group relative">
+    <article className="group relative" data-artwork-id={product.id}>
       <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-[#ebe7df]">
         {!loaded && primaryImage && (
           <div className="absolute inset-0 z-0 animate-pulse bg-gradient-to-r from-[#e3ded5] via-[#f0ede6] to-[#e3ded5]" />
         )}
         <Link
           to="/product/$slug"
-          params={{ slug: product.slug }}
+          params={{ slug: artworkRouteSlug(product) }}
           aria-label={`View ${product.title}`}
         >
           {primaryImage ? (
             <img
-              src={primaryImage}
+              src={artworkImageUrl(primaryImage)}
+              srcSet={artworkImageSrcSet(primaryImage)}
+              sizes="(max-width: 479px) 100vw, (max-width: 1023px) 50vw, 33vw"
               alt={altText}
               loading={priority ? "eager" : "lazy"}
               decoding="async"
@@ -94,9 +99,7 @@ export function ProductCard({
               onLoad={() => setLoaded(true)}
               width={800}
               height={1000}
-              className={`h-full w-full object-contain transition-all duration-500 md:group-hover:scale-[1.02] ${
-                loaded ? "opacity-100" : "opacity-0"
-              }`}
+              className={`h-full w-full object-contain transition-all duration-500 md:group-hover:scale-[1.02] ${"opacity-100"}`}
             />
           ) : (
             <span className="flex h-full w-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
@@ -105,7 +108,9 @@ export function ProductCard({
           )}
           {secondaryImage && secondaryImage !== primaryImage && (
             <img
-              src={secondaryImage}
+              src={artworkImageUrl(secondaryImage)}
+              srcSet={artworkImageSrcSet(secondaryImage)}
+              sizes="(max-width: 1023px) 50vw, 33vw"
               alt=""
               loading="lazy"
               decoding="async"
@@ -189,7 +194,7 @@ export function ProductCard({
       <div className="mt-3.5">
         <div className="flex items-center justify-between gap-2 text-[13px] text-muted-foreground">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="truncate">{creator?.name ?? "Independent creator"}</span>
+            <span className="truncate">{creatorName}</span>
             {isProfessional && <ProBadge size="sm" />}
           </div>
           {creator?.verified && (
@@ -200,7 +205,7 @@ export function ProductCard({
         </div>
         <Link
           to="/product/$slug"
-          params={{ slug: product.slug }}
+          params={{ slug: artworkRouteSlug(product) }}
           className="mt-0.5 block font-display text-lg leading-snug hover:underline"
         >
           {product.title}
@@ -335,7 +340,11 @@ function ProductQuickView({
               >
                 {busy === "cart" ? "Adding…" : "Add to Cart"}
               </button>
-              <Link to="/product/$slug" params={{ slug: product.slug }} className="btn-ghost">
+              <Link
+                to="/product/$slug"
+                params={{ slug: artworkRouteSlug(product) }}
+                className="btn-ghost"
+              >
                 View Full Details
               </Link>
             </div>

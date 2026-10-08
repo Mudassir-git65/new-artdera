@@ -18,6 +18,8 @@ import { sanitizeText } from "../lib/security";
 import { requirePermission, reserveListingSlot } from "../services/plans";
 import { trackStoreView } from "../services/view-tracker";
 
+import { readStorePage } from "../services/catalog";
+
 export const storesRouter = Router();
 const reservedSlugs = new Set([
   "admin",
@@ -85,7 +87,9 @@ storesRouter.get(
   "/slug-available/:slug",
   asyncRoute(async (req, res) => {
     const slug = slugSchema.parse(req.params.slug);
-    const existing = await StoreModel.findOne({ slug }).select("ownerId").lean();
+    const existing = await StoreModel.findOne({ $or: [{ slug }, { slugAliases: slug }] })
+      .select("ownerId")
+      .lean();
     const ownedByCurrentUser =
       Boolean(req.auth) && existing && String(existing.ownerId) === String(req.auth!.user._id);
     const available = !reservedSlugs.has(slug) && (!existing || ownedByCurrentUser);
@@ -97,18 +101,14 @@ storesRouter.get(
   "/:slug",
   asyncRoute(async (req, res) => {
     const slug = slugSchema.parse(req.params.slug);
-    const store = await StoreModel.findOne({ slug, isPublished: true, status: "active" }).lean();
-    if (!store) throw new ApiError(404, "STORE_NOT_FOUND", "Store not found");
-    const artworks = await ArtworkModel.find({
-      storeId: store._id,
-      status: "published",
-      moderationStatus: "approved",
-    })
-      .sort({ isSponsored: -1, createdAt: -1 })
-      .limit(100)
-      .lean();
-    void trackStoreView(store._id, req);
-    return ok(res, { store: publicStore(store), artworks: artworks.map(publicArtwork) });
+    const result = await readStorePage(
+      slug,
+      typeof req.query.cursor === "string" ? req.query.cursor : undefined,
+    );
+    res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
+    res.vary("Cookie");
+    void trackStoreView(result.store.id!, req);
+    return ok(res, result);
   }),
 );
 
@@ -181,7 +181,13 @@ storesRouter.patch(
     const input = storeInput.partial().parse(req.body);
     if (input.slug && reservedSlugs.has(input.slug))
       throw new ApiError(409, "SLUG_RESERVED", "That store URL is reserved");
-    if (input.slug && (await StoreModel.exists({ slug: input.slug, _id: { $ne: req.params.id } })))
+    if (
+      input.slug &&
+      (await StoreModel.exists({
+        $or: [{ slug: input.slug }, { slugAliases: input.slug }],
+        _id: { $ne: req.params.id },
+      }))
+    )
       throw new ApiError(409, "SLUG_TAKEN", "That store URL is already in use");
     const before = await StoreModel.findOne({
       _id: req.params.id,
@@ -191,6 +197,8 @@ storesRouter.patch(
     if (input.internationalShipping)
       await requirePermission(req.auth!.user._id, "international-tools");
     const patch: Record<string, unknown> = { ...input };
+    if (input.slug && input.slug !== before.slug)
+      patch.slugAliases = [...new Set([...(before.slugAliases ?? []), before.slug])];
     if (input.bio !== undefined) patch.shortDescription = input.bio;
     if (input.story !== undefined) patch.fullDescription = input.story;
     if (input.profileImage !== undefined) patch.logoUrl = input.profileImage;

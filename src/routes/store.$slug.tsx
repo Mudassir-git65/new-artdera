@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
+import { artworkRouteSlug } from "@/lib/catalog-product";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { ProBadge } from "@/components/ui/ProBadge";
 import {
   BadgeCheck,
@@ -17,7 +19,7 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -41,7 +43,12 @@ import { useAuth } from "@/marketplace/auth";
 import { formatPKR } from "@/marketplace/config";
 import type { Artwork, Store } from "@/marketplace/types";
 
-import { generateMeta, generateGallerySchema, generateBreadcrumbSchema, generateCreatorStoreSocialMeta } from "@/lib/seo";
+import {
+  generateMeta,
+  generateGallerySchema,
+  generateBreadcrumbSchema,
+  generateCreatorStoreSocialMeta,
+} from "@/lib/seo";
 import { getCreatorOrStoreResolved } from "@/lib/creator-meta";
 
 const PRICE_MIN = 100;
@@ -63,15 +70,20 @@ function sliderToPrice(pos: number): number {
   return Math.round(raw / 5000) * 5000;
 }
 
-import { fetchProductsList } from "@/lib/server-loaders";
+import { fetchStoreCatalog } from "@/lib/server-loaders";
 
 export const Route = createFileRoute("/store/$slug")({
+  remountDeps: ({ params }) => params.slug,
   loader: async ({ params }) => {
-    const [storeMeta, works] = await Promise.all([
-      getCreatorOrStoreResolved(params.slug, "store"),
-      fetchProductsList({ data: { creatorSlug: params.slug } }),
-    ]);
-    return { storeMeta, works };
+    const catalog = await fetchStoreCatalog({ data: { slug: params.slug } });
+    if (!catalog) throw notFound();
+    if (catalog.store.slug !== params.slug)
+      throw redirect({
+        to: "/store/$slug",
+        params: { slug: catalog.store.slug as string },
+        statusCode: 301,
+      });
+    return { ...catalog, storeMeta: catalog.creatorMeta };
   },
   head: ({ loaderData, params }) => {
     const storeMeta = loaderData?.storeMeta;
@@ -125,36 +137,33 @@ export const Route = createFileRoute("/store/$slug")({
 function Storefront() {
   const { slug } = Route.useParams();
   const { user } = useAuth();
-  const { storeMeta, works: loaderWorks } = Route.useLoaderData();
-  const seeded = STORES.find((item) => item.slug === slug);
-  const [store, setStore] = useState<Store | undefined>(seeded || (storeMeta ? ({
-    id: slug,
-    ownerId: slug,
-    slug,
-    name: storeMeta.name,
-    tagline: "",
-    bio: storeMeta.bio || `Discover original artwork by ${storeMeta.name} on ArtDera.`,
-    story: "",
-    profileImage: storeMeta.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80&auto=format",
-    coverImage: storeMeta.coverImage || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1200&q=80&auto=format",
-    location: storeMeta.location || "Pakistan",
-    verified: Boolean(storeMeta.verified),
-    approved: true,
-    status: "Active",
-    categories: ["Originals"],
-    mediums: ["Paintings"],
-    followers: 120,
-    rating: 5,
-    reviewCount: 1,
-    shippingInfo: "Ships within 3-5 business days.",
-    returnPolicy: "Eligible for return within 7 days.",
-  } as unknown as Store) : undefined));
+  const catalog = Route.useLoaderData();
+  const store = catalog.store as unknown as Store;
+  const [artworks, setArtworks] = useState(catalog.artworks as unknown as Artwork[]);
+  const [cursor, setCursor] = useState(catalog.nextCursor);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [pageError, setPageError] = useState("");
+  const loadingRef = useRef(false);
+  const generationRef = useRef(0);
+  useEffect(() => {
+    ++generationRef.current;
+    setArtworks(catalog.artworks as unknown as Artwork[]);
+    setCursor(catalog.nextCursor);
+    loadingRef.current = false;
+    setLoadingMore(false);
+    setPageError("");
+    return () => {
+      // This ref is a request counter. Invalidate every outstanding response.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++generationRef.current;
+    };
+  }, [catalog]);
   const [followed, setFollowed] = useState(false);
   const [category, setCategory] = useState("All");
-  const [availability, setAvailability] = useState("Available");
+  const [availability, setAvailability] = useState("All");
   const [framed, setFramed] = useState(false);
-  const [minPrice, setMinPrice] = useState(PRICE_MIN);
-  const [maxPrice, setMaxPrice] = useState(PRICE_MAX);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(Number.POSITIVE_INFINITY);
   const [minThumb, setMinThumb] = useState(() => priceToSlider(PRICE_MIN));
   const [maxThumb, setMaxThumb] = useState(() => priceToSlider(PRICE_MAX));
   const [reviews, setReviews] = useState<
@@ -175,41 +184,31 @@ function Storefront() {
   }, [store]);
 
   useEffect(() => {
-    StoreService.fetchBySlug(slug).then((result) => {
-      if (result.data?.store) {
-        setStore(result.data.store);
-        document.title = `${result.data.store.name} — Gallery & Studio Storefront | ArtDera`;
-        void ReviewService.publicForStore(result.data.store.id).then(
-          (reviewResult) => reviewResult.data && setReviews(reviewResult.data),
-        );
-      }
+    let active = true;
+    void ReviewService.publicForStore(store.id).then((result) => {
+      if (active && result.data) setReviews(result.data);
     });
-  }, [slug]);
+    return () => {
+      active = false;
+    };
+  }, [store.id]);
   useEffect(() => {
     if (!user || !store) return;
     void FollowService.list().then((result) => {
       if (result.data) setFollowed(result.data.some((item) => item.id === store.id));
     });
   }, [store, user]);
-  const artworks = useMemo(
-    () =>
-      store
-        ? ArtworkService.forStore(store.id).length
-          ? ArtworkService.forStore(store.id)
-          : ARTWORKS.filter((item) => item.storeId === store.id)
-        : [],
-    [store],
-  );
-  const visible = artworks.length > 0 ? artworks.filter(
+  const visible = artworks.filter(
     (item) =>
       (category === "All" || item.category.toLowerCase().includes(category.toLowerCase())) &&
-      (availability === "All" || availability === "Available"
-        ? ["Published", "Reserved"].includes(item.status)
-        : item.status === "Sold") &&
+      (availability === "All" ||
+        (availability === "Available"
+          ? ["Published", "Reserved"].includes(item.status)
+          : item.status === "Sold")) &&
       (!framed || item.framed) &&
       item.price >= minPrice &&
       item.price <= maxPrice,
-  ) : (loaderWorks as unknown as Artwork[]);
+  );
 
   if (!store)
     return (
@@ -237,7 +236,10 @@ function Storefront() {
     <div className="pb-20">
       <section className="relative overflow-hidden bg-[var(--ink)] text-[var(--ivory)]">
         <img
-          src={store.coverImage}
+          src={artworkImageUrl(store.coverImage, 1280)}
+          srcSet={artworkImageSrcSet(store.coverImage)}
+          sizes="100vw"
+          fetchPriority="high"
           alt={`${store.name} cover`}
           className="absolute inset-0 h-full w-full object-cover opacity-38"
         />
@@ -246,7 +248,7 @@ function Storefront() {
           <div className="grid w-full items-end gap-7 lg:grid-cols-[1fr_auto]">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
               <img
-                src={store.profileImage}
+                src={artworkImageUrl(store.profileImage, 320)}
                 alt={store.name}
                 className="h-28 w-28 rounded-full border-4 border-white/20 object-cover shadow-xl"
               />
@@ -316,7 +318,7 @@ function Storefront() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
-              ["Artworks", artworks.length],
+              ["Artworks", catalog.total],
               ["Available", artworks.filter((item) => item.status === "Published").length],
               ["Categories", store.categories.length],
               ["Response", "< 24h"],
@@ -347,7 +349,7 @@ function Storefront() {
                     <input
                       type="number"
                       min={PRICE_MIN}
-                      max={maxPrice - 100}
+                      max={Number.isFinite(maxPrice) ? maxPrice - 100 : undefined}
                       value={minPrice}
                       onChange={(e) => {
                         const val = Math.min(
@@ -370,7 +372,7 @@ function Storefront() {
                       type="number"
                       min={minPrice + 100}
                       max={PRICE_MAX}
-                      value={maxPrice}
+                      value={Number.isFinite(maxPrice) ? maxPrice : ""}
                       onChange={(e) => {
                         const val = Math.max(
                           Math.min(Number(e.target.value) || PRICE_MAX, PRICE_MAX),
@@ -422,7 +424,7 @@ function Storefront() {
                 </div>
                 <div className="mt-2 flex justify-between text-xs text-muted-foreground">
                   <span>{formatPKR(minPrice)}</span>
-                  <span>{formatPKR(maxPrice)}</span>
+                  <span>{Number.isFinite(maxPrice) ? formatPKR(maxPrice) : "Any price"}</span>
                 </div>
               </StoreFilter>
               <StoreFilter label="Category">
@@ -487,6 +489,7 @@ function Storefront() {
                   <StoreArtwork
                     key={artwork.id}
                     artwork={artwork}
+                    priority={index < 3}
                     sponsored={artwork.sponsored && index % 5 === 0}
                     canSave={Boolean(user)}
                   />
@@ -504,8 +507,8 @@ function Storefront() {
                     setCategory("All");
                     setAvailability("All");
                     setFramed(false);
-                    setMinPrice(PRICE_MIN);
-                    setMaxPrice(PRICE_MAX);
+                    setMinPrice(0);
+                    setMaxPrice(Number.POSITIVE_INFINITY);
                     setMinThumb(priceToSlider(PRICE_MIN));
                     setMaxThumb(priceToSlider(PRICE_MAX));
                   }}
@@ -518,6 +521,50 @@ function Storefront() {
           </main>
         </div>
       </section>
+      {pageError && (
+        <p role="alert" className="container-editorial">
+          {pageError}
+        </p>
+      )}
+      {cursor && (
+        <div className="container-editorial py-6">
+          <button
+            className="btn-ghost"
+            disabled={loadingMore}
+            onClick={async () => {
+              if (loadingRef.current) return;
+              loadingRef.current = true;
+              const generation = generationRef.current;
+              setLoadingMore(true);
+              setPageError("");
+              try {
+                const next = await fetchStoreCatalog({ data: { slug, cursor } });
+                if (generation !== generationRef.current) return;
+                if (!next) throw new Error("Store unavailable");
+                setArtworks((items) => [
+                  ...new Map(
+                    [...items, ...(next.artworks as unknown as Artwork[])].map((item) => [
+                      item.id,
+                      item,
+                    ]),
+                  ).values(),
+                ]);
+                setCursor(next.nextCursor);
+              } catch {
+                if (generation === generationRef.current)
+                  setPageError("Could not load more artworks. Please try again.");
+              } finally {
+                if (generation === generationRef.current) {
+                  loadingRef.current = false;
+                  setLoadingMore(false);
+                }
+              }
+            }}
+          >
+            {loadingMore ? "Loading artworks…" : "Load more"}
+          </button>
+        </div>
+      )}
       <section className="border-y border-[var(--color-border)] bg-[var(--porcelain)]">
         <div className="container-editorial grid gap-5 py-12 md:grid-cols-3">
           {[
@@ -596,21 +643,30 @@ function StoreArtwork({
   artwork,
   sponsored,
   canSave,
+  priority,
 }: {
   artwork: Artwork;
   sponsored: boolean;
   canSave: boolean;
+  priority: boolean;
 }) {
   const [saved, setSaved] = useState(false);
   return (
-    <article className="group">
+    <article className="group" data-artwork-id={artwork.id}>
       <a
-        href={`/product/${artwork.slug}`}
+        href={`/product/${artworkRouteSlug(artwork)}`}
         className="relative block overflow-hidden rounded-xl bg-[var(--porcelain)]"
       >
         <img
-          src={artwork.images[0].url}
-          alt={artwork.images[0].alt}
+          src={artworkImageUrl(artwork.images[0]?.url, 640)}
+          srcSet={artworkImageSrcSet(artwork.images[0]?.url)}
+          sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 25vw"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          decoding="async"
+          width={640}
+          height={800}
+          alt={artwork.images[0]?.alt || artwork.title}
           className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-[1.025]"
         />
         {sponsored && (
@@ -626,7 +682,10 @@ function StoreArtwork({
       </a>
       <div className="mt-3 flex items-start justify-between gap-3">
         <div>
-          <a href={`/product/${artwork.slug}`} className="font-display text-xl hover:underline">
+          <a
+            href={`/product/${artworkRouteSlug(artwork)}`}
+            className="font-display text-xl hover:underline"
+          >
             {artwork.title}
           </a>
           <div className="mt-1 text-[11px] text-muted-foreground">

@@ -1,21 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { getProduct } from "@/lib/artdera";
+import { fetchProductBySlug } from "@/lib/server-loaders";
 import { useAuth } from "@/marketplace/auth";
 import { useCurrency } from "@/marketplace/currency";
 import { Globe } from "lucide-react";
 import { toast } from "sonner";
-import { ARTWORKS } from "@/marketplace/data";
 import { ShippingQuoteService } from "@/marketplace/services";
 import { PageLoading } from "@/components/site/PageLoading";
 
 export const Route = createFileRoute("/request-quote")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    artwork: typeof search.artwork === "string" ? search.artwork : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ artwork: search.artwork }),
+  loader: ({ deps }) => (deps.artwork ? fetchProductBySlug({ data: deps.artwork }) : null),
   component: RequestQuotePage,
 });
 
 function RequestQuotePage() {
-  const search = Route.useSearch() as { artwork?: string };
-  const product = search?.artwork ? getProduct(search.artwork) : null;
+  const product = Route.useLoaderData();
   const { user, ready } = useAuth();
   const { formatPrice, currency } = useCurrency();
 
@@ -43,7 +46,7 @@ function RequestQuotePage() {
   const submitQuoteRequest = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
-    const artwork = ARTWORKS.find((item) => item.slug === product.slug);
+    const artwork = product.artwork;
     if (!artwork) return toast.error("This artwork is not available for a shipping quote.");
     setLoading(true);
 

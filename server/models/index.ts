@@ -155,6 +155,7 @@ export const GalleryProfileModel = modelFor(
 
 export const storeSchema = new Schema(
   {
+    isDemo: { type: Boolean, default: false },
     ownerId: { type: objectId, ref: "User", required: true, index: true },
     ownerType: { type: String, enum: ["artist", "gallery"], required: true },
     name: { ...requiredString, maxlength: 160 },
@@ -196,17 +197,20 @@ export const storeSchema = new Schema(
   },
   timestamps,
 );
+storeSchema.add({ slugAliases: { type: [String], default: [], index: true } });
 storeSchema.index({ isPublished: 1, status: 1, createdAt: -1 });
 export type StoreDocument = InferSchemaType<typeof storeSchema>;
 export const StoreModel = modelFor("Store", storeSchema);
 
 export const artworkSchema = new Schema(
   {
+    isDemo: { type: Boolean, default: false },
     storeId: { type: objectId, ref: "Store", required: true, index: true },
     artistId: { type: objectId, ref: "User", index: true },
     galleryId: { type: objectId, ref: "GalleryProfile", index: true },
     title: { ...requiredString, maxlength: 180 },
     slug: { ...requiredString, lowercase: true, maxlength: 100, unique: true, index: true },
+    slugAliases: { type: [String], default: [], index: true },
     description: { type: String, trim: true, maxlength: 8000, default: "" },
     story: {
       text: { type: String, trim: true, maxlength: 2000, default: "" },
@@ -301,6 +305,9 @@ artworkSchema.index({ status: 1, moderationStatus: 1, price: 1, createdAt: -1 })
 artworkSchema.index({ status: 1, moderationStatus: 1, isFramed: 1, createdAt: -1 });
 // Covers: sponsored artworks lookup (used in artworks route)
 artworkSchema.index({ status: 1, moderationStatus: 1, isSponsored: 1, createdAt: -1 });
+artworkSchema.index({ status: 1, moderationStatus: 1, createdAt: -1, _id: -1 });
+artworkSchema.index({ storeId: 1, status: 1, moderationStatus: 1, createdAt: -1, _id: -1 });
+artworkSchema.index({ status: 1, moderationStatus: 1, price: 1, _id: 1 });
 export type ArtworkDocument = InferSchemaType<typeof artworkSchema>;
 export const ArtworkModel = modelFor("Artwork", artworkSchema);
 
@@ -1092,6 +1099,7 @@ export const ExhibitionModel = modelFor(
   "Exhibition",
   new Schema(
     {
+      isDemo: { type: Boolean, default: false },
       galleryId: { type: objectId, ref: "GalleryProfile", required: true, index: true },
       name: { ...requiredString, maxlength: 180 },
       slug: { ...requiredString, unique: true, lowercase: true },
@@ -1253,6 +1261,7 @@ export const CollectionModel = modelFor(
   "Collection",
   new Schema(
     {
+      isDemo: { type: Boolean, default: false },
       name: { ...requiredString, maxlength: 160 },
       slug: { ...requiredString, unique: true, lowercase: true },
       description: { type: String, trim: true, maxlength: 2000 },
@@ -1594,4 +1603,3 @@ export const AccountDeletionRequestModel = modelFor(
   "AccountDeletionRequest",
   accountDeletionRequestSchema,
 );
-

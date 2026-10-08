@@ -1,10 +1,13 @@
+import { fetchProductsList } from "@/lib/server-loaders";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PRODUCTS } from "@/lib/artdera";
 import { ProductCard } from "@/components/site/ProductCard";
 import { generateMeta, generateItemListSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/prints")({
-  head: () => {
+  loader: () => fetchProductsList({ data: { category: "prints" } }),
+  head: ({ loaderData }) => {
+    const PRODUCTS = loaderData ?? [];
     const prints = PRODUCTS.filter(
       (p) => p.categorySlug === "prints" || p.kind.includes("Edition"),
     );
@@ -53,6 +56,7 @@ export const Route = createFileRoute("/prints")({
 });
 
 function PrintsPage() {
+  const PRODUCTS = Route.useLoaderData();
   const printWorks = PRODUCTS.filter(
     (p) => p.categorySlug === "prints" || p.kind === "Limited Edition" || p.kind === "Open Edition",
   );

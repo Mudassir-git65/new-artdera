@@ -27,6 +27,8 @@ process.env.EASYPAISA_ACCOUNT_NUMBER = "03111234567";
 
 beforeAll(async () => {
   replicaSet = await MongoMemoryReplSet.create({
+    // Windows process startup can exceed the library's 10s default under build load.
+    instanceOpts: [{ launchTimeout: 60_000 }],
     replSet: { count: 1, storageEngine: "wiredTiger" },
   });
   process.env.MONGODB_URI = replicaSet.getUri();

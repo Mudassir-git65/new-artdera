@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { COLLECTIONS, PRODUCTS } from "@/lib/artdera";
+import { fetchCollectionCatalog } from "@/lib/server-loaders";
 import { ProductCard } from "@/components/site/ProductCard";
 
 export const Route = createFileRoute("/collections")({
+  loader: () => fetchCollectionCatalog(),
   head: () => ({
     meta: [
       { title: "Collections — ArtDera" },
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/collections")({
 });
 
 function Collections() {
+  const { collections: COLLECTIONS, products: PRODUCTS } = Route.useLoaderData();
   return (
     <div className="container-editorial py-14">
       <div className="max-w-2xl">
@@ -54,7 +56,7 @@ function Collections() {
               </div>
               <div className="mt-10 grid grid-cols-1 gap-x-5 gap-y-10 min-[480px]:grid-cols-2 md:grid-cols-4">
                 {items.map((p) => (
-                  <ProductCard key={p.slug} product={p} />
+                  <ProductCard key={p.id} product={p} />
                 ))}
               </div>
             </section>

@@ -23,11 +23,6 @@ describe("production-facing UI safety", () => {
     );
   });
 
-  it("keeps the browser-only creator loader out of server rendering", () => {
-    const creatorRoute = source("src/routes/creator.$slug.tsx");
-    expect(creatorRoute).toMatch(/typeof window !== "undefined"/);
-  });
-
   it("never logs password-reset links in production", () => {
     const email = source("server/services/email.ts");
     const productionGuard = email.indexOf('env.NODE_ENV === "production"');

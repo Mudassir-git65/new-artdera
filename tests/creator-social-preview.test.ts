@@ -34,13 +34,21 @@ describe("Creator & Store Social Sharing Previews", () => {
     expect(metaMap.get("twitter:title")).toBe("Ayesha Khan | ArtDera");
 
     // Description requirement: short bio or fallback
-    expect(metaMap.get("description")).toContain("Ayesha Khan creates contemporary miniature paintings");
-    expect(metaMap.get("og:description")).toContain("Ayesha Khan creates contemporary miniature paintings");
-    expect(metaMap.get("twitter:description")).toContain("Ayesha Khan creates contemporary miniature paintings");
+    expect(metaMap.get("description")).toContain(
+      "Ayesha Khan creates contemporary miniature paintings",
+    );
+    expect(metaMap.get("og:description")).toContain(
+      "Ayesha Khan creates contemporary miniature paintings",
+    );
+    expect(metaMap.get("twitter:description")).toContain(
+      "Ayesha Khan creates contemporary miniature paintings",
+    );
 
     // Canonical & URL requirement
     expect(metaMap.get("og:url")).toBe("https://www.artdera.com/store/ayesha-khan");
-    expect(meta.links.find((l) => l.rel === "canonical")?.href).toBe("https://www.artdera.com/store/ayesha-khan");
+    expect(meta.links.find((l) => l.rel === "canonical")?.href).toBe(
+      "https://www.artdera.com/store/ayesha-khan",
+    );
 
     // Site Name & Type requirements
     expect(metaMap.get("og:site_name")).toBe("ArtDera");
@@ -63,7 +71,9 @@ describe("Creator & Store Social Sharing Previews", () => {
     });
 
     const desc = meta.meta.find((m) => "name" in m && m.name === "description")?.content;
-    expect(desc).toBe("Discover original artworks by Farhan Ahmed on ArtDera — where hidden talent finds recognition.");
+    expect(desc).toBe(
+      "Discover original artworks by Farhan Ahmed on ArtDera — where hidden talent finds recognition.",
+    );
   });
 
   it("applies fallback chain (profile -> cover -> default image) when picture is missing", async () => {
@@ -123,7 +133,9 @@ describe("Creator & Store Social Sharing Previews", () => {
     let resolved = await getCreatorOrStoreResolved("zainab-malik", "store");
     expect(resolved.name).toBe("Zainab Malik");
     expect(resolved.bio).toBe("Contemporary Calligraphy & Abstract Ink Artist");
-    expect(resolved.profileImage).toBe("https://res.cloudinary.com/artdera/image/upload/v1/zainab-profile.jpg");
+    expect(resolved.profileImage).toBe(
+      "https://res.cloudinary.com/artdera/image/upload/v1/zainab-profile.jpg",
+    );
 
     // Update profile picture and bio
     await ArtistProfileModel.updateOne(
@@ -132,7 +144,8 @@ describe("Creator & Store Social Sharing Previews", () => {
         $set: {
           displayName: "Zainab Malik Calligraphy",
           shortBio: "Award-winning Nastaliq Calligrapher based in Lahore",
-          profileImageUrl: "https://res.cloudinary.com/artdera/image/upload/v2/zainab-new-profile.jpg",
+          profileImageUrl:
+            "https://res.cloudinary.com/artdera/image/upload/v2/zainab-new-profile.jpg",
         },
       },
     );
@@ -141,15 +154,40 @@ describe("Creator & Store Social Sharing Previews", () => {
     resolved = await getCreatorOrStoreResolved("zainab-malik", "store");
     expect(resolved.name).toBe("Zainab Malik Calligraphy");
     expect(resolved.bio).toBe("Award-winning Nastaliq Calligrapher based in Lahore");
-    expect(resolved.profileImage).toBe("https://res.cloudinary.com/artdera/image/upload/v2/zainab-new-profile.jpg");
+    expect(resolved.profileImage).toBe(
+      "https://res.cloudinary.com/artdera/image/upload/v2/zainab-new-profile.jpg",
+    );
   });
 
   it("serves dynamic 1200x630 OG preview cards via /api/og/store/:slug and /api/og/creator/:slug", async () => {
+    const user = await UserModel.create({
+      fullName: "Sana Mirza",
+      email: "og@test.com",
+      emailNormalized: "og@test.com",
+      passwordHash: "unused",
+      role: "artist",
+      termsAcceptedAt: new Date(),
+      privacyAcceptedAt: new Date(),
+    });
+    await StoreModel.create({
+      ownerId: user._id,
+      ownerType: "artist",
+      name: "Sana Mirza",
+      slug: "sana-mirza",
+      status: "active",
+      isPublished: true,
+    });
+    await StoreModel.create({
+      ownerId: user._id,
+      ownerType: "artist",
+      name: "Omar Farooq",
+      slug: "omar-farooq",
+      status: "active",
+      isPublished: true,
+    });
     const app = createApp();
 
-    const responseStore = await request(app)
-      .get("/api/og/store/sana-mirza")
-      .expect(200);
+    const responseStore = await request(app).get("/api/og/store/sana-mirza").expect(200);
 
     const svgTextStore = responseStore.text || responseStore.body.toString("utf-8");
     expect(responseStore.headers["content-type"]).toContain("image/svg+xml");
@@ -158,9 +196,7 @@ describe("Creator & Store Social Sharing Previews", () => {
     expect(svgTextStore).toContain("Sana Mirza");
     expect(svgTextStore).toContain("ArtDera");
 
-    const responseCreator = await request(app)
-      .get("/api/og/creator/omar-farooq")
-      .expect(200);
+    const responseCreator = await request(app).get("/api/og/creator/omar-farooq").expect(200);
 
     const svgTextCreator = responseCreator.text || responseCreator.body.toString("utf-8");
     expect(responseCreator.headers["content-type"]).toContain("image/svg+xml");

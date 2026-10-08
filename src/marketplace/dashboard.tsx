@@ -1,3 +1,4 @@
+import { uniqueById } from "@/lib/catalog-product";
 import { Link } from "@tanstack/react-router";
 import { ProBadge } from "@/components/ui/ProBadge";
 import {
@@ -593,9 +594,16 @@ function Overview({
   const sellerOrders = ORDERS.filter((order) => order.sellerId === userId);
   const validSellerOrders = sellerOrders.filter(
     (order) =>
-      !["Cancelled", "Refunded", "Failed", "Awaiting Payment", "cancelled", "refunded", "failed", "awaiting_payment"].includes(
-        order.status,
-      ),
+      ![
+        "Cancelled",
+        "Refunded",
+        "Failed",
+        "Awaiting Payment",
+        "cancelled",
+        "refunded",
+        "failed",
+        "awaiting_payment",
+      ].includes(order.status),
   );
   const activePromotions = PROMOTIONS.filter((promotion) =>
     ["Active", "Scheduled", "Pending"].includes(promotion.status),
@@ -636,9 +644,7 @@ function Overview({
     [
       "Wishlist saves",
       String(savesCount),
-      savesCount === 0
-        ? "No saves yet — showcase artworks to attract collectors"
-        : "Last 7 days",
+      savesCount === 0 ? "No saves yet — showcase artworks to attract collectors" : "Last 7 days",
       Heart,
     ],
     [
@@ -924,11 +930,24 @@ function PlanUpgradeCard({ planId, role }: { planId: PlanId; role: "artist" | "g
 
 function ArtworkManager({ storeId, planId }: { storeId: string; planId: PlanId }) {
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
-  const [items, setItems] = useState(() =>
-    ArtworkService.forStore(storeId).length
-      ? ArtworkService.forStore(storeId)
-      : ARTWORKS.slice(0, 4),
-  );
+  const [items, setItems] = useState(() => ArtworkService.forStore(storeId));
+  const [catalogError, setCatalogError] = useState("");
+  useEffect(() => {
+    if (editingArtwork) return;
+    let active = true;
+    void ArtworkService.fetchMine().then((result) => {
+      if (!active) return;
+      if (result.error) {
+        setCatalogError(result.error.message);
+        return;
+      }
+      setItems(uniqueById((result.data ?? []).filter((item) => item.storeId === storeId)));
+      setCatalogError("");
+    });
+    return () => {
+      active = false;
+    };
+  }, [storeId, editingArtwork]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
   const [sort, setSort] = useState("Newest");
@@ -963,13 +982,7 @@ function ArtworkManager({ storeId, planId }: { storeId: string; planId: PlanId }
     const result = await ArtworkService.updateMany(selected, nextStatus);
     if (result.error) return toast.error(result.error.message);
     const relevant = (result.data ?? []).filter((item) => item.storeId === storeId);
-    setItems(
-      relevant.length
-        ? relevant
-        : items.map((item) =>
-            selected.includes(item.id) ? { ...item, status: nextStatus } : item,
-          ),
-    );
+    setItems((values) => uniqueById([...values, ...relevant]));
     setSelected([]);
     toast.success(`${selected.length} artwork${selected.length === 1 ? "" : "s"} updated`);
   }
@@ -986,11 +999,7 @@ function ArtworkManager({ storeId, planId }: { storeId: string; planId: PlanId }
     const result = await ArtworkService.updateMany([id], nextStatus);
     if (result.error) return toast.error(result.error.message);
     const relevant = (result.data ?? []).filter((item) => item.storeId === storeId);
-    setItems(
-      relevant.length
-        ? relevant
-        : items.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)),
-    );
+    setItems((values) => uniqueById([...values, ...relevant]));
     toast.success("Artwork updated");
   }
 
@@ -1014,6 +1023,11 @@ function ArtworkManager({ storeId, planId }: { storeId: string; planId: PlanId }
 
   return (
     <Panel>
+      {catalogError && (
+        <p role="alert" className="mb-4 text-sm text-red-600">
+          {catalogError}
+        </p>
+      )}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
@@ -2910,6 +2924,10 @@ function Customers({ planId }: { planId: PlanId }) {
 }
 
 function Analytics({ planId }: { planId: PlanId }) {
+  const { user } = useAuth();
+  const ownArtwork = ARTWORKS.filter((item) =>
+    STORES.some((store) => store.id === item.storeId && store.ownerId === user?.id),
+  );
   const [metrics, setMetrics] = useState<Record<string, number>>({});
   const [chartData, setChartData] = useState<Array<Record<string, string | number>>>([]);
   useEffect(() => {
@@ -3017,26 +3035,30 @@ function Analytics({ planId }: { planId: PlanId }) {
           <Panel>
             <div className="eyebrow">Top artworks</div>
             <div className="mt-5 space-y-3">
-              {ARTWORKS.slice(0, 4).map((artwork, index) => (
-                <div
-                  key={artwork.id}
-                  className="grid grid-cols-[30px_52px_1fr_auto] items-center gap-3"
-                >
-                  <span className="font-display text-xl text-muted-foreground">{index + 1}</span>
-                  <img
-                    src={artwork.images[0].url}
-                    alt=""
-                    className="h-14 w-12 rounded object-cover"
-                  />
-                  <div>
-                    <div className="text-sm font-semibold">{artwork.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {artwork.saves} saves · {artwork.messages} messages
+              {ownArtwork
+                .slice()
+                .sort((a, b) => b.views - a.views)
+                .slice(0, 4)
+                .map((artwork, index) => (
+                  <div
+                    key={artwork.id}
+                    className="grid grid-cols-[30px_52px_1fr_auto] items-center gap-3"
+                  >
+                    <span className="font-display text-xl text-muted-foreground">{index + 1}</span>
+                    <img
+                      src={artwork.images[0].url}
+                      alt=""
+                      className="h-14 w-12 rounded object-cover"
+                    />
+                    <div>
+                      <div className="text-sm font-semibold">{artwork.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {artwork.saves} saves · {artwork.messages} messages
+                      </div>
                     </div>
+                    <strong className="text-sm">{artwork.views}</strong>
                   </div>
-                  <strong className="text-sm">{artwork.views}</strong>
-                </div>
-              ))}
+                ))}
             </div>
           </Panel>
           <Panel>
@@ -3076,7 +3098,13 @@ function Analytics({ planId }: { planId: PlanId }) {
 }
 
 function Promotions() {
-  const [artwork, setArtwork] = useState(ARTWORKS[0].id);
+  const { user } = useAuth();
+  const ownArtwork = ARTWORKS.filter(
+    (item) =>
+      item.status === "Published" &&
+      STORES.some((store) => store.id === item.storeId && store.ownerId === user?.id),
+  );
+  const [artwork, setArtwork] = useState(ownArtwork[0]?.id ?? "");
   const [placement, setPlacement] = useState(PROMOTION_PLACEMENTS[0].id);
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState<"jazzcash" | "easypaisa">("jazzcash");
@@ -3104,7 +3132,7 @@ function Promotions() {
                   value={artwork}
                   onChange={(event) => setArtwork(event.target.value)}
                 >
-                  {ARTWORKS.slice(0, 4).map((item) => (
+                  {ownArtwork.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.title}
                     </option>

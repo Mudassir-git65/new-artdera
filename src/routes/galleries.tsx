@@ -11,7 +11,8 @@ export const Route = createFileRoute("/galleries")({
   head: () => {
     const seo = generateMeta({
       title: "Art Galleries — Curated Programmes | ArtDera",
-      description: "Discover independent art galleries and curated exhibition programmes across Pakistan on ArtDera.",
+      description:
+        "Discover independent art galleries and curated exhibition programmes across Pakistan on ArtDera.",
       canonicalPath: "/galleries",
     });
 
@@ -36,20 +37,7 @@ export const Route = createFileRoute("/galleries")({
 
 function Galleries() {
   const loaderGalleries = Route.useLoaderData();
-  const clientGalleries = STORES.filter((store) => store.id.includes("gallery"));
-  const galleries = clientGalleries.length > 0 ? clientGalleries : (loaderGalleries.map((g) => ({
-    id: `gallery-${g.slug}`,
-    slug: g.slug,
-    name: g.name,
-    bio: g.bio,
-    location: g.location,
-    verified: g.verified,
-    profileImage: g.portrait,
-    coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1200&q=80&auto=format",
-    rating: 5,
-    reviewCount: 1,
-    followers: 180,
-  })));
+  const galleries = loaderGalleries.map((gallery) => gallery.store!).filter(Boolean);
 
   return (
     <div className="container-editorial py-14">
@@ -118,4 +106,3 @@ function Galleries() {
     </div>
   );
 }
-

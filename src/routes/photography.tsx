@@ -1,10 +1,13 @@
+import { fetchProductsList } from "@/lib/server-loaders";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PRODUCTS } from "@/lib/artdera";
 import { ProductCard } from "@/components/site/ProductCard";
 import { generateMeta, generateItemListSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/photography")({
-  head: () => {
+  loader: () => fetchProductsList({ data: { category: "photography" } }),
+  head: ({ loaderData }) => {
+    const PRODUCTS = loaderData ?? [];
     const photos = PRODUCTS.filter((p) => p.categorySlug === "photography");
     const seo = generateMeta({
       title: "Fine Art Photography Prints for Sale | ArtDera",
@@ -51,6 +54,7 @@ export const Route = createFileRoute("/photography")({
 });
 
 function PhotographyPage() {
+  const PRODUCTS = Route.useLoaderData();
   const photoWorks = PRODUCTS.filter((p) => p.categorySlug === "photography");
 
   return (

@@ -1,26 +1,35 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
+import { useEffect, useRef, useState } from "react";
+import { uniqueById } from "@/lib/catalog-product";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { ProBadge } from "@/components/ui/ProBadge";
 import { getCreator, productsByCreator, type Creator } from "@/lib/artdera";
-import { fetchProductsList } from "@/lib/server-loaders";
+import { fetchStoreCatalog } from "@/lib/server-loaders";
 import { ProductCard } from "@/components/site/ProductCard";
 import { toast } from "sonner";
 import { useAuth } from "@/marketplace/auth";
 import { ARTWORKS, STORES } from "@/marketplace/data";
-import { FollowService, MessageService, MarketplaceService } from "@/marketplace/services";
-import { generatePersonSchema, generateBreadcrumbSchema, generateCreatorStoreSocialMeta } from "@/lib/seo";
+import { FollowService, MessageService } from "@/marketplace/services";
+import {
+  generatePersonSchema,
+  generateBreadcrumbSchema,
+  generateCreatorStoreSocialMeta,
+} from "@/lib/seo";
 import { getCreatorOrStoreResolved } from "@/lib/creator-meta";
 import { hasActiveProfessionalSubscription } from "@/lib/subscription-status";
 
 export const Route = createFileRoute("/creator/$slug")({
+  remountDeps: ({ params }) => params.slug,
   loader: async ({ params }) => {
-    if (typeof window !== "undefined") {
-      void MarketplaceService.loadArtworksForStore(params.slug);
-    }
-    const [creatorMeta, works] = await Promise.all([
-      getCreatorOrStoreResolved(params.slug, "creator"),
-      fetchProductsList({ data: { creatorSlug: params.slug } }),
-    ]);
-    return { creatorMeta, works };
+    const catalog = await fetchStoreCatalog({ data: { slug: params.slug } });
+    if (!catalog) throw notFound();
+    if (catalog.store.slug !== params.slug)
+      throw redirect({
+        to: "/creator/$slug",
+        params: { slug: catalog.store.slug as string },
+        statusCode: 301,
+      });
+    return catalog;
   },
   head: ({ loaderData, params }) => {
     const creatorMeta = loaderData?.creatorMeta;
@@ -83,29 +92,52 @@ export const Route = createFileRoute("/creator/$slug")({
 function CreatorPage() {
   const { slug } = Route.useParams();
   const { user } = useAuth();
-  const { creatorMeta, works: loaderWorks } = Route.useLoaderData();
-  const staticCreator = getCreator(slug);
+  const catalog = Route.useLoaderData();
+  const { creatorMeta, works: loaderWorks } = catalog;
+  const [works, setWorks] = useState(loaderWorks);
+  const [cursor, setCursor] = useState(catalog.nextCursor);
+  const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
+  const [error, setError] = useState("");
+  const generationRef = useRef(0);
+  useEffect(() => {
+    ++generationRef.current;
+    setWorks(catalog.works);
+    setCursor(catalog.nextCursor);
+    loadingRef.current = false;
+    setLoading(false);
+    setError("");
+    return () => {
+      // This ref is a request counter. Invalidate every outstanding response.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++generationRef.current;
+    };
+  }, [catalog]);
 
-  const creator: Creator = staticCreator || {
+  const creator: Creator = {
     slug,
-    name: creatorMeta?.name || decodeURIComponent(slug).replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    name:
+      creatorMeta?.name ||
+      decodeURIComponent(slug)
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase()),
     handle: `@${slug}`,
     location: creatorMeta?.location || "Pakistan",
-    discipline: "Visual Art",
-    bio: creatorMeta?.bio || `Discover original artwork by ${creatorMeta?.name || slug} on ArtDera.`,
+    discipline: creatorMeta?.discipline || "Visual Art",
+    planId: creatorMeta?.planId,
+    subscriptionStatus: creatorMeta?.subscriptionStatus,
+    subscriptionExpiresAt: creatorMeta?.subscriptionExpiresAt,
+    bio:
+      creatorMeta?.bio || `Discover original artwork by ${creatorMeta?.name || slug} on ArtDera.`,
     verified: Boolean(creatorMeta?.verified),
     accountType: "artist",
     approvedSeller: true,
-    portrait: creatorMeta?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80&auto=format",
+    portrait: creatorMeta?.profileImage || "",
     works: [],
   };
 
-  const clientWorks = productsByCreator(creator.slug);
-  const works = clientWorks.length > 0 ? clientWorks : loaderWorks;
-  const firstArtwork = ARTWORKS.find((artwork) => works.some((work) => work.slug === artwork.slug));
-  const store =
-    STORES.find((item) => item.slug === creator.slug) ??
-    STORES.find((item) => item.id === firstArtwork?.storeId);
+  const firstArtwork = works[0]?.artwork;
+  const store = catalog.store;
   const requireAccount = () => {
     if (!user) {
       window.location.assign(
@@ -174,7 +206,7 @@ function CreatorPage() {
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-6 max-w-md">
               {[
-                [works.length.toString(), "Works available"],
+                [catalog.total.toString(), "Works available"],
                 ["100%", "On-time fulfilment"],
                 ["< 24h", "Response time"],
               ].map(([n, l]) => (
@@ -186,7 +218,14 @@ function CreatorPage() {
             </dl>
           </div>
           <div className="relative aspect-[4/5] overflow-hidden rounded-lg">
-            <img src={creator.portrait} alt={creator.name} className="h-full w-full object-cover" />
+            <img
+              src={artworkImageUrl(creator.portrait, 960)}
+              srcSet={artworkImageSrcSet(creator.portrait)}
+              sizes="(max-width: 767px) 100vw, 40vw"
+              fetchPriority="high"
+              alt={creator.name}
+              className="h-full w-full object-cover"
+            />
           </div>
         </div>
       </section>
@@ -195,10 +234,45 @@ function CreatorPage() {
         <div className="eyebrow">Work</div>
         <h2 className="mt-3 font-display text-3xl">Selected pieces from the studio</h2>
         <div className="mt-8 grid grid-cols-1 gap-x-5 gap-y-12 min-[480px]:grid-cols-2 md:grid-cols-3">
-          {works.map((p) => (
-            <ProductCard key={p.slug} product={p} />
+          {works.map((p, index) => (
+            <ProductCard key={p.id} product={p} priority={index < 3} />
           ))}
         </div>
+        {error && (
+          <p role="alert" className="mt-4">
+            {error}
+          </p>
+        )}
+        {cursor && (
+          <button
+            className="btn-ghost mt-8"
+            disabled={loading}
+            onClick={async () => {
+              if (loadingRef.current) return;
+              loadingRef.current = true;
+              setLoading(true);
+              setError("");
+              const generation = generationRef.current;
+              try {
+                const next = await fetchStoreCatalog({ data: { slug, cursor } });
+                if (generation !== generationRef.current) return;
+                if (!next) throw new Error("This studio is no longer available.");
+                setWorks((items) => uniqueById([...items, ...next.works]));
+                setCursor(next.nextCursor);
+              } catch {
+                if (generation === generationRef.current)
+                  setError("Could not load more artworks. Please try again.");
+              } finally {
+                if (generation === generationRef.current) {
+                  loadingRef.current = false;
+                  setLoading(false);
+                }
+              }
+            }}
+          >
+            {loading ? "Loading artworks…" : "Load more"}
+          </button>
+        )}
       </section>
     </div>
   );

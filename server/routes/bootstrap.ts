@@ -1,3 +1,4 @@
+import { publicArtworkFilter, publicStoreFilter } from "../services/catalog";
 import { Router } from "express";
 import {
   ArtistProfileModel,
@@ -45,16 +46,8 @@ bootstrapRouter.get(
     // with the DB queries below.
     void refreshPromotionStates().catch(() => undefined);
 
-    const isPublicRequest = !req.auth;
-
-    // For unauthenticated requests instruct browsers and CDN edges to cache
-    // the public portion for 60 s, and serve stale for up to 5 min while
-    // revalidating in the background. This cuts repeated cold-start latency
-    // dramatically for anonymous visitors (homepage, discover, product pages).
-    if (isPublicRequest) {
-      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
-      res.setHeader("Vary", "Accept-Encoding");
-    }
+    res.setHeader("Cache-Control", "private, no-store");
+    res.vary("Cookie");
 
     const [
       plans,
@@ -67,27 +60,41 @@ bootstrapRouter.get(
       exhibitions,
     ] = await Promise.all([
       SubscriptionPlanModel.find({ isActive: true }).sort({ sortOrder: 1 }).lean(),
-      StoreModel.find({ isPublished: true, status: "active" })
-        .select("ownerId slug name tagline shortDescription logoUrl coverImageUrl city country status isPublished categories mediums createdAt")
-        .sort({ createdAt: -1 })
+      StoreModel.find(publicStoreFilter)
+        .select(
+          "ownerId slug name tagline shortDescription logoUrl coverImageUrl city country status isPublished categories mediums createdAt",
+        )
+        .sort({ createdAt: -1, _id: -1 })
         .limit(100)
         .lean(),
-      ArtworkModel.find({ status: "published", moderationStatus: "approved" })
-        .select("storeId artistId galleryId title slug description story category medium style subject colours yearCreated artworkType editionType editionTotal price discountPrice width height measurementUnit isFramed images sponsored isSponsored tags status moderationStatus")
-        .sort({ createdAt: -1 })
+      ArtworkModel.find(publicArtworkFilter)
+        .select(
+          "storeId artistId galleryId title slug description story category medium style subject colours yearCreated artworkType editionType editionTotal price discountPrice width height measurementUnit isFramed images sponsored isSponsored tags status moderationStatus",
+        )
+        .sort({ createdAt: -1, _id: -1 })
         .limit(24)
         .lean(),
       ArtistProfileModel.find({ onboardingCompleted: true })
-        .select("userId displayName professionalTitle shortBio profileImageUrl coverImageUrl city country categories styles mediums verificationStatus")
+        .select(
+          "userId displayName professionalTitle shortBio profileImageUrl coverImageUrl city country categories styles mediums verificationStatus",
+        )
         .populate("userId", "fullName city province country avatarUrl")
         .lean(),
       GalleryProfileModel.find({ onboardingCompleted: true })
-        .select("userId galleryName description logoUrl coverImageUrl city country verificationStatus")
+        .select(
+          "userId galleryName description logoUrl coverImageUrl city country verificationStatus",
+        )
         .populate("userId", "fullName city province country avatarUrl")
         .lean(),
       TaxonomyModel.find({ isActive: true }).sort({ type: 1, sortOrder: 1, name: 1 }).lean(),
-      CollectionModel.find({ isPublished: true }).sort({ sortOrder: 1 }).lean(),
-      ExhibitionModel.find({ isPublished: true, status: { $in: ["scheduled", "active"] } })
+      CollectionModel.find({ isPublished: true, isDemo: { $ne: true } })
+        .sort({ sortOrder: 1 })
+        .lean(),
+      ExhibitionModel.find({
+        isPublished: true,
+        isDemo: { $ne: true },
+        status: { $in: ["scheduled", "active"] },
+      })
         .sort({ startAt: 1 })
         .lean(),
     ]);
@@ -168,7 +175,13 @@ bootstrapRouter.get(
       // A populated reference becomes null when a legacy profile outlives its
       // user. Never expose those orphan records as public creators.
       creators: artistProfiles
-        .filter((profile: any) => profile.userId)
+        .filter(
+          (profile: any) =>
+            profile.userId &&
+            stores.some(
+              (store) => String(store.ownerId) === String(profile.userId._id ?? profile.userId),
+            ),
+        )
         .map((profile: any) => ({
           id: String(profile.userId?._id ?? profile.userId),
           slug:

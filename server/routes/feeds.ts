@@ -1,3 +1,4 @@
+import { publicArtworkFilter } from "../services/catalog";
 import { Router } from "express";
 import { asyncRoute } from "../lib/http";
 import { ArtworkModel } from "../models";
@@ -22,7 +23,7 @@ feedsRouter.get(
   "/merchant-feed.xml",
   asyncRoute(async (_req, res) => {
     const artworks = await ArtworkModel.find({
-      status: "published",
+      ...publicArtworkFilter,
       quantity: { $gt: 0 },
     })
       .limit(1000)
@@ -35,7 +36,7 @@ feedsRouter.get(
       const price = artwork.price ?? 0;
       const title = escapeXml(String(artwork.title ?? ""));
       const description = escapeXml(String(artwork.description ?? title).slice(0, 500));
-      const link = `${BASE_URL}/product/${artwork.slug}`;
+      const link = `${BASE_URL}/product/${artwork._id}-${artwork.slug}`;
       const primaryImage =
         Array.isArray(artwork.images) && artwork.images.length > 0
           ? publicAssetUrl(

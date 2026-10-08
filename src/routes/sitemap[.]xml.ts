@@ -50,31 +50,23 @@ export const Route = createFileRoute("/sitemap.xml")({
         let creatorPaths: string[] = [];
         let storePaths: string[] = [];
 
-        try {
-          const mongoose = await import("mongoose");
-          if (mongoose.default?.connection?.readyState === 1) {
-            const { ArtworkModel, StoreModel } = await import("../../server/models");
-            const [artworks, stores] = await Promise.all([
-              ArtworkModel.find({ status: { $in: ["published", "reserved", "sold"] } }).select("slug").lean(),
-              StoreModel.find({ isPublished: true, status: "active" }).select("slug ownerType").lean(),
-            ]);
-
-            productPaths = artworks.map((a) => `/product/${a.slug}`);
-            creatorPaths = stores.filter((s) => s.ownerType === "artist").map((s) => `/creator/${s.slug}`);
-            storePaths = stores.filter((s) => s.ownerType === "gallery").map((s) => `/store/${s.slug}`);
-          }
-        } catch {
-          // Fallback if DB is disconnected
-        }
-
-        if (productPaths.length === 0) {
-          productPaths = PRODUCTS.map((p) => `/product/${p.slug}`);
-        }
-        if (creatorPaths.length === 0) {
-          creatorPaths = CREATORS.map((c) => `/creator/${c.slug}`);
-        }
-
-        const allPaths = Array.from(new Set([...staticPaths, ...productPaths, ...creatorPaths, ...storePaths]));
+        const { connectDatabase } = await import("../../server/db");
+        await connectDatabase();
+        const { ArtworkModel, StoreModel } = await import("../../server/models");
+        const { publicArtworkFilter, publicStoreFilter } =
+          await import("../../server/services/catalog");
+        const [artworks, stores] = await Promise.all([
+          ArtworkModel.find(publicArtworkFilter).select("slug").lean(),
+          StoreModel.find(publicStoreFilter).select("slug ownerType").lean(),
+        ]);
+        productPaths = artworks.map((a) => `/product/${a._id}-${a.slug}`);
+        creatorPaths = stores
+          .filter((s) => s.ownerType === "artist")
+          .map((s) => `/creator/${s.slug}`);
+        storePaths = stores.filter((s) => s.ownerType === "gallery").map((s) => `/store/${s.slug}`);
+        const allPaths = Array.from(
+          new Set([...staticPaths, ...productPaths, ...creatorPaths, ...storePaths]),
+        );
 
         const urls = allPaths
           .map(
@@ -88,11 +80,10 @@ export const Route = createFileRoute("/sitemap.xml")({
         return new Response(xml, {
           headers: {
             "Content-Type": "application/xml",
-            "Cache-Control": "public, max-age=3600, s-maxage=86400",
+            "Cache-Control": "public, max-age=0, must-revalidate",
           },
         });
       },
     },
   },
 });
-

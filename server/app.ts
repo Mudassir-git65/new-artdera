@@ -116,6 +116,11 @@ export function createApp() {
   app.get("/api/health", (_req, res) =>
     ok(res, { status: mongoose.connection.readyState === 1 ? "ready" : "starting" }),
   );
+  app.use("/api", (_req, res, next) => {
+    res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
+    res.vary("Cookie");
+    next();
+  });
   app.use("/api", requireDatabase);
   app.use("/feeds", requireDatabase);
   app.use(optionalAuth);

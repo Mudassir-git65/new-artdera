@@ -1,0 +1,151 @@
+{
+  "browser": "Codex in-app browser",
+  "environment": "local Vercel artifact against production database",
+  "checks": [
+    {
+      "count": 13,
+      "unique": 13
+    },
+    {
+      "count": 13,
+      "unique": 13
+    },
+    {
+      "count": 13,
+      "unique": 13
+    },
+    {
+      "count": 13,
+      "unique": 13
+    },
+    {
+      "count": 13,
+      "unique": 13
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 375
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    },
+    {
+      "count": 13,
+      "unique": 13,
+      "viewport": 1265
+    }
+  ]
+}

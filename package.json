@@ -22,7 +22,11 @@
     "db:smoke": "tsx server/scripts/smoke-db.ts",
     "admin:create": "tsx server/scripts/create-admin.ts",
     "memberships:reconcile": "tsx server/scripts/reconcile-professional-memberships.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "preview:production": "node scripts/preview-production.mjs",
+    "catalog:audit": "tsx scripts/audit-catalog.ts",
+    "catalog:indexes": "tsx scripts/catalog-indexes.ts",
+    "catalog:verify": "node scripts/verify-public-catalog.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -85,6 +89,7 @@
     "react-resizable-panels": "^4.6.5",
     "recharts": "^2.15.4",
     "resend": "^6.18.1",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",

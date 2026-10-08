@@ -1,0 +1,56 @@
+{
+  "checkedAt": "2026-10-08T17:56:16.397Z",
+  "applied": true,
+  "verifiedFixtures": [
+    {
+      "collection": "stores",
+      "id": "6a5e23e0beee715a0262e11d",
+      "slug": "ayla-raza-studio"
+    },
+    {
+      "collection": "artworks",
+      "id": "6a8eceddd1e6c7485a99829b",
+      "slug": "silent-geometry"
+    },
+    {
+      "collection": "artworks",
+      "id": "6a8eceddd1e6c7485a99829c",
+      "slug": "monsoon-memory"
+    },
+    {
+      "collection": "artworks",
+      "id": "6a8eceddd1e6c7485a99829d",
+      "slug": "ochre-horizon"
+    },
+    {
+      "collection": "stores",
+      "id": "6a5e23e0beee715a0262e11e",
+      "slug": "mehr-gallery"
+    },
+    {
+      "collection": "artworks",
+      "id": "6a8eceddd1e6c7485a99829e",
+      "slug": "city-after-rain"
+    },
+    {
+      "collection": "artworks",
+      "id": "6a8eceddd1e6c7485a99829f",
+      "slug": "river-script"
+    },
+    {
+      "collection": "artworks",
+      "id": "6a8eceddd1e6c7485a9982a0",
+      "slug": "blue-interval"
+    },
+    {
+      "collection": "collections",
+      "id": "6a5e23e2beee715a0262e129",
+      "slug": "new-pakistani-abstraction"
+    },
+    {
+      "collection": "exhibitions",
+      "id": "6a5e23e3beee715a0262e12a",
+      "slug": "lines-of-memory"
+    }
+  ]
+}

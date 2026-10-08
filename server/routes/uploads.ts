@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import sharp from "sharp";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Router } from "express";
@@ -248,6 +249,30 @@ uploadsRouter.get(
       access: "public",
     }).select("+storageKey");
     if (!record) throw new ApiError(404, "UPLOAD_NOT_FOUND", "File not found");
+    if (req.query.w !== undefined) {
+      const width = Number(req.query.w);
+      if (![320, 480, 640, 960, 1280].includes(width) || req.query.format !== "webp")
+        throw new ApiError(422, "INVALID_IMAGE_SIZE", "Choose a supported image size.");
+      if (!record.mimeType.startsWith("image/"))
+        throw new ApiError(422, "NOT_AN_IMAGE", "This file is not an image.");
+      const source =
+        providerFor(record) === "local"
+          ? await readFile(safeLocalTarget(record.storageKey))
+          : Buffer.concat(
+              await gridFsBucket()
+                .openDownloadStream(new mongoose.Types.ObjectId(record.storageKey))
+                .toArray(),
+            );
+      const thumbnail = await sharp(source, { limitInputPixels: 40_000_000 })
+        .rotate()
+        .resize({ width, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      // Image work can finish after navigation cancels the response.
+      if (res.destroyed || res.writableEnded) return;
+      res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
+      return res.type("image/webp").send(thumbnail);
+    }
     await sendStoredUpload(record, res);
   }),
 );

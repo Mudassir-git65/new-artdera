@@ -1,0 +1,19 @@
+{
+  "fullSuite": {
+    "files": 10,
+    "passed": 72,
+    "durationSeconds": 288.61
+  },
+  "finalCatalogSuite": {
+    "files": 1,
+    "passed": 11,
+    "durationSeconds": 37.19
+  },
+  "frontendAndBackendTypecheck": "passed",
+  "vercelBuild": "passed",
+  "changedFileLint": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "notes": "Production deployment skipped at user request; local browser and API verification used the production database."
+}

@@ -1,0 +1,332 @@
+{
+  "checkedAt": "2026-10-08T17:20:03.545Z",
+  "database": "artdera",
+  "store": {
+    "_id": "6a91d1080fb45abeab27ac95",
+    "ownerId": "6a91be9d5325e6ddab9cfe58",
+    "isPublished": true,
+    "name": "Art By Ayesha",
+    "slug": "artbyayesha19",
+    "status": "active"
+  },
+  "subscriptions": [
+    {
+      "_id": "6a91be9e5325e6ddab9cfe5a",
+      "planId": "professional",
+      "status": "active",
+      "listingLimit": 200,
+      "currentPeriodEnd": "2027-08-28T17:19:34.404Z"
+    }
+  ],
+  "total": 25,
+  "eligible": 13,
+  "records": [
+    {
+      "id": "6aa7e5d48231dc65d13d7385",
+      "title": "The Golden Horse",
+      "slug": "the-golden-horse-mu17k5n3-26cc9d",
+      "status": "rejected",
+      "moderationStatus": "rejected",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "duplicate"
+    },
+    {
+      "id": "6aa7e56e8231dc65d13d7381",
+      "title": "The Golden Horse",
+      "slug": "the-golden-horse-mu17hzed-171ddc",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a9bf2481eb0e60299e24bd0",
+      "title": "Surah Ar Rehman 💚",
+      "slug": "surah-ar-rehman-mto98jbf-3b88c2",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a9bf2431eb0e60299e24bcc",
+      "title": "Surah Ar Rehman 💚",
+      "slug": "surah-ar-rehman-mto98f8i-513764",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a92c8624e60be557e28355b",
+      "title": "Fantasy Wonderland 🦢",
+      "slug": "fantasy-wonderland-mteboo0q-19cab5",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a92c74e4e60be557e283547",
+      "title": "Blush in Bloom 🌸",
+      "slug": "blush-in-bloom-mtebiqhh-75f14d",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92c6024e60be557e28353f",
+      "title": "Brushstrokes of Nature 🖌",
+      "slug": "brushstrokes-of-nature-mtebbm7o-d91585",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92c5007da1e5dcb8b183f4",
+      "title": "Starry Nights 🌙🌠",
+      "slug": "starry-nights-mteb63c7-a0e4a2",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92c3967da1e5dcb8b183d9",
+      "title": "Petals in Motion 🌺",
+      "slug": "petals-in-motion-mteayc9b-74dce1",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a92c2547da1e5dcb8b183cb",
+      "title": "Surah Fatiha ~ The Opening ✨️",
+      "slug": "surah-fatiha-the-opening-mtearfcy-d0ade0",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92c1037da1e5dcb8b183ba",
+      "title": "Noor of the Qur’an",
+      "slug": "noor-of-the-qur-an-mteak7eb-7290dc",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92c0227da1e5dcb8b183a4",
+      "title": "Sufi Dreams",
+      "slug": "sufi-dreams-mteafedf-36b413",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92bf627da1e5dcb8b18397",
+      "title": "The Blessed Entrance 💛",
+      "slug": "the-blessed-entrance-mteaba07-964e7f",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92be2d1ad4c3caf510d464",
+      "title": "3D Modern Art 🖤",
+      "slug": "3d-modern-art-mtea4ns5-bdcfa1",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92bd081ad4c3caf510d456",
+      "title": "Into the Light ~ Sufism",
+      "slug": "into-the-light-sufism-mte9ydmb-be4032",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92bc101ad4c3caf510d44c",
+      "title": "Dhikr of the Soul 📿",
+      "slug": "dhikr-of-the-soul-mte9t1zf-889290",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a92bb3145dee436ca3d9c5e",
+      "title": "Abstract Ayat al Kursi",
+      "slug": "abstract-ayat-al-kursi-mte9o9qc-eb4078",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92ba6f45dee436ca3d9c57",
+      "title": "99 Names of Allah 🕋",
+      "slug": "99-names-of-allah-mte9k4du-27d964",
+      "status": "draft",
+      "moderationStatus": "not_submitted",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Draft; not submitted for publication"
+    },
+    {
+      "id": "6a92b85484364535fa6a717e",
+      "title": "Between Earth & Eternity ✨️",
+      "slug": "between-earth-eternity-mte98kji-4abe2a",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a92b72e84364535fa6a7174",
+      "title": "Heart in Madina 💚",
+      "slug": "heart-in-madina-mte9299u-6b69fb",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a92b64384364535fa6a7168",
+      "title": "Ayat al Kursi in Diwani Style ♥️",
+      "slug": "ayat-al-kursi-in-diwani-style-mte8x8jn-08efb0",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a92b4a084364535fa6a7155",
+      "title": "Surah Yaseen ✨️",
+      "slug": "surah-yaseen-mte8o930-3a391c",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a92b29a84364535fa6a7148",
+      "title": "Soul in Surrender ~Alif ✨️",
+      "slug": "soul-in-surrender-alif-mte8d58o-5d4566",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    },
+    {
+      "id": "6a92b28c84364535fa6a7144",
+      "title": "Soul in Surrender ~Alif ✨️",
+      "slug": "soul-in-surrender-alif-mte8cuhw-0bcf00",
+      "status": "published",
+      "moderationStatus": "approved",
+      "ownershipMatches": true,
+      "eligible": true,
+      "hiddenReason": null
+    },
+    {
+      "id": "6a91d10922d332bec86a8536",
+      "title": "Kiswa-e-Kabaa 🖤",
+      "slug": "kiswa-e-kabaa-mtd9zgt3",
+      "status": "pending_review",
+      "moderationStatus": "pending",
+      "ownershipMatches": true,
+      "eligible": false,
+      "hiddenReason": "Awaiting administrator approval"
+    }
+  ],
+  "query": {
+    "samples": 30,
+    "medianMs": 125.25650000000041,
+    "p75Ms": 136.9958999999999,
+    "executionTimeMillis": 1,
+    "examined": 13,
+    "returned": 13,
+    "winningPlan": {
+      "isCached": true,
+      "stage": "LIMIT",
+      "limitAmount": 60,
+      "inputStage": {
+        "stage": "FETCH",
+        "inputStage": {
+          "stage": "IXSCAN",
+          "keyPattern": {
+            "storeId": 1,
+            "status": 1,
+            "moderationStatus": 1,
+            "createdAt": -1,
+            "_id": -1
+          },
+          "indexName": "storeId_1_status_1_moderationStatus_1_createdAt_-1__id_-1",
+          "isMultiKey": false,
+          "multiKeyPaths": {
+            "storeId": [],
+            "status": [],
+            "moderationStatus": [],
+            "createdAt": [],
+            "_id": []
+          },
+          "isUnique": false,
+          "isSparse": false,
+          "isPartial": false,
+          "indexVersion": 2,
+          "direction": "forward",
+          "indexBounds": {
+            "storeId": [
+              "[ObjectId('6a91d1080fb45abeab27ac95'), ObjectId('6a91d1080fb45abeab27ac95')]"
+            ],
+            "status": [
+              "[\"published\", \"published\"]"
+            ],
+            "moderationStatus": [
+              "[\"approved\", \"approved\"]"
+            ],
+            "createdAt": [
+              "[MaxKey, MinKey]"
+            ],
+            "_id": [
+              "[MaxKey, MinKey]"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -179,16 +179,19 @@ function MarketplaceLayout() {
     void AffiliateService.capture(code, `${window.location.pathname}${window.location.search}`);
   }, [locationHref]);
 
+  const router = useRouter();
+  useEffect(() => {
+    const invalidate = () => {
+      void router.invalidate();
+    };
+    window.addEventListener("artdera:catalog-changed", invalidate);
+    window.addEventListener("focus", invalidate);
+    return () => {
+      window.removeEventListener("artdera:catalog-changed", invalidate);
+      window.removeEventListener("focus", invalidate);
+    };
+  }, [router]);
   const isHome = pathname === "/";
-  const catalogDependent =
-    isHome ||
-    pathname === "/discover" ||
-    pathname === "/creators" ||
-    pathname === "/galleries" ||
-    pathname === "/collections" ||
-    pathname.startsWith("/product/") ||
-    pathname.startsWith("/creator/") ||
-    pathname.startsWith("/store/");
   const privateWorkspace =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/artist/dashboard") ||
@@ -206,9 +209,10 @@ function MarketplaceLayout() {
   // so it never blocks LCP or dashboard page loads.
   useEffect(() => {
     if (privateWorkspace) return;
-    if (document.querySelector('script[data-adsense]')) return;
+    if (document.querySelector("script[data-adsense]")) return;
     const script = document.createElement("script");
-    script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6561467807135376";
+    script.src =
+      "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6561467807135376";
     script.async = true;
     script.crossOrigin = "anonymous";
     script.setAttribute("data-adsense", "1");
@@ -225,11 +229,7 @@ function MarketplaceLayout() {
       <div className="min-h-screen flex flex-col" data-catalog-version={catalogVersion}>
         <Header />
         <main className={`flex-1 ${isHome ? "" : "pt-[var(--header-height)]"}`}>
-          {showLoadingScreen ? (
-            <CatalogLoadingScreen />
-          ) : (
-            <Outlet key={catalogDependent ? catalogVersion : "stable"} />
-          )}
+          {showLoadingScreen ? <CatalogLoadingScreen /> : <Outlet />}
         </main>
         {!privateWorkspace && <Footer />}
       </div>

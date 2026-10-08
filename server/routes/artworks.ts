@@ -8,7 +8,7 @@ import { publicArtwork } from "../lib/serializers";
 import { releaseListingSlot, requirePermission, reserveListingSlot } from "../services/plans";
 import { audit } from "../services/audit";
 import { notify } from "../services/notifications";
-import { mergeSponsoredResults } from "../services/sponsored";
+import { findPublicArtwork, readArtworkPage } from "../services/catalog";
 import { sanitizeText } from "../lib/security";
 import { trackArtworkView } from "../services/view-tracker";
 
@@ -230,105 +230,18 @@ artworksRouter.get(
       const stores = await StoreModel.find({ verificationStatus: "approved", isPublished: true })
         .select("_id")
         .lean();
-      filter.storeId = { $in: stores.map((store) => store._id) };
+      filter.$and = [{ storeId: { $in: stores.map((store) => store._id) } }];
     }
-    const sortMap: Record<string, Record<string, 1 | -1>> = {
-      newest: { createdAt: -1 },
-      popular: { views: -1, wishlistCount: -1 },
-      price_asc: { price: 1 },
-      price_desc: { price: -1 },
-    };
-    const sort = sortMap[String(req.query.sort)] ?? sortMap.newest;
-    const now = new Date();
-    const activePromotions = await PromotionModel.find({
-      status: "active",
-      startAt: { $lte: now },
-      endAt: { $gt: now },
-      artworkId: { $exists: true },
-    })
-      .sort({ startAt: 1, _id: 1 })
-      .select("artworkId")
-      .lean();
-    const sponsoredIds = activePromotions.map((promotion) => promotion.artworkId);
-    const organicFilter = { ...filter, _id: { $nin: sponsoredIds } };
-    const skipOrganic = (page - 1) * Math.ceil(limit * 0.8);
-    
-    // Use a single $facet aggregation to fetch both organic results and total count 
-    // in one database round-trip, saving ~50ms of network latency per request.
-    const [organicResult] = await ArtworkModel.aggregate([
-      { $match: organicFilter },
-      {
-        $facet: {
-          items: [
-            { $sort: sort },
-            { $skip: skipOrganic },
-            { $limit: limit },
-            {
-              $project: {
-                title: 1,
-                slug: 1,
-                price: 1,
-                medium: 1,
-                artworkType: 1,
-                width: 1,
-                height: 1,
-                measurementUnit: 1,
-                yearCreated: 1,
-                isFramed: 1,
-                colours: 1,
-                images: 1,
-                isSponsored: 1,
-                storeId: 1,
-                artistId: 1,
-                category: 1,
-                status: 1,
-                moderationStatus: 1,
-                createdAt: 1,
-              },
-            },
-            {
-              $lookup: {
-                from: "users",
-                localField: "artistId",
-                foreignField: "_id",
-                as: "artistDetails",
-              },
-            },
-            {
-              $lookup: {
-                from: "stores",
-                localField: "storeId",
-                foreignField: "_id",
-                as: "storeDetails",
-              },
-            },
-          ],
-          totalCount: [
-            { $count: "count" }
-          ]
-        }
-      }
-    ]);
-    
-    // Process organic lookup results to match Mongoose populate format
-    const organic = (organicResult?.items || []).map((item: any) => ({
-      ...item,
-      artistId: item.artistDetails?.[0] ? { _id: item.artistId, fullName: item.artistDetails[0].fullName } : item.artistId,
-      storeId: item.storeDetails?.[0] ? { _id: item.storeId, name: item.storeDetails[0].name } : item.storeId,
-    }));
-
-    const total = organicResult?.totalCount?.[0]?.count || 0;
-
-    const sponsored = sponsoredIds.length
-      ? await ArtworkModel.find({ ...filter, _id: { $in: sponsoredIds } })
-          .sort({ _id: 1 })
-          .limit(Math.ceil(limit / 5))
-          .populate("artistId", "fullName")
-          .populate("storeId", "name")
-          .lean()
-      : [];
-    const items = mergeSponsoredResults(organic, sponsored, limit).map(publicArtwork);
-    return ok(res, { items, page, limit, total, pages: Math.ceil(total / limit) });
+    const result = await readArtworkPage({
+      filter,
+      sort: String(req.query.sort ?? "newest"),
+      page,
+      limit,
+      cursor: typeof req.query.cursor === "string" ? req.query.cursor : undefined,
+    });
+    res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
+    res.vary("Cookie");
+    return ok(res, result);
   }),
 );
 
@@ -339,7 +252,7 @@ artworksRouter.get(
   asyncRoute(async (req, res) => {
     const stores = await StoreModel.find({ ownerId: req.auth!.user._id }).select("_id").lean();
     const items = await ArtworkModel.find({ storeId: { $in: stores.map((store) => store._id) } })
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
       .lean();
     return ok(res, items.map(publicArtwork));
   }),
@@ -348,14 +261,7 @@ artworksRouter.get(
 artworksRouter.get(
   "/slug/:slug",
   asyncRoute(async (req, res) => {
-    const item = await ArtworkModel.findOne({
-      slug: slug.parse(req.params.slug),
-      status: "published",
-      moderationStatus: "approved",
-    })
-      .populate("artistId", "fullName")
-      .populate("storeId", "name slug verificationStatus")
-      .lean();
+    const item = await findPublicArtwork(String(req.params.slug));
     if (!item) throw new ApiError(404, "ARTWORK_NOT_FOUND", "Artwork not found");
     void trackArtworkView(item, req);
     return ok(res, publicArtwork(item));
@@ -375,6 +281,13 @@ artworksRouter.post(
     if (!store)
       throw new ApiError(404, "STORE_NOT_FOUND", "Create your store before adding artwork");
     const normalized = normalizeArtwork(input);
+    if (
+      normalized.slug &&
+      (await ArtworkModel.exists({
+        $or: [{ slug: normalized.slug }, { slugAliases: normalized.slug }],
+      }))
+    )
+      throw new ApiError(409, "SLUG_TAKEN", "That artwork URL is already in use");
     if (normalized.internationalShipping)
       await requirePermission(req.auth!.user._id, "international-tools");
     if (activeStatuses.has(normalized.status)) await reserveListingSlot(req.auth!.user._id);
@@ -534,6 +447,16 @@ artworksRouter.patch(
     };
     const merged = artworkInput.parse({ ...current, ...req.body });
     const normalized = normalizeArtwork(merged);
+    if (normalized.slug && normalized.slug !== item.slug) {
+      if (
+        await ArtworkModel.exists({
+          _id: { $ne: item._id },
+          $or: [{ slug: normalized.slug }, { slugAliases: normalized.slug }],
+        })
+      )
+        throw new ApiError(409, "SLUG_TAKEN", "That artwork URL is already in use");
+      item.slugAliases = [...new Set([...item.slugAliases, item.slug])];
+    }
     if (normalized.internationalShipping)
       await requirePermission(req.auth!.user._id, "international-tools");
     const wasActive = activeStatuses.has(item.status);

@@ -29,6 +29,7 @@ export const IMAGES = {
 
 export type Category = { slug: string; name: string; blurb: string; image: string };
 export type Creator = {
+  store?: import("../marketplace/types").Store;
   slug: string;
   name: string;
   handle: string;
@@ -45,6 +46,9 @@ export type Creator = {
   works: string[];
 };
 export type Product = {
+  id?: string;
+  creatorName?: string;
+  artwork?: import("../marketplace/types").Artwork;
   slug: string;
   title: string;
   creatorSlug: string;
@@ -81,13 +85,16 @@ export type EditorialCollection = {
 // These are overwritten by live /api/bootstrap data when available.
 // ---------------------------------------------------------------------------
 const UNSPLASH = {
-  originals: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&q=50&auto=format&fit=crop",
+  originals:
+    "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&q=50&auto=format&fit=crop",
   calligraphy:
     "https://images.unsplash.com/photo-1588497859490-85d1c17db96d?w=400&q=50&auto=format&fit=crop",
   photography:
     "https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?w=400&q=50&auto=format&fit=crop",
-  prints: "https://images.unsplash.com/photo-1549289524-06cf8837ace5?w=400&q=50&auto=format&fit=crop",
-  decor: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&q=50&auto=format&fit=crop",
+  prints:
+    "https://images.unsplash.com/photo-1549289524-06cf8837ace5?w=400&q=50&auto=format&fit=crop",
+  decor:
+    "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&q=50&auto=format&fit=crop",
   commissions:
     "https://images.unsplash.com/photo-1503428593586-e225b39bcd26?w=400&q=50&auto=format&fit=crop",
 };
@@ -118,309 +125,6 @@ const SEED_CATEGORIES: Category[] = CATEGORIES_LIST.map((name) => {
   };
 });
 
-const SAMPLE_CREATORS: Creator[] = [
-  {
-    slug: "sana-mirza",
-    name: "Sana Mirza",
-    handle: "@sanamirza",
-    location: "Lahore, Pakistan",
-    discipline: "Oil painting",
-    bio: "Sana Mirza's canvases are exercises in remembered light — warm amber rooms, slow afternoons, and the weight of colour held at the edge of a brushstroke. Based in Lahore's old city, she works predominantly in oil on linen.",
-    verified: true,
-    accountType: "artist",
-    approvedSeller: true,
-    portrait: creator1,
-    works: ["quiet-horizon", "pomegranate-study", "afternoon-in-amber"],
-  },
-  {
-    slug: "omar-farooq",
-    name: "Omar Farooq",
-    handle: "@omarfarooq.art",
-    location: "Karachi, Pakistan",
-    discipline: "Calligraphy & ink",
-    bio: "Omar's practice bridges classical Nastaliq calligraphy and contemporary abstraction. His work has been shown in galleries across Karachi, Dubai and London.",
-    verified: true,
-    accountType: "artist",
-    approvedSeller: true,
-    portrait: creator2,
-    works: ["silence-in-script", "noor-on-black", "bismillah-cobalt"],
-  },
-  {
-    slug: "ayla-hussain",
-    name: "Ayla Hussain",
-    handle: "@aylahussain",
-    location: "Islamabad, Pakistan",
-    discipline: "Photography",
-    bio: "Documentary photographer and printmaker. Ayla's fine-art editions focus on the intersection of architecture, natural light and the Pakistani landscape.",
-    verified: true,
-    accountType: "artist",
-    approvedSeller: true,
-    portrait: creator3,
-    works: ["morning-mist-margalla", "the-red-door", "winter-katas"],
-  },
-];
-
-const SAMPLE_PRODUCTS: Product[] = [
-  {
-    slug: "quiet-horizon",
-    title: "Quiet Horizon",
-    creatorSlug: "sana-mirza",
-    categorySlug: "originals",
-    price: 85000,
-    currency: "PKR",
-    kind: "Original",
-    medium: "Oil on linen",
-    dimensions: "91 × 71 inches",
-    year: 2024,
-    framed: false,
-    colours: ["ivory", "stone", "terracotta"],
-    room: ["living room", "bedroom", "office"],
-    description:
-      "A meditation on stillness — pale fields of ochre and bone interrupted by a single horizon of terracotta. Unframed, ready for your choice of presentation.",
-    story: {
-      text: "I began this piece while watching the first monsoon rain from my studio window. The smell of wet earth immediately reminded me of childhood evenings spent at my grandparents’ home.\n\nI wanted the layers of blue and muted gold to capture that strange feeling of remembering somewhere that no longer exists exactly as you remember it.\n\nFor me, this work is less about rain and more about the places we continue carrying with us.",
-    },
-    images: [art1, art3],
-    featured: true,
-  },
-  {
-    slug: "silence-in-script",
-    title: "Silence in Script",
-    creatorSlug: "omar-farooq",
-    categorySlug: "calligraphy",
-    price: 42000,
-    currency: "PKR",
-    kind: "Original",
-    medium: "Ink on wasli",
-    dimensions: "56 × 76 inches",
-    year: 2023,
-    framed: true,
-    colours: ["ink", "ivory"],
-    room: ["living room", "office", "dining room"],
-    description:
-      "Nastaliq script dissolves into abstraction at the edges — a single word repeated until it becomes texture rather than language.",
-    images: [art2, art4],
-    featured: true,
-  },
-  {
-    slug: "pomegranate-study",
-    title: "Pomegranate Study",
-    creatorSlug: "sana-mirza",
-    categorySlug: "originals",
-    price: 28000,
-    currency: "PKR",
-    kind: "Original",
-    medium: "Oil on board",
-    dimensions: "30 × 30 inches",
-    year: 2024,
-    framed: false,
-    colours: ["oxblood", "terracotta", "ivory"],
-    room: ["dining room", "kitchen", "bedroom"],
-    description:
-      "A small, jewel-like study of pomegranates — the colour of celebration in South Asian culture rendered in intimate scale.",
-    images: [art3, art1],
-    featured: true,
-  },
-  {
-    slug: "afternoon-in-amber",
-    title: "Afternoon in Amber",
-    creatorSlug: "sana-mirza",
-    categorySlug: "originals",
-    price: 95000,
-    currency: "PKR",
-    kind: "Original",
-    medium: "Oil on canvas",
-    dimensions: "120 × 90 inches",
-    year: 2024,
-    framed: false,
-    colours: ["terracotta", "ivory", "stone"],
-    room: ["living room", "dining room"],
-    description:
-      "A large-scale interior scene saturated with late afternoon light. The architecture is anonymous, the warmth universal.",
-    images: [art4, art2],
-    featured: false,
-  },
-  {
-    slug: "morning-mist-margalla",
-    title: "Morning Mist, Margalla",
-    creatorSlug: "ayla-hussain",
-    categorySlug: "photography",
-    price: 18500,
-    currency: "PKR",
-    kind: "Limited Edition",
-    editionOf: 10,
-    medium: "Archival pigment print",
-    dimensions: "50 × 70 inches",
-    year: 2023,
-    framed: false,
-    colours: ["stone", "ivory", "ink"],
-    room: ["office", "bedroom", "living room"],
-    description:
-      "Edition of 10. Soft morning light filters through pine trees above Islamabad — a moment of quiet before the city wakes.",
-    images: [art5, art3],
-    featured: false,
-  },
-  {
-    slug: "noor-on-black",
-    title: "Noor on Black",
-    creatorSlug: "omar-farooq",
-    categorySlug: "calligraphy",
-    price: 55000,
-    currency: "PKR",
-    kind: "Original",
-    medium: "Gold and white ink on black card",
-    dimensions: "70 × 100 inches",
-    year: 2023,
-    framed: true,
-    colours: ["ink", "ivory"],
-    room: ["living room", "office"],
-    description:
-      "The word Noor — light — in gilded Nastaliq against a field of velvet black. Framed in raw wood.",
-    images: [art6, art2],
-    featured: false,
-  },
-  {
-    slug: "bismillah-cobalt",
-    title: "Bismillah in Cobalt",
-    creatorSlug: "omar-farooq",
-    categorySlug: "calligraphy",
-    price: 38000,
-    currency: "PKR",
-    kind: "Original",
-    medium: "Gouache on wasli",
-    dimensions: "45 × 65 inches",
-    year: 2022,
-    framed: false,
-    colours: ["indigo", "ivory"],
-    room: ["living room", "office", "hotel"],
-    description:
-      "A commanding Bismillah rendered in deep cobalt. The script flows with authority — a cornerstone piece for a meaningful interior.",
-    images: [art2, art6],
-    featured: false,
-  },
-  {
-    slug: "the-red-door",
-    title: "The Red Door",
-    creatorSlug: "ayla-hussain",
-    categorySlug: "photography",
-    price: 12000,
-    currency: "PKR",
-    kind: "Open Edition",
-    medium: "Archival pigment print",
-    dimensions: "40 × 50 inches",
-    year: 2022,
-    framed: false,
-    colours: ["oxblood", "stone", "ivory"],
-    room: ["bedroom", "living room", "small spaces"],
-    description:
-      "A faded red door in the old city of Lahore catches afternoon light. Open edition — an accessible print for every space.",
-    images: [art1, art5],
-    featured: false,
-  },
-  {
-    slug: "winter-katas",
-    title: "Winter at Katas Raj",
-    creatorSlug: "ayla-hussain",
-    categorySlug: "photography",
-    price: 22000,
-    currency: "PKR",
-    kind: "Limited Edition",
-    editionOf: 15,
-    medium: "Archival pigment print",
-    dimensions: "60 × 40 inches",
-    year: 2023,
-    framed: false,
-    colours: ["stone", "ivory", "ink"],
-    room: ["living room", "office"],
-    description:
-      "The sacred pools of Katas Raj in winter — still water, mist and ancient stone. Edition of 15.",
-    images: [art3, art1],
-    featured: false,
-  },
-  {
-    slug: "terracotta-blocks",
-    title: "Terracotta Study No. 3",
-    creatorSlug: "sana-mirza",
-    categorySlug: "prints",
-    price: 9500,
-    currency: "PKR",
-    kind: "Open Edition",
-    medium: "Giclee print on cotton rag",
-    dimensions: "30 × 40 inches",
-    year: 2024,
-    framed: false,
-    colours: ["terracotta", "ivory"],
-    room: ["bedroom", "small spaces", "office"],
-    description:
-      "An open edition print from the Terracotta Studies series — warm geometric blocks inspired by Mughal tilework.",
-    images: [art4, art3],
-    featured: false,
-  },
-  {
-    slug: "indigo-fields",
-    title: "Indigo Fields",
-    creatorSlug: "sana-mirza",
-    categorySlug: "originals",
-    price: 45000,
-    currency: "PKR",
-    kind: "Original",
-    medium: "Acrylic on canvas",
-    dimensions: "80 × 60 inches",
-    year: 2024,
-    framed: false,
-    colours: ["indigo", "ivory", "stone"],
-    room: ["living room", "bedroom"],
-    description:
-      "Deep indigo washes suggest a field at dusk — the boundary between sky and land dissolved. A meditative large-format piece.",
-    images: [art5, art4],
-    featured: false,
-  },
-  {
-    slug: "monochrome-cityscape",
-    title: "Karachi at Night",
-    creatorSlug: "ayla-hussain",
-    categorySlug: "photography",
-    price: 16000,
-    currency: "PKR",
-    kind: "Limited Edition",
-    editionOf: 20,
-    medium: "Silver gelatin print",
-    dimensions: "50 × 60 inches",
-    year: 2023,
-    framed: false,
-    colours: ["ink", "stone"],
-    room: ["living room", "office"],
-    description:
-      "A long-exposure night view across Karachi harbour — the city as a shimmer of light on water.",
-    images: [art6, art5],
-    featured: false,
-  },
-];
-
-const SAMPLE_COLLECTIONS: EditorialCollection[] = [
-  {
-    slug: "artdera-edit",
-    name: "The ArtDera Edit",
-    blurb:
-      "A considered selection chosen for expressive quality, craftsmanship and the spaces they transform.",
-    products: ["quiet-horizon", "silence-in-script", "pomegranate-study", "afternoon-in-amber"],
-    cover: art1,
-  },
-  {
-    slug: "under-50k",
-    name: "Under PKR 50,000",
-    blurb: "Original works and limited editions at accessible price points.",
-    products: [
-      "bismillah-cobalt",
-      "the-red-door",
-      "terracotta-blocks",
-      "morning-mist-margalla",
-      "indigo-fields",
-    ],
-    cover: art3,
-  },
-];
-
 // Room names are presentation filters rather than marketplace records.
 export const ROOMS = [
   { slug: "living-room", name: "Living Room", image: heroInterior },
@@ -438,9 +142,9 @@ function replace<T>(target: T[], source: T[]) {
 // Pre-seeded with fallback data — overwritten by /api/bootstrap when available.
 export const CATEGORIES: Category[] = [...SEED_CATEGORIES];
 // Pre-seeded with sample data — overwritten by /api/bootstrap when available so artwork renders immediately.
-export const CREATORS: Creator[] = [...SAMPLE_CREATORS];
-export const PRODUCTS: Product[] = [...SAMPLE_PRODUCTS];
-export const COLLECTIONS: EditorialCollection[] = [...SAMPLE_COLLECTIONS];
+export const CREATORS: Creator[] = [];
+export const PRODUCTS: Product[] = [];
+export const COLLECTIONS: EditorialCollection[] = [];
 
 export function hydrateEditorialData(input: {
   categories: Category[];

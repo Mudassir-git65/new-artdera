@@ -1,3 +1,4 @@
+import { fetchHomeCatalog } from "@/lib/server-loaders";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -36,6 +37,7 @@ const WALL_QUIZ_BUDGET_MAX: Record<string, number> = {
 };
 
 export const Route = createFileRoute("/")({
+  loader: () => fetchHomeCatalog(),
   head: () => {
     const seo = generateMeta({
       title: "ArtDera | Buy Original Art, Calligraphy, Photography & Decor",
@@ -63,6 +65,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const {
+    products: PRODUCTS,
+    creators: CREATORS,
+    collections: COLLECTIONS,
+  } = Route.useLoaderData();
   const { formatPrice } = useCurrency();
   const {
     featuredArtistsWorks,
@@ -97,13 +104,17 @@ function Home() {
 
     const featuredArtistsWorks = featuredArtists.map((artist) => {
       const ownWorks = PRODUCTS.filter(
-        (p) => (artist.works || []).includes(p.slug) || p.creatorSlug === artist.slug
-      ).sort((a, b) => b.price - a.price).slice(0, 3);
+        (p) => (artist.works || []).includes(p.slug) || p.creatorSlug === artist.slug,
+      )
+        .sort((a, b) => b.price - a.price)
+        .slice(0, 3);
       ownWorks.forEach((p) => usedIds.add(p.slug));
       return { artist, works: ownWorks };
     });
 
-    const collectorCandidate = allProductsPremium.find((p) => !usedIds.has(p.slug) && p.kind === "Original");
+    const collectorCandidate = allProductsPremium.find(
+      (p) => !usedIds.has(p.slug) && p.kind === "Original",
+    );
     const collectorCandidateList = collectorCandidate
       ? [collectorCandidate, ...allProductsPremium]
       : allProductsPremium;
@@ -120,11 +131,16 @@ function Home() {
 
     const shopThisSpacePicks = consumeUnique(allProductsPremium, 3);
 
-    const creatorSpotlightArtist = CREATORS.find((c) => !featuredArtistSlugs.includes(c.slug)) ?? CREATORS[0];
+    const creatorSpotlightArtist =
+      CREATORS.find((c) => !featuredArtistSlugs.includes(c.slug)) ?? CREATORS[0];
     const creatorSpotlightWorks = creatorSpotlightArtist
       ? consumeUnique(
-          PRODUCTS.filter((p) => p.creatorSlug === creatorSpotlightArtist.slug || (creatorSpotlightArtist.works || []).includes(p.slug)),
-          3
+          PRODUCTS.filter(
+            (p) =>
+              p.creatorSlug === creatorSpotlightArtist.slug ||
+              (creatorSpotlightArtist.works || []).includes(p.slug),
+          ),
+          3,
         )
       : [];
 
@@ -142,7 +158,7 @@ function Home() {
       affordablePicks,
       remainingProducts,
     };
-  }, []);
+  }, [PRODUCTS, CREATORS, COLLECTIONS]);
 
   return (
     <div>
@@ -195,10 +211,11 @@ function FeaturedArtistsSection({
             >
               Featured
             </div>
-            <h2 className="mt-3 font-display text-3xl md:text-4xl lg:text-5xl">
-              Featured Artists
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed" style={{ color: "rgba(246,241,232,0.65)" }}>
+            <h2 className="mt-3 font-display text-3xl md:text-4xl lg:text-5xl">Featured Artists</h2>
+            <p
+              className="mt-3 max-w-xl text-sm leading-relaxed"
+              style={{ color: "rgba(246,241,232,0.65)" }}
+            >
               Meet distinguished artists shaping the ArtDera collection.
             </p>
           </div>
@@ -246,26 +263,27 @@ function FeaturedArtistsSection({
                         "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=50&auto=format&fit=crop";
                     }}
                   />
-                <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)] to-transparent opacity-80" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="font-display text-3xl">{artist.name}</div>
-                  <div className="mt-1 text-sm" style={{ color: "rgba(246,241,232,0.7)" }}>{artist.discipline}</div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)] to-transparent opacity-80" />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <div className="font-display text-3xl">{artist.name}</div>
+                    <div className="mt-1 text-sm" style={{ color: "rgba(246,241,232,0.7)" }}>
+                      {artist.discipline}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="mt-auto">
+                    <Link
+                      to="/creator/$slug"
+                      params={{ slug: artist.slug }}
+                      className="inline-flex min-h-11 w-full items-center justify-center rounded-full text-sm font-semibold transition"
+                      style={{ background: "var(--ivory)", color: "var(--ink)" }}
+                    >
+                      View Artist
+                    </Link>
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-1 flex-col p-5">
-
-                <div className="mt-auto">
-                  <Link
-                    to="/creator/$slug"
-                    params={{ slug: artist.slug }}
-                    className="inline-flex min-h-11 w-full items-center justify-center rounded-full text-sm font-semibold transition"
-                    style={{ background: "var(--ivory)", color: "var(--ink)" }}
-                  >
-                    View Artist
-                  </Link>
-                </div>
-              </div>
-            </div>
             );
           })}
         </div>
@@ -542,7 +560,7 @@ function CurateWallQuiz({
 
   const recommendation = useMemo(() => {
     const max = WALL_QUIZ_BUDGET_MAX[answers.budget] ?? 300000;
-    const pool = availableProducts.length ? availableProducts : PRODUCTS;
+    const pool = availableProducts;
     return (
       pool.find(
         (product) =>
@@ -700,7 +718,7 @@ function ShopThisSpace({
   products: typeof PRODUCTS;
   formatPrice: (p: number) => string;
 }) {
-  const hotProducts = products.length >= 3 ? products.slice(0, 3) : PRODUCTS.slice(0, 3);
+  const hotProducts = products.slice(0, 3);
   const [activeSlug, setActiveSlug] = useState(hotProducts[0]?.slug);
   const active = hotProducts.find((product) => product.slug === activeSlug) ?? hotProducts[0];
   const positions = [
@@ -845,8 +863,9 @@ function CollectorSpotlight({
   product: (typeof PRODUCTS)[number] | undefined;
   formatPrice: (p: number) => string;
 }) {
+  const { creators } = Route.useLoaderData();
   if (!product) return null;
-  const creator = CREATORS.find((item) => item.slug === product.creatorSlug);
+  const creator = creators.find((item) => item.slug === product.creatorSlug);
 
   return (
     <section className="bg-[var(--ink)] text-[var(--ivory)]">

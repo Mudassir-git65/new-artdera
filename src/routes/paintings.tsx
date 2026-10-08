@@ -1,10 +1,13 @@
+import { fetchProductsList } from "@/lib/server-loaders";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PRODUCTS, formatPKR } from "@/lib/artdera";
 import { ProductCard } from "@/components/site/ProductCard";
 import { generateMeta, generateItemListSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/paintings")({
-  head: () => {
+  loader: () => fetchProductsList({ data: { category: "paintings" } }),
+  head: ({ loaderData }) => {
+    const PRODUCTS = loaderData ?? [];
     const paintings = PRODUCTS.filter(
       (p) =>
         p.categorySlug === "originals" ||
@@ -56,6 +59,7 @@ export const Route = createFileRoute("/paintings")({
 });
 
 function PaintingsPage() {
+  const PRODUCTS = Route.useLoaderData();
   const paintings = PRODUCTS.filter(
     (p) =>
       p.categorySlug === "originals" ||

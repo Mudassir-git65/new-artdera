@@ -1,3 +1,4 @@
+import { uniqueById } from "../lib/catalog-product";
 import type {
   AnalyticsRecord,
   Artwork,
@@ -80,7 +81,7 @@ export function hydrateMarketplaceData(input: {
 }) {
   if (input.users) replace(SEEDED_USERS, input.users);
   if (input.stores) replace(STORES, input.stores);
-  if (input.artworks) replace(ARTWORKS, input.artworks);
+  if (input.artworks) replace(ARTWORKS, uniqueById(input.artworks));
   if (input.orders) replace(ORDERS, input.orders);
   if (input.conversations) replace(CONVERSATIONS, input.conversations);
   if (input.messages) replace(MESSAGES, input.messages);

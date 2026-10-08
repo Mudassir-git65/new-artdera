@@ -1,3 +1,6 @@
+import { ApiError } from "../lib/http";
+import { findPublicArtwork } from "../services/catalog";
+import { queryCreatorFromDatabase } from "../../src/lib/creator-db.server";
 import { Router } from "express";
 import { getCreatorOrStoreResolved } from "../../src/lib/creator-meta";
 import { buildAbsoluteImageUrl, SITE_URL } from "../../src/lib/seo";
@@ -42,7 +45,8 @@ function wordWrap(text: string, maxLineChars = 44, maxLines = 3): string[] {
 }
 
 async function renderCreatorOgSvg(slug: string, routePrefix: "store" | "creator" = "store") {
-  const creator = await getCreatorOrStoreResolved(slug, routePrefix);
+  const creator = await queryCreatorFromDatabase(slug);
+  if (!creator) throw new ApiError(404, "STORE_NOT_FOUND", "Store not found");
   const name = escapeXml(creator.name);
   const defaultFallbackOg = `${SITE_URL}/images/default-creator-og.jpg`;
   const rawImage = creator.profileImage || creator.coverImage;
@@ -138,59 +142,15 @@ async function renderProductOgSvg(slug: string) {
   let priceText = "Available on ArtDera";
   let imageUrl = `${SITE_URL}/images/hero-interior.jpg`;
 
-  try {
-    const mongoose = await import("mongoose");
-    if (mongoose.default?.connection?.readyState === 1) {
-      const { ArtworkModel, StoreModel, ArtistProfileModel } = await import("../models");
-      const art = await ArtworkModel.findOne({ slug: cleanSlug }).lean();
-      if (art) {
-        title = art.title;
-        medium = [art.artworkType === "original" ? "Original" : "Edition", art.medium, art.dimensions ? `(${art.dimensions})` : ""].filter(Boolean).join(" ");
-        if (art.price) {
-          priceText = `PKR ${art.price.toLocaleString("en-PK")}`;
-        }
-        if (art.images?.[0]?.url) {
-          imageUrl = buildAbsoluteImageUrl(art.images[0].url, imageUrl);
-        }
-        if (art.storeId) {
-          const store = await StoreModel.findById(art.storeId).select("name ownerId ownerType").lean();
-          if (store) {
-            creatorName = store.name;
-            if (store.ownerId && store.ownerType === "artist") {
-              const artistProfile = await ArtistProfileModel.findOne({ userId: store.ownerId }).select("displayName").lean();
-              if (artistProfile?.displayName) creatorName = artistProfile.displayName;
-            }
-          }
-        }
-      }
-    }
-  } catch {
-    // Fallback gracefully
-  }
-
-  if (title === "Original Artwork") {
-    try {
-      const { getProduct, getCreator, PRODUCTS } = await import("../../src/lib/artdera");
-      const sample = getProduct(cleanSlug) || PRODUCTS.find((p) => p.slug === cleanSlug);
-      if (sample) {
-        title = sample.title;
-        const creator = getCreator(sample.creatorSlug);
-        if (creator) creatorName = creator.name;
-        medium = `${sample.kind} ${sample.medium} (${sample.dimensions})`;
-        if (sample.price) priceText = `PKR ${sample.price.toLocaleString("en-PK")}`;
-        if (sample.images?.[0]) imageUrl = buildAbsoluteImageUrl(sample.images[0], imageUrl);
-      } else {
-        title = decodeURIComponent(cleanSlug)
-          .replace(/[-_]+/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
-      }
-    } catch {
-      title = decodeURIComponent(cleanSlug)
-        .replace(/[-_]+/g, " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-    }
-  }
-
+  const art = await findPublicArtwork(cleanSlug);
+  if (!art) throw new ApiError(404, "ARTWORK_NOT_FOUND", "Artwork not found");
+  title = art.title;
+  medium = [art.artworkType === "original" ? "Original" : "Edition", art.medium]
+    .filter(Boolean)
+    .join(" ");
+  priceText = `PKR ${art.price.toLocaleString("en-PK")}`;
+  if (art.images?.[0]?.url) imageUrl = buildAbsoluteImageUrl(art.images[0].url, imageUrl);
+  creatorName = (art.storeId as any)?.name || (art.artistId as any)?.fullName || creatorName;
   const escTitle = escapeXml(title);
   const escCreator = escapeXml(creatorName);
   const escMedium = escapeXml(medium);
@@ -271,9 +231,10 @@ ogRouter.get("/store/:slug", async (req, res) => {
   try {
     const svg = await renderCreatorOgSvg(req.params.slug, "store");
     res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     return res.status(200).send(svg);
   } catch (error) {
+    if (error instanceof ApiError) return res.status(error.status).send(error.message);
     console.error("Failed to render store OG image:", error);
     return res.status(500).send("Error generating store preview image");
   }
@@ -283,9 +244,10 @@ ogRouter.get("/creator/:slug", async (req, res) => {
   try {
     const svg = await renderCreatorOgSvg(req.params.slug, "creator");
     res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     return res.status(200).send(svg);
   } catch (error) {
+    if (error instanceof ApiError) return res.status(error.status).send(error.message);
     console.error("Failed to render creator OG image:", error);
     return res.status(500).send("Error generating creator preview image");
   }
@@ -295,9 +257,10 @@ ogRouter.get("/product/:slug", async (req, res) => {
   try {
     const svg = await renderProductOgSvg(req.params.slug);
     res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     return res.status(200).send(svg);
   } catch (error) {
+    if (error instanceof ApiError) return res.status(error.status).send(error.message);
     console.error("Failed to render product OG image:", error);
     return res.status(500).send("Error generating product preview image");
   }
@@ -307,9 +270,10 @@ ogRouter.get("/artwork/:slug", async (req, res) => {
   try {
     const svg = await renderProductOgSvg(req.params.slug);
     res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     return res.status(200).send(svg);
   } catch (error) {
+    if (error instanceof ApiError) return res.status(error.status).send(error.message);
     console.error("Failed to render artwork OG image:", error);
     return res.status(500).send("Error generating artwork preview image");
   }
@@ -319,11 +283,11 @@ ogRouter.get("/gallery/:slug", async (req, res) => {
   try {
     const svg = await renderCreatorOgSvg(req.params.slug, "store");
     res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     return res.status(200).send(svg);
   } catch (error) {
+    if (error instanceof ApiError) return res.status(error.status).send(error.message);
     console.error("Failed to render gallery OG image:", error);
     return res.status(500).send("Error generating gallery preview image");
   }
 });
-

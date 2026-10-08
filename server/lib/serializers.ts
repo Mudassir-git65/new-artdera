@@ -1,3 +1,4 @@
+import type { Artwork, Store } from "../../src/marketplace/types";
 import type { HydratedDocument } from "mongoose";
 import type { UserDocument } from "../models";
 
@@ -63,6 +64,12 @@ export function publicStore(store: Record<string, unknown>) {
     ownerType: store.ownerType,
     domesticShipping: store.domesticShipping,
     internationalShipping: store.internationalShipping,
+  } as Store & {
+    city?: string;
+    province?: string;
+    country?: string;
+    domesticShipping?: boolean;
+    internationalShipping?: boolean;
   };
 }
 
@@ -116,7 +123,7 @@ export function publicArtwork(artwork: Record<string, any>) {
     discountPrice: artwork.discountPrice,
     dimensions:
       artwork.width && artwork.height
-        ? `${artwork.width} × ${artwork.height}${artwork.depth ? ` × ${artwork.depth}` : ""} inches`
+        ? `${artwork.width} × ${artwork.height}${artwork.depth ? ` × ${artwork.depth}` : ""} ${artwork.measurementUnit === "in" ? "inches" : "cm"}`
         : "",
     width: artwork.width,
     height: artwork.height,
@@ -151,7 +158,7 @@ export function publicArtwork(artwork: Record<string, any>) {
     sponsored: artwork.isSponsored ?? false,
     createdAt:
       artwork.createdAt instanceof Date ? artwork.createdAt.toISOString() : artwork.createdAt,
-  };
+  } as Artwork & { moderationStatus?: string; rejectionReason?: string; createdAt?: string };
 }
 
 const subscriptionStatus: Record<string, string> = {

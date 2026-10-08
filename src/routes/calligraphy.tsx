@@ -1,10 +1,13 @@
+import { fetchProductsList } from "@/lib/server-loaders";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PRODUCTS } from "@/lib/artdera";
 import { ProductCard } from "@/components/site/ProductCard";
 import { generateMeta, generateItemListSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/calligraphy")({
-  head: () => {
+  loader: () => fetchProductsList({ data: { category: "calligraphy" } }),
+  head: ({ loaderData }) => {
+    const PRODUCTS = loaderData ?? [];
     const works = PRODUCTS.filter((p) => p.categorySlug === "calligraphy");
     const seo = generateMeta({
       title: "Original Calligraphy Art & Nastaliq Scripts | ArtDera",
@@ -51,6 +54,7 @@ export const Route = createFileRoute("/calligraphy")({
 });
 
 function CalligraphyPage() {
+  const PRODUCTS = Route.useLoaderData();
   const calligraphyWorks = PRODUCTS.filter((p) => p.categorySlug === "calligraphy");
 
   return (

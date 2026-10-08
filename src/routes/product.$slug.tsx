@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
+import { artworkRouteSlug } from "@/lib/catalog-product";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { ProBadge } from "@/components/ui/ProBadge";
 import {
   BadgeCheck,
@@ -36,20 +38,26 @@ import { hasActiveProfessionalSubscription } from "@/lib/subscription-status";
 import { generateMeta, generateProductSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
 import { fetchProductBySlug } from "@/lib/server-loaders";
-import { getCreatorOrStoreResolved } from "@/lib/creator-meta";
+import { fetchCreatorFromDatabase } from "@/lib/creator-meta";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
     const productData = await fetchProductBySlug({ data: params.slug });
+    if (!productData) throw notFound();
+    if (params.slug !== artworkRouteSlug(productData))
+      throw redirect({
+        to: "/product/$slug",
+        params: { slug: artworkRouteSlug(productData) },
+        statusCode: 301,
+      });
     let creatorData = null;
     if (productData?.creatorSlug) {
-      creatorData = await getCreatorOrStoreResolved(productData.creatorSlug, "creator");
+      creatorData = await fetchCreatorFromDatabase({ data: productData.creatorSlug });
     }
     return { productData, creatorData };
   },
   head: ({ loaderData, params }) => {
-    const staticP = getProduct(params.slug);
-    const p = staticP || loaderData?.productData;
+    const p = loaderData?.productData;
     const title = p
       ? `${p.title} by ${loaderData?.creatorData?.name ?? getCreator(p.creatorSlug)?.name ?? "Independent Artist"} | ArtDera`
       : `${decodeURIComponent(params.slug)
@@ -64,19 +72,25 @@ export const Route = createFileRoute("/product/$slug")({
       return { meta: seo.meta, links: seo.links };
     }
 
-    const creatorName = loaderData?.creatorData?.name ?? getCreator(p.creatorSlug)?.name ?? (p as any)?.creatorName ?? "Independent Artist";
+    const creatorName =
+      loaderData?.creatorData?.name ??
+      getCreator(p.creatorSlug)?.name ??
+      (p as any)?.creatorName ??
+      "Independent Artist";
     const artworkImage = p.images?.[0] || "https://www.artdera.com/images/hero-interior.jpg";
 
     const descKind = p.kind || "Original";
     const descMedium = p.medium || "artwork";
     const descDim = p.dimensions ? ` (${p.dimensions})` : "";
-    const description = `${descKind} ${descMedium.toLowerCase()}${descDim} by ${creatorName}. Discover this original artwork on ArtDera. ${p.description || ""}`.trim();
-    const truncatedDesc = description.length > 200 ? `${description.slice(0, 197)}...` : description;
+    const description =
+      `${descKind} ${descMedium.toLowerCase()}${descDim} by ${creatorName}. Discover this original artwork on ArtDera. ${p.description || ""}`.trim();
+    const truncatedDesc =
+      description.length > 200 ? `${description.slice(0, 197)}...` : description;
 
     const seo = generateMeta({
       title: `${p.title} by ${creatorName}`,
       description: truncatedDesc,
-      canonicalPath: `/product/${p.slug}`,
+      canonicalPath: `/product/${artworkRouteSlug(p)}`,
       ogImage: artworkImage,
       ogType: "product",
     });
@@ -132,8 +146,7 @@ export const Route = createFileRoute("/product/$slug")({
 function ProductPage() {
   const { slug } = Route.useParams();
   const { productData, creatorData } = Route.useLoaderData();
-  const staticProduct = getProduct(slug);
-  const product = staticProduct || productData;
+  const product = productData;
   const { user } = useAuth();
   const { formatPrice } = useCurrency();
   const [active, setActive] = useState(0);
@@ -148,31 +161,30 @@ function ProductPage() {
   if (!product && privateArtwork && canManagePrivateArtwork)
     return <ArtworkModerationNotice artwork={privateArtwork} isAdmin={user?.role === "admin"} />;
 
-  if (!product)
-    return (
-      <div className="container-editorial py-24 text-center">
-        <h1 className="font-display text-4xl">Work not found</h1>
-        <a href="/discover" className="btn-primary mt-6">
-          Back to Discover
-        </a>
-      </div>
-    );
+  if (!product) throw notFound();
 
-  const staticCreator = getCreator(product.creatorSlug);
-  const creator = staticCreator || {
+  const creator = {
     slug: product.creatorSlug,
-    name: creatorData?.name || (product as { creatorName?: string }).creatorName || "Independent Artist",
+    name:
+      creatorData?.name ||
+      (product as { creatorName?: string }).creatorName ||
+      "Independent Artist",
     handle: `@${product.creatorSlug}`,
     location: creatorData?.location || "Pakistan",
-    discipline: "Visual Art",
-    bio: creatorData?.bio || `Discover original artwork by ${creatorData?.name || product.creatorSlug} on ArtDera.`,
+    discipline: creatorData?.discipline || "Visual Art",
+    planId: creatorData?.planId,
+    subscriptionStatus: creatorData?.subscriptionStatus,
+    subscriptionExpiresAt: creatorData?.subscriptionExpiresAt,
+    bio:
+      creatorData?.bio ||
+      `Discover original artwork by ${creatorData?.name || product.creatorSlug} on ArtDera.`,
     verified: Boolean(creatorData?.verified),
     accountType: "artist" as const,
     approvedSeller: true,
-    portrait: creatorData?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80&auto=format",
+    portrait: creatorData?.profileImage || "",
     works: [],
   };
-  const artwork = ARTWORKS.find((item) => item.slug === product.slug);
+  const artwork = product.artwork;
   const storyText = artwork?.story?.text || product.story?.text;
   const more = productsByCreator(product.creatorSlug).filter((p) => p.slug !== product.slug);
   const similar = PRODUCTS.filter(
@@ -232,7 +244,11 @@ function ProductPage() {
         <section aria-label={`${product.title} image gallery`}>
           <div className="relative overflow-hidden rounded-xl bg-secondary">
             <img
-              src={product.images[active]}
+              fetchPriority="high"
+              loading="eager"
+              src={artworkImageUrl(product.images[active], 1280)}
+              srcSet={artworkImageSrcSet(product.images[active])}
+              sizes="(max-width: 1023px) 100vw, 60vw"
               alt={product.title}
               decoding="async"
               width={1200}

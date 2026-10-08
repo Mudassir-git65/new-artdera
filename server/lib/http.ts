@@ -30,6 +30,8 @@ export function notFound(_req: Request, _res: Response, next: NextFunction) {
 }
 
 export function errorHandler(error: unknown, req: Request, res: Response, _next: NextFunction) {
+  if (res.destroyed || res.writableEnded) return;
+  if (res.headersSent) return _next(error);
   if (error instanceof ZodError) {
     return res.status(422).json({
       success: false,

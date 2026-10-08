@@ -1,0 +1,92 @@
+{
+  "errors": 82,
+  "warnings": 2,
+  "changed": [],
+  "remaining": [
+    {
+      "path": "server/index.ts",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "path": "server/routes/account-deletion.ts",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "path": "server/routes/admin.ts",
+      "errors": 3,
+      "warnings": 0
+    },
+    {
+      "path": "server/routes/currency.ts",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "path": "server/routes/operations.ts",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "path": "server/routes/subscriptions.ts",
+      "errors": 2,
+      "warnings": 0
+    },
+    {
+      "path": "server/services/email.ts",
+      "errors": 2,
+      "warnings": 0
+    },
+    {
+      "path": "server/services/manual-payments.ts",
+      "errors": 1,
+      "warnings": 0
+    },
+    {
+      "path": "src/lib/seo.ts",
+      "errors": 2,
+      "warnings": 0
+    },
+    {
+      "path": "src/marketplace/admin-deletions.tsx",
+      "errors": 24,
+      "warnings": 1
+    },
+    {
+      "path": "src/marketplace/admin.tsx",
+      "errors": 2,
+      "warnings": 0
+    },
+    {
+      "path": "src/marketplace/buyer.tsx",
+      "errors": 5,
+      "warnings": 0
+    },
+    {
+      "path": "src/marketplace/currency.tsx",
+      "errors": 5,
+      "warnings": 1
+    },
+    {
+      "path": "src/marketplace/types.ts",
+      "errors": 2,
+      "warnings": 0
+    },
+    {
+      "path": "src/routes/delete-account.tsx",
+      "errors": 26,
+      "warnings": 0
+    },
+    {
+      "path": "tests/earnings-analytics.test.ts",
+      "errors": 2,
+      "warnings": 0
+    },
+    {
+      "path": "tests/env.test.ts",
+      "errors": 2,
+      "warnings": 0
+    }
+  ]
+}

@@ -248,6 +248,7 @@ export async function seedDemoData(credentials: SeedCredentials) {
         ownerType: "artist",
         name: "Ayla Raza Studio",
         slug: "ayla-raza-studio",
+        isDemo: true,
         tagline: "Abstract works shaped by memory and place",
         shortDescription: "Original contemporary paintings from Lahore.",
         fullDescription: "A considered studio collection of original works and small editions.",
@@ -282,6 +283,7 @@ export async function seedDemoData(credentials: SeedCredentials) {
         ownerType: "gallery",
         name: "Mehr Gallery",
         slug: "mehr-gallery",
+        isDemo: true,
         tagline: "Contemporary practice from Pakistan",
         shortDescription: "Curated originals and limited editions.",
         fullDescription: "Mehr Gallery connects collectors with established and emerging voices.",
@@ -450,6 +452,7 @@ export async function seedDemoData(credentials: SeedCredentials) {
       {
         $set: {
           storeId: store._id,
+          isDemo: true,
           artistId: owner.role === "artist" ? owner._id : undefined,
           title,
           slug,
@@ -509,6 +512,7 @@ export async function seedDemoData(credentials: SeedCredentials) {
       $set: {
         name: "New Pakistani Abstraction",
         slug: "new-pakistani-abstraction",
+        isDemo: true,
         description: "A measured selection of contemporary abstract practice.",
         artworkIds: artworks.slice(0, 4).map((item) => item._id),
         coverImageUrl: "/images/art-1.jpg",
@@ -525,6 +529,7 @@ export async function seedDemoData(credentials: SeedCredentials) {
         galleryId: (await GalleryProfileModel.findOne({ userId: gallery._id }))!._id,
         name: "Lines of Memory",
         slug: "lines-of-memory",
+        isDemo: true,
         coverImageUrl: "/images/hero-interior.jpg",
         description: "A hybrid exhibition tracing memory through material and mark.",
         venue: "Mehr Gallery, Karachi",

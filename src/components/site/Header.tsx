@@ -43,6 +43,7 @@ const NAV = [
   { label: "Artists", href: "/creators" },
   { label: "Galleries", href: "/galleries" },
   { label: "Collections", href: "/collections" },
+  { label: "Online Exhibitions", href: "/exhibition" },
   { label: "Ambassadors", href: "/affiliate" },
 ];
 
@@ -132,9 +133,9 @@ export function Header() {
             scrolled ? "h-14" : "h-[4.5rem]",
           )}
         >
-          <div className="flex min-w-0 items-center gap-8">
+          <div className="flex min-w-0 items-center gap-5">
             <Logo variant={heroMode ? "light" : "dark"} />
-            <nav className="hidden items-center gap-5 text-[13px] font-semibold xl:flex">
+            <nav className="hidden items-center gap-3.5 text-[12px] font-semibold xl:flex">
               <div
                 className="relative"
                 onMouseEnter={() => setMegaOpen(true)}
@@ -153,6 +154,12 @@ export function Header() {
                 <a
                   key={item.label}
                   href={item.href}
+                  aria-current={
+                    pathname === item.href ||
+                    (item.href === "/exhibition" && pathname.startsWith("/exhibition/"))
+                      ? "page"
+                      : undefined
+                  }
                   className={cn("whitespace-nowrap transition-colors", linkTone)}
                 >
                   {item.label}

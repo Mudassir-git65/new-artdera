@@ -20,6 +20,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           "/creators",
           "/galleries",
           "/collections",
+          "/exhibition",
           "/sell",
           "/sell/art",
           "/sell/plans",
@@ -52,12 +53,14 @@ export const Route = createFileRoute("/sitemap.xml")({
 
         const { connectDatabase } = await import("../../server/db");
         await connectDatabase();
-        const { ArtworkModel, StoreModel } = await import("../../server/models");
+        const { ArtworkModel, StoreModel, ExhibitionModel } = await import("../../server/models");
+        const { visibleExhibitionFilter } = await import("../../server/services/exhibitions");
         const { publicArtworkFilter, publicStoreFilter } =
           await import("../../server/services/catalog");
-        const [artworks, stores] = await Promise.all([
+        const [artworks, stores, exhibitions] = await Promise.all([
           ArtworkModel.find(publicArtworkFilter).select("slug").lean(),
           StoreModel.find(publicStoreFilter).select("slug ownerType").lean(),
+          ExhibitionModel.find(visibleExhibitionFilter).select("slug").lean(),
         ]);
         productPaths = artworks.map((a) => `/product/${a._id}-${a.slug}`);
         creatorPaths = stores
@@ -65,7 +68,13 @@ export const Route = createFileRoute("/sitemap.xml")({
           .map((s) => `/creator/${s.slug}`);
         storePaths = stores.filter((s) => s.ownerType === "gallery").map((s) => `/store/${s.slug}`);
         const allPaths = Array.from(
-          new Set([...staticPaths, ...productPaths, ...creatorPaths, ...storePaths]),
+          new Set([
+            ...staticPaths,
+            ...productPaths,
+            ...creatorPaths,
+            ...storePaths,
+            ...exhibitions.map((item) => `/exhibition/${item.slug}`),
+          ]),
         );
 
         const urls = allPaths

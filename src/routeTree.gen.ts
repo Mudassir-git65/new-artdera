@@ -56,6 +56,8 @@ import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-passw
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as CreatorSlugRouteImport } from './routes/creator.$slug'
 import { Route as DashboardSectionRouteImport } from './routes/dashboard.$section'
+import { Route as ExhibitionIndexRouteImport } from './routes/exhibition.index'
+import { Route as ExhibitionSlugRouteImport } from './routes/exhibition.$slug'
 import { Route as LegalSlugRouteImport } from './routes/legal.$slug'
 import { Route as PaymentPaymentIdRouteImport } from './routes/payment.$paymentId'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
@@ -300,6 +302,16 @@ const DashboardSectionRoute = DashboardSectionRouteImport.update({
   path: '/$section',
   getParentRoute: () => DashboardRoute,
 } as any)
+const ExhibitionIndexRoute = ExhibitionIndexRouteImport.update({
+  id: '/exhibition/',
+  path: '/exhibition/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExhibitionSlugRoute = ExhibitionSlugRouteImport.update({
+  id: '/exhibition/$slug',
+  path: '/exhibition/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegalSlugRoute = LegalSlugRouteImport.update({
   id: '/legal/$slug',
   path: '/legal/$slug',
@@ -390,12 +402,14 @@ export interface FileRoutesByFullPath {
   '/auth/signup': typeof AuthSignupRoute
   '/creator/$slug': typeof CreatorSlugRoute
   '/dashboard/$section': typeof DashboardSectionRoute
+  '/exhibition/$slug': typeof ExhibitionSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/payment/$paymentId': typeof PaymentPaymentIdRoute
   '/product/$slug': typeof ProductSlugRoute
   '/sell/art': typeof SellArtRoute
   '/sell/plans': typeof SellPlansRoute
   '/store/$slug': typeof StoreSlugRoute
+  '/exhibition/': typeof ExhibitionIndexRoute
   '/artist/dashboard/$section': typeof ArtistDashboardSectionRoute
   '/artist/dashboard/artworks/new': typeof ArtistDashboardArtworksNewRoute
 }
@@ -447,12 +461,14 @@ export interface FileRoutesByTo {
   '/auth/signup': typeof AuthSignupRoute
   '/creator/$slug': typeof CreatorSlugRoute
   '/dashboard/$section': typeof DashboardSectionRoute
+  '/exhibition/$slug': typeof ExhibitionSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/payment/$paymentId': typeof PaymentPaymentIdRoute
   '/product/$slug': typeof ProductSlugRoute
   '/sell/art': typeof SellArtRoute
   '/sell/plans': typeof SellPlansRoute
   '/store/$slug': typeof StoreSlugRoute
+  '/exhibition': typeof ExhibitionIndexRoute
   '/artist/dashboard/$section': typeof ArtistDashboardSectionRoute
   '/artist/dashboard/artworks/new': typeof ArtistDashboardArtworksNewRoute
 }
@@ -505,12 +521,14 @@ export interface FileRoutesById {
   '/auth/signup': typeof AuthSignupRoute
   '/creator/$slug': typeof CreatorSlugRoute
   '/dashboard/$section': typeof DashboardSectionRoute
+  '/exhibition/$slug': typeof ExhibitionSlugRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/payment/$paymentId': typeof PaymentPaymentIdRoute
   '/product/$slug': typeof ProductSlugRoute
   '/sell/art': typeof SellArtRoute
   '/sell/plans': typeof SellPlansRoute
   '/store/$slug': typeof StoreSlugRoute
+  '/exhibition/': typeof ExhibitionIndexRoute
   '/artist/dashboard/$section': typeof ArtistDashboardSectionRoute
   '/artist/dashboard/artworks/new': typeof ArtistDashboardArtworksNewRoute
 }
@@ -564,12 +582,14 @@ export interface FileRouteTypes {
     | '/auth/signup'
     | '/creator/$slug'
     | '/dashboard/$section'
+    | '/exhibition/$slug'
     | '/legal/$slug'
     | '/payment/$paymentId'
     | '/product/$slug'
     | '/sell/art'
     | '/sell/plans'
     | '/store/$slug'
+    | '/exhibition/'
     | '/artist/dashboard/$section'
     | '/artist/dashboard/artworks/new'
   fileRoutesByTo: FileRoutesByTo
@@ -621,12 +641,14 @@ export interface FileRouteTypes {
     | '/auth/signup'
     | '/creator/$slug'
     | '/dashboard/$section'
+    | '/exhibition/$slug'
     | '/legal/$slug'
     | '/payment/$paymentId'
     | '/product/$slug'
     | '/sell/art'
     | '/sell/plans'
     | '/store/$slug'
+    | '/exhibition'
     | '/artist/dashboard/$section'
     | '/artist/dashboard/artworks/new'
   id:
@@ -678,12 +700,14 @@ export interface FileRouteTypes {
     | '/auth/signup'
     | '/creator/$slug'
     | '/dashboard/$section'
+    | '/exhibition/$slug'
     | '/legal/$slug'
     | '/payment/$paymentId'
     | '/product/$slug'
     | '/sell/art'
     | '/sell/plans'
     | '/store/$slug'
+    | '/exhibition/'
     | '/artist/dashboard/$section'
     | '/artist/dashboard/artworks/new'
   fileRoutesById: FileRoutesById
@@ -733,10 +757,12 @@ export interface RootRouteChildren {
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthSignupRoute: typeof AuthSignupRoute
   CreatorSlugRoute: typeof CreatorSlugRoute
+  ExhibitionSlugRoute: typeof ExhibitionSlugRoute
   LegalSlugRoute: typeof LegalSlugRoute
   PaymentPaymentIdRoute: typeof PaymentPaymentIdRoute
   ProductSlugRoute: typeof ProductSlugRoute
   StoreSlugRoute: typeof StoreSlugRoute
+  ExhibitionIndexRoute: typeof ExhibitionIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1070,6 +1096,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSectionRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/exhibition/': {
+      id: '/exhibition/'
+      path: '/exhibition'
+      fullPath: '/exhibition/'
+      preLoaderRoute: typeof ExhibitionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exhibition/$slug': {
+      id: '/exhibition/$slug'
+      path: '/exhibition/$slug'
+      fullPath: '/exhibition/$slug'
+      preLoaderRoute: typeof ExhibitionSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal/$slug': {
       id: '/legal/$slug'
       path: '/legal/$slug'
@@ -1233,10 +1273,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthSignupRoute: AuthSignupRoute,
   CreatorSlugRoute: CreatorSlugRoute,
+  ExhibitionSlugRoute: ExhibitionSlugRoute,
   LegalSlugRoute: LegalSlugRoute,
   PaymentPaymentIdRoute: PaymentPaymentIdRoute,
   ProductSlugRoute: ProductSlugRoute,
   StoreSlugRoute: StoreSlugRoute,
+  ExhibitionIndexRoute: ExhibitionIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,6 +1,8 @@
 ﻿@import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "./exhibition.css";
+@import "./exhibition-launch.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -297,7 +299,9 @@
   font-size: 0.875rem;
   color: var(--ink);
   outline: none;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
   &:focus {
     border-color: var(--oxblood);
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--oxblood) 12%, transparent);

@@ -26,6 +26,7 @@ import { feedsRouter } from "./routes/feeds";
 import { adminAffiliatesRouter, affiliatesRouter } from "./routes/affiliates";
 import { ogRouter } from "./routes/og";
 import { currencyRouter } from "./routes/currency";
+import { exhibitionsRouter, adminExhibitionsRouter } from "./routes/exhibitions";
 import { accountDeletionRouter, adminAccountDeletionRouter } from "./routes/account-deletion";
 import mongoose from "mongoose";
 
@@ -218,6 +219,8 @@ export function createApp() {
   app.use("/api", commerceRouter);
   app.use("/api", operationsRouter);
   app.use("/api/gallery", galleryRouter);
+  app.use("/api/exhibitions", exhibitionsRouter);
+  app.use("/api/admin/exhibitions", adminExhibitionsRouter);
   app.use("/api/admin/affiliate", adminAffiliatesRouter);
   app.use("/api/admin/account-deletions", adminAccountDeletionRouter);
   app.use("/api/admin", adminRouter);

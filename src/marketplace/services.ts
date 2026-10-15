@@ -128,6 +128,7 @@ export class HttpApiClient {
         return {
           error: {
             code: error?.error?.code ?? `HTTP_${response.status || "ERROR"}`,
+            fieldErrors: error?.error?.fieldErrors,
             message:
               error?.error?.message ??
               (response.status >= 500

@@ -1100,12 +1100,39 @@ export const ExhibitionModel = modelFor(
   new Schema(
     {
       isDemo: { type: Boolean, default: false },
-      galleryId: { type: objectId, ref: "GalleryProfile", required: true, index: true },
+      galleryId: { type: objectId, ref: "GalleryProfile", index: true },
       name: { ...requiredString, maxlength: 180 },
       slug: { ...requiredString, unique: true, lowercase: true },
       coverImageUrl: String,
       description: { type: String, trim: true, maxlength: 5000 },
       venue: { type: String, trim: true, maxlength: 300 },
+      theme: { type: String, trim: true, maxlength: 300 },
+      timezone: { type: String, default: "Asia/Karachi" },
+      edition: { type: String, trim: true, maxlength: 80 },
+      curatorName: { type: String, trim: true, maxlength: 180 },
+      curatorNote: { type: String, trim: true, maxlength: 10000 },
+      storyImageUrl: String,
+      advisorWhatsapp: { type: String, trim: true, maxlength: 15 },
+      previewEnabled: { type: Boolean, default: true },
+      previewNote: { type: String, trim: true, maxlength: 1000 },
+      rooms: [
+        {
+          key: String,
+          name: String,
+          description: String,
+          artworkIds: [{ type: objectId, ref: "Artwork" }],
+        },
+      ],
+      events: [
+        {
+          title: String,
+          description: String,
+          startAt: Date,
+          endAt: Date,
+          timezone: String,
+          url: String,
+        },
+      ],
       startAt: Date,
       endAt: Date,
       artistIds: [{ type: objectId, ref: "User" }],
@@ -1120,6 +1147,52 @@ export const ExhibitionModel = modelFor(
     },
     timestamps,
   ),
+);
+
+export const ExhibitionRegistrationModel = modelFor(
+  "ExhibitionRegistration",
+  new Schema(
+    {
+      exhibitionId: { type: objectId, ref: "Exhibition", required: true, index: true },
+      kind: { type: String, enum: ["preview", "enquiry"], required: true },
+      artworkId: { type: objectId, ref: "Artwork" },
+      name: { ...requiredString, maxlength: 120 },
+      emailNormalized: { ...requiredString, maxlength: 254 },
+      country: { type: String, trim: true, maxlength: 100 },
+      message: { type: String, trim: true, maxlength: 2000 },
+      consentAt: { type: Date, required: true },
+    },
+    timestamps,
+  ),
+);
+ExhibitionRegistrationModel.schema.index(
+  { exhibitionId: 1, kind: 1, emailNormalized: 1, artworkId: 1 },
+  { unique: true },
+);
+
+export const ExhibitionLaunchLeadModel = modelFor(
+  "ExhibitionLaunchLead",
+  new Schema(
+    {
+      campaign: { ...requiredString, default: "artdera-online-exhibition-2026" },
+      kind: {
+        type: String,
+        enum: ["early-access", "notify", "preview", "enquiry"],
+        required: true,
+      },
+      name: { type: String, trim: true, maxlength: 120, default: "" },
+      emailNormalized: { ...requiredString, maxlength: 254 },
+      country: { type: String, trim: true, maxlength: 100, default: "" },
+      message: { type: String, trim: true, maxlength: 2000, default: "" },
+      artworkId: { type: objectId, ref: "Artwork" },
+      consentAt: { type: Date, required: true },
+    },
+    timestamps,
+  ),
+);
+ExhibitionLaunchLeadModel.schema.index(
+  { campaign: 1, kind: 1, emailNormalized: 1, artworkId: 1 },
+  { unique: true },
 );
 
 export const GalleryStaffModel = modelFor(

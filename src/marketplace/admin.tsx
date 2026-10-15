@@ -62,6 +62,7 @@ import { AdminService, UserService, UploadService, MarketplaceService } from "./
 import { PageLoading } from "@/components/site/PageLoading";
 import { AdminAffiliateManagement } from "./admin-affiliates";
 import { AccountDeletionQueue } from "./admin-deletions";
+import { AdminExhibitions } from "./admin-exhibitions";
 
 const adminNavigation = [
   ["Overview", "overview", LayoutDashboard],
@@ -220,6 +221,8 @@ function AdminNavigation({ section, logout }: { section: string; logout: () => P
 }
 function AdminSection({ section }: { section: string }) {
   switch (section) {
+    case "exhibitions":
+      return <AdminExhibitions />;
     case "overview":
       return <AdminOverview />;
     case "users":
@@ -708,7 +711,9 @@ function UserManagement({ type }: { type: string }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-sm">{p.name}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${p.badge}`}>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded border ${p.badge}`}
+                      >
                         {p.name.toUpperCase()}
                       </span>
                     </div>
@@ -2002,7 +2007,13 @@ function GenericAdminSection({ section }: { section: string }) {
     </div>
   );
 }
-export function AdminPanel({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
+export function AdminPanel({
+  children,
+  compact = false,
+}: {
+  children: ReactNode;
+  compact?: boolean;
+}) {
   return (
     <section
       className={`rounded-2xl border border-[var(--color-border)] bg-[var(--porcelain)] ${compact ? "p-5" : "p-5 md:p-6"}`}

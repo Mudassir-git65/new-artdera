@@ -13,6 +13,10 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import {
+  ExhibitionNavigation,
+  ExhibitionFooter,
+} from "@/components/exhibition/ExhibitionNavigation";
 import { AuthProvider, useAuth } from "@/marketplace/auth";
 import { CurrencyProvider } from "@/marketplace/currency";
 import { Toaster } from "@/components/ui/sonner";
@@ -192,6 +196,8 @@ function MarketplaceLayout() {
     };
   }, [router]);
   const isHome = pathname === "/";
+  const isExhibition = pathname === "/exhibition" || pathname.startsWith("/exhibition/");
+  const isExhibitionLanding = pathname === "/exhibition" || pathname === "/exhibition/";
   const privateWorkspace =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/artist/dashboard") ||
@@ -208,7 +214,7 @@ function MarketplaceLayout() {
   // Load AdSense lazily on public pages only — defer until after first render
   // so it never blocks LCP or dashboard page loads.
   useEffect(() => {
-    if (privateWorkspace) return;
+    if (privateWorkspace || isExhibition) return;
     if (document.querySelector("script[data-adsense]")) return;
     const script = document.createElement("script");
     script.src =
@@ -217,7 +223,7 @@ function MarketplaceLayout() {
     script.crossOrigin = "anonymous";
     script.setAttribute("data-adsense", "1");
     document.head.appendChild(script);
-  }, [privateWorkspace]);
+  }, [privateWorkspace, isExhibition]);
 
   // For catalog-dependent public pages, render immediately and let each page
   // show its own skeleton/loading state. Only block rendering for auth-gated
@@ -226,12 +232,17 @@ function MarketplaceLayout() {
 
   return (
     <>
-      <div className="min-h-screen flex flex-col" data-catalog-version={catalogVersion}>
-        <Header />
-        <main className={`flex-1 ${isHome ? "" : "pt-[var(--header-height)]"}`}>
+      <div
+        className={`min-h-screen flex flex-col ${isExhibition ? "exhibition-layout" : ""}`}
+        data-catalog-version={catalogVersion}
+      >
+        {isExhibition ? <ExhibitionNavigation /> : <Header />}
+        <main
+          className={`flex-1 ${isHome || isExhibitionLanding ? "" : "pt-[var(--header-height)]"}`}
+        >
           {showLoadingScreen ? <CatalogLoadingScreen /> : <Outlet />}
         </main>
-        {!privateWorkspace && <Footer />}
+        {!privateWorkspace && (isExhibition ? <ExhibitionFooter /> : <Footer />)}
       </div>
       <Toaster position="top-right" richColors />
     </>

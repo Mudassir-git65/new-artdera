@@ -636,6 +636,6 @@ export interface AccountDeletionRequest {
 
 export interface ServiceResult<T> {
   data?: T;
-  error?: { code: string; message: string };
+  error?: { code: string; message: string; fieldErrors?: Record<string, string[]> };
 }
 

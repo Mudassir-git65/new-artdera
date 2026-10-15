@@ -1,6 +1,29 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+export const fetchExhibitionLanding = createServerFn({ method: "GET" }).handler(async () => {
+  const { connectDatabase } = await import("../../server/db");
+  const { readExhibitionLanding } = await import("../../server/services/exhibitions");
+  await connectDatabase();
+  return readExhibitionLanding();
+});
+
+export const fetchExhibitionBySlug = createServerFn({ method: "GET" })
+  .validator((data: string) =>
+    z
+      .string()
+      .trim()
+      .max(160)
+      .regex(/^[a-z0-9-]+$/)
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { connectDatabase } = await import("../../server/db");
+    const { readExhibition } = await import("../../server/services/exhibitions");
+    await connectDatabase();
+    return readExhibition(data);
+  });
+
 const listQuery = z
   .object({
     category: z.string().optional(),

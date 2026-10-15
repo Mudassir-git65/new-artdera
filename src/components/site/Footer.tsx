@@ -52,6 +52,7 @@ const COLS = [
       ["About", "/about"],
       ["Creators", "/creators"],
       ["Collections", "/collections"],
+      ["Online Exhibitions", "/exhibition"],
       ["Journal", "/journal"],
       ["Business services", "/trade"],
       ["Ambassador program", "/affiliate"],

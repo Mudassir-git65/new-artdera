@@ -163,7 +163,9 @@ export async function loadHomeCatalog() {
     loadCollectionCatalog(),
   ]);
   return {
-    products: uniqueById([...page.products, ...curated.products]),
+    products: uniqueById([...page.products, ...curated.products]).filter(
+      (product) => product.artwork?.section !== "decora",
+    ),
     creators,
     collections: curated.collections,
   };

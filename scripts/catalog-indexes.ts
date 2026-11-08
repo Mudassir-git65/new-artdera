@@ -23,6 +23,14 @@ try {
       name: "status_1_moderationStatus_1_price_1__id_1",
     },
     { key: { slugAliases: 1 }, name: "slugAliases_1" },
+    {
+      key: { section: 1, status: 1, moderationStatus: 1, decoraCategory: 1, price: 1 },
+      name: "section_1_status_1_moderationStatus_1_decoraCategory_1_price_1",
+    },
+    {
+      key: { section: 1, status: 1, moderationStatus: 1, decoraPrice: 1, _id: 1 },
+      name: "section_1_status_1_moderationStatus_1_decoraPrice_1__id_1",
+    },
   ] as const;
   if (process.argv.includes("--apply")) {
     console.log(await db.collection("artworks").createIndexes([...indexes]));

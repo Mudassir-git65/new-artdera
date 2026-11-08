@@ -75,13 +75,7 @@ export type SubscriptionStatus =
   | "Cancelled"
   | "Expired"
   | "Suspended";
-export type PaymentMethod =
-  | "card"
-  | "bank-transfer"
-  | "easypaisa"
-  | "jazzcash"
-  | "raast"
-  | "hbl";
+export type PaymentMethod = "card" | "bank-transfer" | "easypaisa" | "jazzcash" | "raast" | "hbl";
 export type AnalyticsLevel = "Basic" | "Detailed" | "Advanced";
 
 export interface PlanFeature {
@@ -195,6 +189,9 @@ export interface ArtworkImage {
 }
 
 export interface Artwork {
+  section?: "artwork" | "decora";
+  decoraCategory?: import("../lib/decora").DecoraCategory;
+  customizationOptions?: import("../lib/decora").CustomizationOption[];
   id: string;
   storeId: string;
   artistId?: string;
@@ -210,7 +207,7 @@ export interface Artwork {
   subject: string;
   colours?: string[];
   year: number;
-  kind: "Original" | "Print" | "Limited Edition";
+  kind: "Original" | "Print" | "Limited Edition" | "Handmade";
   price: number;
   discountPrice?: number;
   dimensions: string;
@@ -448,6 +445,7 @@ export interface VideoConsultation {
   meetingLink?: string;
 }
 export interface OrderItem {
+  customization?: import("../lib/decora").CustomizationSelection;
   id: string;
   artworkId: string;
   title: string;
@@ -638,4 +636,3 @@ export interface ServiceResult<T> {
   data?: T;
   error?: { code: string; message: string; fieldErrors?: Record<string, string[]> };
 }
-

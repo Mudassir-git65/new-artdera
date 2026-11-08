@@ -22,6 +22,7 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as CreatorsRouteImport } from './routes/creators'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DecoraRouteImport } from './routes/decora'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as ForInteriorDesignersRouteImport } from './routes/for-interior-designers'
@@ -130,6 +131,11 @@ const CreatorsRoute = CreatorsRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DecoraRoute = DecoraRouteImport.update({
+  id: '/decora',
+  path: '/decora',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeleteAccountRoute = DeleteAccountRouteImport.update({
@@ -368,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/collections': typeof CollectionsRoute
   '/creators': typeof CreatorsRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/decora': typeof DecoraRoute
   '/delete-account': typeof DeleteAccountRoute
   '/discover': typeof DiscoverRoute
   '/for-interior-designers': typeof ForInteriorDesignersRoute
@@ -427,6 +434,7 @@ export interface FileRoutesByTo {
   '/collections': typeof CollectionsRoute
   '/creators': typeof CreatorsRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/decora': typeof DecoraRoute
   '/delete-account': typeof DeleteAccountRoute
   '/discover': typeof DiscoverRoute
   '/for-interior-designers': typeof ForInteriorDesignersRoute
@@ -487,6 +495,7 @@ export interface FileRoutesById {
   '/collections': typeof CollectionsRoute
   '/creators': typeof CreatorsRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/decora': typeof DecoraRoute
   '/delete-account': typeof DeleteAccountRoute
   '/discover': typeof DiscoverRoute
   '/for-interior-designers': typeof ForInteriorDesignersRoute
@@ -548,6 +557,7 @@ export interface FileRouteTypes {
     | '/collections'
     | '/creators'
     | '/dashboard'
+    | '/decora'
     | '/delete-account'
     | '/discover'
     | '/for-interior-designers'
@@ -607,6 +617,7 @@ export interface FileRouteTypes {
     | '/collections'
     | '/creators'
     | '/dashboard'
+    | '/decora'
     | '/delete-account'
     | '/discover'
     | '/for-interior-designers'
@@ -666,6 +677,7 @@ export interface FileRouteTypes {
     | '/collections'
     | '/creators'
     | '/dashboard'
+    | '/decora'
     | '/delete-account'
     | '/discover'
     | '/for-interior-designers'
@@ -726,6 +738,7 @@ export interface RootRouteChildren {
   CollectionsRoute: typeof CollectionsRoute
   CreatorsRoute: typeof CreatorsRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  DecoraRoute: typeof DecoraRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
   DiscoverRoute: typeof DiscoverRoute
   ForInteriorDesignersRoute: typeof ForInteriorDesignersRoute
@@ -856,6 +869,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/decora': {
+      id: '/decora'
+      path: '/decora'
+      fullPath: '/decora'
+      preLoaderRoute: typeof DecoraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delete-account': {
@@ -1242,6 +1262,7 @@ const rootRouteChildren: RootRouteChildren = {
   CollectionsRoute: CollectionsRoute,
   CreatorsRoute: CreatorsRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  DecoraRoute: DecoraRoute,
   DeleteAccountRoute: DeleteAccountRoute,
   DiscoverRoute: DiscoverRoute,
   ForInteriorDesignersRoute: ForInteriorDesignersRoute,

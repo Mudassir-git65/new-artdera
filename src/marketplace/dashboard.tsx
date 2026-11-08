@@ -1,4 +1,6 @@
 import { uniqueById } from "@/lib/catalog-product";
+import { DECORA_CATEGORIES, isDecoraPrice, customizationOptionsSchema } from "@/lib/decora";
+import { CustomizationSummary } from "@/components/site/CustomizationSummary";
 import { Link } from "@tanstack/react-router";
 import { ProBadge } from "@/components/ui/ProBadge";
 import {
@@ -142,6 +144,7 @@ const artistNavigation: NavGroup[] = [
       ["My Store", "store", Store],
       ["Artworks", "artworks", Palette],
       ["Add Artwork", "add-artwork", ImagePlus],
+      ["Add Décora", "add-decora", Sparkles],
     ],
   },
   {
@@ -418,6 +421,15 @@ function DashboardSection(props: {
       );
     case "add-artwork":
       return <AddArtwork storeId={props.storeId} planId={props.planId} />;
+    case "add-decora":
+      return (
+        <AddArtwork
+          key="decora"
+          storeId={props.storeId}
+          planId={props.planId}
+          initialSection="decora"
+        />
+      );
     case "orders":
       return <OrdersManager userId={props.userId} />;
     case "messages":
@@ -1419,11 +1431,13 @@ function AddArtwork({
   planId,
   initialArtwork,
   onComplete,
+  initialSection,
 }: {
   storeId: string;
   planId: PlanId;
   initialArtwork?: Artwork;
   onComplete?: () => void;
+  initialSection?: "decora";
 }) {
   const listingCount = ArtworkService.forStore(storeId).filter((item) =>
     ["Published", "Pending Review", "Reserved"].includes(item.status),
@@ -1441,6 +1455,9 @@ function AddArtwork({
     initialArtwork
       ? {
           title: initialArtwork.title,
+          section: initialArtwork.section ?? "artwork",
+          decoraCategory: initialArtwork.decoraCategory ?? "home-decor",
+          customizationOptions: initialArtwork.customizationOptions ?? [],
           description: initialArtwork.description,
           storyText: initialArtwork.story?.text ?? "",
           category: initialArtwork.category,
@@ -1466,6 +1483,9 @@ function AddArtwork({
         }
       : ArtworkDraftService.read({
           title: "",
+          section: "artwork" as "artwork" | "decora",
+          decoraCategory: "home-decor" as import("../lib/decora").DecoraCategory,
+          customizationOptions: [] as import("../lib/decora").CustomizationOption[],
           description: "",
           storyText: "",
           category: "Painting",
@@ -1490,6 +1510,14 @@ function AddArtwork({
           imageUrl: "",
         }),
   );
+  useEffect(() => {
+    if (initialSection === "decora" && !initialArtwork)
+      setForm((current) => ({
+        ...current,
+        section: "decora",
+        decoraCategory: current.decoraCategory ?? "home-decor",
+      }));
+  }, [initialSection, initialArtwork]);
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
       if (dirty) {
@@ -1523,6 +1551,19 @@ function AddArtwork({
       );
     if (!form.title || !Number(form.price))
       return toast.error("Add a title and valid price before saving.");
+    if (
+      form.section === "decora" &&
+      (!isDecoraPrice(Number(form.price)) ||
+        (form.discount &&
+          (!isDecoraPrice(Number(form.discount)) || Number(form.discount) > Number(form.price))))
+    )
+      return toast.error(
+        "Décora prices, including personalization, must be above zero and below PKR 3,000. Discounts cannot exceed the regular price.",
+      );
+    if (form.section === "decora") {
+      const checked = customizationOptionsSchema.safeParse(form.customizationOptions ?? []);
+      if (!checked.success) return toast.error(checked.error.issues[0].message);
+    }
     if (status !== "Draft" && !form.imageUrl)
       return toast.error("Upload a main artwork image before submitting for review.");
     setSubmitting(true);
@@ -1542,16 +1583,23 @@ function AddArtwork({
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, ""),
       title: form.title,
+      section: form.section ?? "artwork",
+      decoraCategory: form.section === "decora" ? form.decoraCategory : undefined,
+      customizationOptions: form.section === "decora" ? (form.customizationOptions ?? []) : [],
       description: form.description,
       story: form.storyText.trim()
         ? { text: form.storyText.trim(), updatedAt: new Date().toISOString() }
         : undefined,
-      category: form.category,
+      category:
+        form.section === "decora"
+          ? (DECORA_CATEGORIES.find((category) => category.id === form.decoraCategory)?.name ??
+            form.category)
+          : form.category,
       medium: form.medium,
       style: form.style,
       subject: form.subject,
       year: Number(form.year),
-      kind: form.kind,
+      kind: form.section === "decora" ? "Handmade" : form.kind,
       price: Number(form.price),
       discountPrice: form.discount ? Number(form.discount) : undefined,
       dimensions: `${form.width} × ${form.height} × ${form.depth} inches`,
@@ -1570,7 +1618,7 @@ function AddArtwork({
         .split(",")
         .map((value) => value.trim())
         .filter(Boolean),
-      customOrders: false,
+      customOrders: form.section === "decora" && Boolean(form.customizationOptions?.length),
       views: initialArtwork?.views ?? 0,
       saves: initialArtwork?.saves ?? 0,
       messages: initialArtwork?.messages ?? 0,
@@ -1644,6 +1692,142 @@ function AddArtwork({
           </button>
         </div>
       </div>
+      <FormSection title="Collection" description="Choose where buyers will discover this listing.">
+        <DashboardField label="Listing collection">
+          <select
+            className="art-field"
+            value={form.section ?? "artwork"}
+            onChange={(event) => {
+              set("section", event.target.value as "artwork" | "decora");
+              if (event.target.value === "artwork" && form.kind === "Handmade")
+                set("kind", "Original");
+            }}
+          >
+            <option value="artwork">ArtDera — Artworks</option>
+            <option value="decora">ArtDera Décora — under PKR 3,000</option>
+          </select>
+        </DashboardField>
+        {form.section === "decora" && (
+          <div className="mt-5 space-y-5">
+            <p className="rounded-xl bg-[var(--ivory)] p-4 text-sm leading-6">
+              Artful Décor. Thoughtful Gifts. Keep the regular and discounted unit price below PKR
+              3,000, including all personalization. Your existing listing quota, review and order
+              process apply.
+            </p>
+            <DashboardField label="Décora category">
+              <select
+                className="art-field"
+                value={form.decoraCategory}
+                onChange={(event) => {
+                  const category = DECORA_CATEGORIES.find(
+                    (item) => item.id === event.target.value,
+                  )!;
+                  set("decoraCategory", category.id);
+                  set("category", category.name);
+                }}
+              >
+                {DECORA_CATEGORIES.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </DashboardField>
+            <div>
+              <h3 className="text-sm font-semibold">Customization options</h3>
+              <p className="mt-2 text-xs leading-6 text-muted-foreground">
+                Add up to five fields, such as a name, gift message or colour. Leave choices blank
+                for a text field, or separate preset choices with commas. Personalization is
+                included in your price.
+              </p>
+            </div>
+            {(form.customizationOptions ?? []).map((option, index) => (
+              <div key={index} className="space-y-3 rounded-xl border p-4">
+                <label className="block text-xs font-semibold">
+                  Field name
+                  <input
+                    className="art-field mt-2"
+                    placeholder="e.g. Name to embroider"
+                    maxLength={60}
+                    value={option.label}
+                    onChange={(event) =>
+                      set(
+                        "customizationOptions",
+                        form.customizationOptions.map((item, i) =>
+                          i === index ? { ...item, label: event.target.value } : item,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <label className="block text-xs font-semibold">
+                  Choices (optional)
+                  <input
+                    className="art-field mt-2"
+                    placeholder="e.g. Ivory, Sage, Rose"
+                    value={option.choices.join(",")}
+                    onChange={(event) =>
+                      set(
+                        "customizationOptions",
+                        form.customizationOptions.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                choices: event.target.value ? event.target.value.split(",") : [],
+                              }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={option.required}
+                      onChange={(event) =>
+                        set(
+                          "customizationOptions",
+                          form.customizationOptions.map((item, i) =>
+                            i === index ? { ...item, required: event.target.checked } : item,
+                          ),
+                        )
+                      }
+                    />
+                    Required for purchase
+                  </label>
+                  <button
+                    type="button"
+                    className="text-xs text-[var(--destructive)] underline"
+                    onClick={() =>
+                      set(
+                        "customizationOptions",
+                        form.customizationOptions.filter((_, i) => i !== index),
+                      )
+                    }
+                  >
+                    Remove field
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn-ghost border"
+              disabled={(form.customizationOptions?.length ?? 0) >= 5}
+              onClick={() =>
+                set("customizationOptions", [
+                  ...(form.customizationOptions ?? []),
+                  { label: "", required: false, choices: [] },
+                ])
+              }
+            >
+              Add customization field
+            </button>
+          </div>
+        )}
+      </FormSection>
       <FormSection
         title="Basic information"
         description="Help buyers understand the work at a glance."
@@ -1674,17 +1858,24 @@ function AddArtwork({
             />
           </DashboardField>
           <DashboardField label="Category">
-            <select
-              className="art-field"
-              value={form.category}
-              onChange={(event) => set("category", event.target.value)}
-            >
-              {CATEGORIES_LIST.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            {form.section === "decora" ? (
+              <div className="art-field bg-[var(--ivory)]">
+                {DECORA_CATEGORIES.find((category) => category.id === form.decoraCategory)?.name ??
+                  "Home décor"}
+              </div>
+            ) : (
+              <select
+                className="art-field"
+                value={form.category}
+                onChange={(event) => set("category", event.target.value)}
+              >
+                {CATEGORIES_LIST.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            )}
           </DashboardField>
           <DashboardField label="Medium">
             <input
@@ -1938,15 +2129,19 @@ function AddArtwork({
             />
           </DashboardField>
           <DashboardField label="Original or print">
-            <select
-              className="art-field"
-              value={form.kind}
-              onChange={(event) => set("kind", event.target.value as Artwork["kind"])}
-            >
-              <option>Original</option>
-              <option>Print</option>
-              <option>Limited Edition</option>
-            </select>
+            {form.section === "decora" ? (
+              <div className="art-field bg-[var(--ivory)]">Décora product</div>
+            ) : (
+              <select
+                className="art-field"
+                value={form.kind}
+                onChange={(event) => set("kind", event.target.value as Artwork["kind"])}
+              >
+                <option>Original</option>
+                <option>Print</option>
+                <option>Limited Edition</option>
+              </select>
+            )}
           </DashboardField>
           <DashboardField label="Quantity">
             <input
@@ -2415,6 +2610,19 @@ function OrdersManager({ userId }: { userId: string }) {
             </div>
           ))}
         </div>
+        {active.items.some((item) => item.customization?.length) && (
+          <div className="mt-6 space-y-4 rounded-xl border p-5">
+            <h3 className="font-semibold">Product personalization</h3>
+            {active.items.map((item) => (
+              <div key={item.id}>
+                <p className="text-sm">
+                  {item.title} · Qty {item.quantity}
+                </p>
+                <CustomizationSummary selections={item.customization} />
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mt-6 rounded-xl border border-[var(--color-border)] p-5">
           <div className="flex items-center gap-2 font-semibold">
             <MapPin className="h-4 w-4 text-[var(--oxblood)]" /> Delivery address

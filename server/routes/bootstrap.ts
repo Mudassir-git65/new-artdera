@@ -67,7 +67,7 @@ bootstrapRouter.get(
         .sort({ createdAt: -1, _id: -1 })
         .limit(100)
         .lean(),
-      ArtworkModel.find(publicArtworkFilter)
+      ArtworkModel.find({ ...publicArtworkFilter, section: { $ne: "decora" } })
         .select(
           "storeId artistId galleryId title slug description story category medium style subject colours yearCreated artworkType editionType editionTotal price discountPrice width height measurementUnit isFramed images sponsored isSponsored tags status moderationStatus",
         )
@@ -341,6 +341,10 @@ bootstrapRouter.get(
             image: publicAssetUrl(item.image),
             price: item.price,
             quantity: item.quantity,
+            customization: (item.customization ?? []).map((selection: any) => ({
+              label: selection.label,
+              value: selection.value,
+            })),
           })),
           status: order.status,
           paymentStatus: order.paymentStatus,

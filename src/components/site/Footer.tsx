@@ -17,6 +17,7 @@ const COLS = [
     title: "Marketplace",
     links: [
       ["Discover", "/discover"],
+      ["ArtDera Décora", "/decora"],
       ["Painting", "/discover?category=painting"],
       ["Calligraphy", "/discover?category=calligraphy"],
       ["Photography", "/discover?category=photography"],

@@ -83,7 +83,9 @@ export const Route = createFileRoute("/product/$slug")({
     const descMedium = p.medium || "artwork";
     const descDim = p.dimensions ? ` (${p.dimensions})` : "";
     const description =
-      `${descKind} ${descMedium.toLowerCase()}${descDim} by ${creatorName}. Discover this original artwork on ArtDera. ${p.description || ""}`.trim();
+      p.artwork?.section === "decora"
+        ? `${p.title} by ${creatorName}. ArtDera Décora — Artful Décor. Thoughtful Gifts. Under PKR 3,000. ${p.description || ""}`.trim()
+        : `${descKind} ${descMedium.toLowerCase()}${descDim} by ${creatorName}. Discover this original artwork on ArtDera. ${p.description || ""}`.trim();
     const truncatedDesc =
       description.length > 200 ? `${description.slice(0, 197)}...` : description;
 
@@ -98,7 +100,7 @@ export const Route = createFileRoute("/product/$slug")({
     const productSchema = generateProductSchema({
       title: p.title,
       description: p.description,
-      slug: p.slug,
+      slug: p.artwork?.section === "decora" ? artworkRouteSlug(p) : p.slug,
       images: p.images,
       price: p.price,
       currency: p.currency,
@@ -110,12 +112,20 @@ export const Route = createFileRoute("/product/$slug")({
       framed: p.framed,
     });
 
-    const breadcrumbSchema = generateBreadcrumbSchema([
-      { name: "Home", path: "/" },
-      { name: "Discover", path: "/discover" },
-      { name: p.categorySlug, path: `/discover?category=${p.categorySlug}` },
-      { name: p.title, path: `/product/${p.slug}` },
-    ]);
+    const breadcrumbSchema = generateBreadcrumbSchema(
+      p.artwork?.section === "decora"
+        ? [
+            { name: "Home", path: "/" },
+            { name: "Décora", path: "/decora" },
+            { name: p.title, path: `/product/${artworkRouteSlug(p)}` },
+          ]
+        : [
+            { name: "Home", path: "/" },
+            { name: "Discover", path: "/discover" },
+            { name: p.categorySlug, path: `/discover?category=${p.categorySlug}` },
+            { name: p.title, path: `/product/${p.slug}` },
+          ],
+    );
 
     return {
       meta: seo.meta,
@@ -151,6 +161,9 @@ function ProductPage() {
   const { formatPrice } = useCurrency();
   const [active, setActive] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [customization, setCustomization] = useState<Record<string, string>>({});
+  const [quantity, setQuantity] = useState(1);
+  const [addingToCart, setAddingToCart] = useState(false);
   const privateArtwork = ARTWORKS.find((item) => item.slug === slug);
   const privateStore = privateArtwork
     ? STORES.find((store) => store.id === privateArtwork.storeId)
@@ -202,8 +215,24 @@ function ProductPage() {
   };
 
   const addToCart = async (buyNow = false) => {
-    if (!requireCollector() || !artwork) return;
-    const result = await CartService.add(artwork.id);
+    if (!artwork || addingToCart) return;
+    for (const option of artwork.customizationOptions ?? []) {
+      if (option.required && !customization[option.label]?.trim())
+        return toast.error(`Please complete ${option.label}`);
+    }
+    if (!requireCollector()) return;
+    setAddingToCart(true);
+    const selections = (artwork.customizationOptions ?? []).flatMap((option) =>
+      customization[option.label]?.trim()
+        ? [{ label: option.label, value: customization[option.label].trim() }]
+        : [],
+    );
+    const result = await CartService.add(
+      artwork.id,
+      artwork.section === "decora" ? quantity : 1,
+      selections,
+    );
+    setAddingToCart(false);
     if (result.error) return toast.error(result.error.message);
     toast.success("Added to your secure cart");
     if (buyNow) window.location.assign("/checkout");
@@ -229,11 +258,21 @@ function ProductPage() {
   return (
     <div className="pb-20 lg:pb-0">
       <div className="container-editorial py-6 text-xs text-muted-foreground">
-        <a href="/discover" className="hover:text-foreground">
-          Discover
+        <a
+          href={artwork?.section === "decora" ? "/decora" : "/discover"}
+          className="hover:text-foreground"
+        >
+          {artwork?.section === "decora" ? "Décora" : "Discover"}
         </a>{" "}
         <span className="mx-1.5">/</span>
-        <a href={`/discover?category=${product.categorySlug}`} className="hover:text-foreground">
+        <a
+          href={
+            artwork?.section === "decora"
+              ? `/decora?category=${artwork.decoraCategory}`
+              : `/discover?category=${product.categorySlug}`
+          }
+          className="hover:text-foreground"
+        >
           {product.categorySlug.replace(/-/g, " ")}
         </a>{" "}
         <span className="mx-1.5">/</span>
@@ -397,8 +436,76 @@ function ProductPage() {
           </div>
 
           <div className="mt-7 space-y-3">
+            {artwork?.section === "decora" && (
+              <fieldset className="mb-5 space-y-4 rounded-xl border bg-[var(--porcelain)] p-5">
+                <legend className="px-2 text-sm font-semibold text-[var(--oxblood)]">
+                  {artwork.customizationOptions?.length ? "Make it yours" : "ArtDera Décora"}
+                </legend>
+                {Boolean(artwork.customizationOptions?.length) && (
+                  <p className="text-xs leading-6 text-muted-foreground">
+                    Personalization is included in the listed price. Check spelling before adding to
+                    your cart. One personalization applies to all units of this product in your
+                    cart.
+                  </p>
+                )}
+                {(artwork.customizationOptions ?? []).map((option) => (
+                  <label key={option.label} className="block text-xs font-semibold">
+                    {option.label}
+                    {option.required ? " *" : " (optional)"}
+                    {option.choices.length ? (
+                      <select
+                        className="art-field mt-2"
+                        required={option.required}
+                        value={customization[option.label] ?? ""}
+                        onChange={(event) =>
+                          setCustomization((current) => ({
+                            ...current,
+                            [option.label]: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">Choose an option</option>
+                        {option.choices.map((choice) => (
+                          <option key={choice} value={choice}>
+                            {choice}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <textarea
+                        className="art-field mt-2 min-h-20 resize-y"
+                        maxLength={300}
+                        required={option.required}
+                        value={customization[option.label] ?? ""}
+                        onChange={(event) =>
+                          setCustomization((current) => ({
+                            ...current,
+                            [option.label]: event.target.value,
+                          }))
+                        }
+                      />
+                    )}
+                  </label>
+                ))}
+                <label className="block text-xs font-semibold">
+                  Quantity
+                  <select
+                    className="art-field mt-2"
+                    value={quantity}
+                    onChange={(event) => setQuantity(Number(event.target.value))}
+                  >
+                    {Array.from({ length: Math.min(10, artwork.quantity) }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </fieldset>
+            )}
             <button
               type="button"
+              disabled={addingToCart || (artwork?.section === "decora" && artwork.quantity < 1)}
               onClick={() => void addToCart()}
               className="btn-primary w-full py-3.5"
             >
@@ -407,6 +514,7 @@ function ProductPage() {
             <button
               type="button"
               onClick={() => void addToCart(true)}
+              disabled={addingToCart || (artwork?.section === "decora" && artwork.quantity < 1)}
               className="btn-dark w-full py-3.5"
             >
               Buy Now

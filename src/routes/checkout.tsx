@@ -30,6 +30,7 @@ import {
 } from "@/marketplace/services";
 import type { PaymentMethod } from "@/marketplace/types";
 import { ARTWORKS } from "@/marketplace/data";
+import { CustomizationSummary } from "@/components/site/CustomizationSummary";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -470,7 +471,7 @@ function Checkout() {
         <aside className="h-fit rounded-2xl border border-[var(--color-border)] bg-[var(--porcelain)] p-6 lg:sticky lg:top-28">
           <div className="eyebrow">Your order</div>
           {items.length ? (
-            items.map(({ artwork, quantity }) => (
+            items.map(({ artwork, quantity, customization }) => (
               <div
                 key={artwork.id}
                 className="mt-5 flex gap-4 border-b border-[var(--color-border)] pb-5"
@@ -482,6 +483,7 @@ function Checkout() {
                 />
                 <div>
                   <h2 className="font-display text-2xl">{artwork.title}</h2>
+                  <CustomizationSummary selections={customization} />
                   <div className="mt-1 text-xs text-muted-foreground">
                     {artwork.creatorName} · Qty {quantity}
                   </div>

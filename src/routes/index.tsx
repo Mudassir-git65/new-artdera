@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateActio
 import { CATEGORIES, COLLECTIONS, CREATORS, PRODUCTS, getProduct, IMAGES } from "@/lib/artdera";
 import { useCurrency } from "@/marketplace/currency";
 import { ProductCard } from "@/components/site/ProductCard";
+import { DecoraPromotion } from "@/components/site/DecoraPromotion";
 import { NewsletterService, MarketplaceService } from "@/marketplace/services";
 import { toast } from "sonner";
 // import { ArtDeraScrollStory } from "@/components/site/scroll-story/ArtDeraScrollStory";
@@ -175,6 +176,7 @@ function Home() {
       <CommissionPreview />
       <AIWorkSection />
       <AffordableDiscoveries products={affordablePicks} formatPrice={formatPrice} />
+      <DecoraPromotion />
       <BusinessSection />
       <BuyerProtectionSection />
       <SellerInvitation />

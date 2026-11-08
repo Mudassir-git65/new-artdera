@@ -64,6 +64,10 @@ export function ProductCard({
   };
 
   const addToCart = async (): Promise<void> => {
+    if (artwork?.section === "decora" && artwork.customizationOptions?.length) {
+      window.location.assign(`/product/${artworkRouteSlug(product)}`);
+      return;
+    }
     if (!requireAccount() || !artwork || busy) return;
     setBusy("cart");
     const result = await CartService.add(artwork.id);

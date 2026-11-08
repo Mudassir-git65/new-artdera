@@ -43,6 +43,7 @@ const NAV = [
   { label: "Artists", href: "/creators" },
   { label: "Galleries", href: "/galleries" },
   { label: "Collections", href: "/collections" },
+  { label: "Décora", href: "/decora" },
   { label: "Online Exhibitions", href: "/exhibition" },
   { label: "Ambassadors", href: "/affiliate" },
 ];

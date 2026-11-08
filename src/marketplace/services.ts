@@ -279,6 +279,7 @@ function mapOrder(value: Record<string, any>) {
       price: item.price,
       quantity: item.quantity,
       image: item.image ?? "",
+      customization: item.customization ?? [],
     })),
     status: statusToOrderLabel[value.status] ?? value.status,
     subtotal: value.subtotal ?? value.artworkSubtotal ?? 0,
@@ -838,6 +839,9 @@ export class ArtworkService {
     const existing = /^[a-f\d]{24}$/i.test(artwork.id);
     const payload = {
       storeId: artwork.storeId,
+      section: artwork.section ?? "artwork",
+      decoraCategory: artwork.decoraCategory,
+      customizationOptions: artwork.customizationOptions ?? [],
       title: artwork.title,
       ...(existing ? { slug: artwork.slug } : {}),
       description: artwork.description,
@@ -955,6 +959,7 @@ export class UploadService {
 }
 
 export type CartEntry = {
+  customization?: import("../lib/decora").CustomizationSelection;
   artwork: Artwork;
   quantity: number;
   priceChanged: boolean;
@@ -1004,10 +1009,15 @@ export class CartService {
   static get() {
     return apiClient.get<{ items: CartEntry[]; subtotal: number }>("/api/cart");
   }
-  static add(artworkId: string, quantity = 1) {
+  static add(
+    artworkId: string,
+    quantity = 1,
+    customization: import("../lib/decora").CustomizationSelection = [],
+  ) {
     return apiClient.post<{ artworkId: string; quantity: number }>("/api/cart/items", {
       artworkId,
       quantity,
+      customization,
     });
   }
   static remove(artworkId: string) {

@@ -32,6 +32,8 @@ import { trackWishlistSave } from "../services/view-tracker";
 import { notify } from "../services/notifications";
 import { audit } from "../services/audit";
 import { releaseExpiredReservations } from "../services/reservations";
+import { customizationSchema } from "../../src/lib/decora";
+import { validateCustomization, validateDecoraListing } from "../services/decora";
 import {
   MANUAL_PAYMENT_INSTRUCTION,
   manualPaymentAccount,
@@ -50,6 +52,7 @@ type CartItemValue = {
   artworkId: mongoose.Types.ObjectId;
   quantity: number;
   priceSnapshot?: number;
+  customization?: import("../../src/lib/decora").CustomizationSelection;
 };
 const address = z
   .object({
@@ -83,6 +86,7 @@ commerceRouter.get(
           ? {
               artwork: publicArtwork(artwork),
               quantity: item.quantity,
+              customization: item.customization ?? [],
               priceChanged: item.priceSnapshot !== (artwork.discountPrice ?? artwork.price),
               available: artwork.status === "published" && artwork.quantity >= item.quantity,
             }
@@ -566,7 +570,11 @@ commerceRouter.post(
   asyncRoute(async (req, res) => {
     await releaseExpiredReservations();
     const input = z
-      .object({ artworkId: z.string(), quantity: z.number().int().min(1).max(10).default(1) })
+      .object({
+        artworkId: z.string(),
+        quantity: z.number().int().min(1).max(10).default(1),
+        customization: customizationSchema.default([]),
+      })
       .strict()
       .parse(req.body);
     const artwork = await ArtworkModel.findOne({
@@ -576,6 +584,8 @@ commerceRouter.post(
     });
     if (!artwork || artwork.quantity < input.quantity)
       throw new ApiError(409, "ARTWORK_UNAVAILABLE", "The artwork is no longer available");
+    validateDecoraListing(artwork);
+    const customization = validateCustomization(artwork, input.customization);
     if (artwork.artworkType === "original" && input.quantity !== 1)
       throw new ApiError(
         422,
@@ -598,6 +608,7 @@ commerceRouter.post(
       artworkId: artwork._id,
       quantity: input.quantity,
       priceSnapshot: artwork.discountPrice ?? artwork.price,
+      customization,
     });
     await cart.save();
     return ok(
@@ -856,6 +867,14 @@ commerceRouter.post(
     );
     for (const artwork of artworks) {
       const item = cartByArtwork.get(String(artwork._id))!;
+      validateDecoraListing(artwork);
+      item.customization = validateCustomization(
+        artwork,
+        item.customization?.map((selection) => ({
+          label: selection.label,
+          value: selection.value,
+        })),
+      );
       const store = storeById.get(String(artwork.storeId));
       if (!store || artwork.status !== "published" || artwork.quantity < item.quantity)
         throw new ApiError(409, "ARTWORK_UNAVAILABLE", `${artwork.title} is no longer available`);
@@ -981,6 +1000,9 @@ commerceRouter.post(
                   image: artwork.images?.[0]?.url,
                   price: artwork.discountPrice ?? artwork.price,
                   quantity: cartByArtwork.get(String(artwork._id))!.quantity,
+                  customization: (cartByArtwork.get(String(artwork._id))!.customization ?? []).map(
+                    (selection) => ({ label: selection.label, value: selection.value }),
+                  ),
                 })),
                 artworkSubtotal: entry.subtotal,
                 discount: entry.referralPricing.discount,
@@ -1858,6 +1880,10 @@ function serializeOrder(value: Record<string, any>) {
       price: item.price,
       quantity: item.quantity,
       image: publicAssetUrl(item.image),
+      customization: (item.customization ?? []).map((selection: any) => ({
+        label: selection.label,
+        value: selection.value,
+      })),
     })),
     status: labels[value.status] ?? value.status,
     paymentStatus: String(value.paymentStatus)

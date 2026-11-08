@@ -18,6 +18,8 @@ export const catalogSorts: Record<string, Record<string, 1 | -1>> = {
   popular: { views: -1, wishlistCount: -1, _id: -1 },
   price_asc: { price: 1, _id: 1 },
   price_desc: { price: -1, _id: -1 },
+  decora_price_asc: { decoraPrice: 1, _id: 1 },
+  decora_price_desc: { decoraPrice: -1, _id: -1 },
 };
 
 export function resolveArtworkIdentity(value: string) {
@@ -52,6 +54,8 @@ export interface CatalogQuery {
 }
 
 export interface CatalogSearch {
+  section?: "artwork" | "decora";
+  decoraCategory?: string;
   category?: string;
   q?: string;
   kind?: string;
@@ -64,7 +68,11 @@ export interface CatalogSearch {
 }
 
 export function catalogSearchFilter(query: CatalogSearch = {}) {
-  const filter: Record<string, any> = {};
+  const filter: Record<string, any> = {
+    section: query.section === "decora" ? "decora" : { $ne: "decora" },
+  };
+  if (query.section === "decora" && query.decoraCategory)
+    filter.decoraCategory = query.decoraCategory;
   const escape = (text: string) => text.slice(0, 120).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   if (query.category) {
     const category = escape(query.category.replaceAll("-", " ").replace(/s$/, ""));
@@ -101,17 +109,22 @@ export function catalogSearchFilter(query: CatalogSearch = {}) {
   if (query.room) filter.themes = new RegExp(`^${escape(query.room.replaceAll("-", " "))}$`, "i");
   if (query.framed === "true") filter.isFramed = true;
   if (Number.isFinite(query.min) || Number.isFinite(query.max)) {
-    filter.price = {
+    filter[query.section === "decora" ? "decoraPrice" : "price"] = {
       ...(Number.isFinite(query.min) ? { $gte: query.min } : {}),
       ...(Number.isFinite(query.max) ? { $lte: query.max } : {}),
     };
   }
+  if (query.section === "decora") filter.price = { ...filter.price, $gt: 0, $lt: 3000 };
   return filter;
 }
 
 export async function readArtworkPage(query: CatalogQuery = {}) {
   const filter = { ...query.filter, ...publicArtworkFilter };
-  const sortName = query.sort && catalogSorts[query.sort] ? query.sort : "newest";
+  const requestedSort =
+    query.filter?.section === "decora" && ["price_asc", "price_desc"].includes(query.sort ?? "")
+      ? `decora_${query.sort}`
+      : query.sort;
+  const sortName = requestedSort && catalogSorts[requestedSort] ? requestedSort : "newest";
   const sort = catalogSorts[sortName];
   const limit = Math.min(Math.max(query.limit ?? 24, 1), 100);
   const page = query.page ?? 1;

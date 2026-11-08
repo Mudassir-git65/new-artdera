@@ -1,4 +1,5 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
+import { isDecoraPrice } from "../../src/lib/decora";
 
 const objectId = Schema.Types.ObjectId;
 const timestamps = { timestamps: true, versionKey: false } as const;
@@ -205,6 +206,33 @@ export const StoreModel = modelFor("Store", storeSchema);
 export const artworkSchema = new Schema(
   {
     isDemo: { type: Boolean, default: false },
+    section: { type: String, enum: ["artwork", "decora"], default: "artwork", index: true },
+    decoraCategory: {
+      type: String,
+      enum: [
+        "home-decor",
+        "personalized-gifts",
+        "prayer-mats",
+        "booklets",
+        "mini-paintings",
+        "handmade-crafts",
+        "accessories",
+      ],
+    },
+    decoraPrice: { type: Number, min: 0 },
+    customizationOptions: {
+      type: [
+        new Schema(
+          {
+            label: { ...requiredString, maxlength: 60 },
+            required: { type: Boolean, default: false },
+            choices: [{ type: String, trim: true, maxlength: 80 }],
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
     storeId: { type: objectId, ref: "Store", required: true, index: true },
     artistId: { type: objectId, ref: "User", index: true },
     galleryId: { type: objectId, ref: "GalleryProfile", index: true },
@@ -223,7 +251,11 @@ export const artworkSchema = new Schema(
     themes: [{ type: String, trim: true, maxlength: 80 }],
     colours: [{ type: String, trim: true, maxlength: 50 }],
     yearCreated: { type: Number, min: 1000, max: 2200 },
-    artworkType: { type: String, enum: ["original", "print", "limited_edition"], required: true },
+    artworkType: {
+      type: String,
+      enum: ["original", "print", "limited_edition", "handmade"],
+      required: true,
+    },
     editionType: { type: String, enum: ["open", "limited", "unique", null], default: null },
     editionNumber: { type: Number, min: 1 },
     editionTotal: { type: Number, min: 1 },
@@ -287,6 +319,18 @@ export const artworkSchema = new Schema(
   },
   timestamps,
 );
+artworkSchema.pre("validate", function () {
+  if (this.section !== "decora") return;
+  this.set("decoraPrice", this.discountPrice ?? this.price);
+  if (!this.decoraCategory) this.invalidate("decoraCategory", "Choose a Décora category");
+  if (!isDecoraPrice(this.price))
+    this.invalidate("price", "Décora prices must be above zero and below PKR 3,000");
+  if (
+    this.discountPrice != null &&
+    (!isDecoraPrice(this.discountPrice) || this.discountPrice > this.price)
+  )
+    this.invalidate("discountPrice", "Invalid Décora discount price");
+});
 artworkSchema.index({
   title: "text",
   description: "text",
@@ -295,6 +339,8 @@ artworkSchema.index({
   medium: "text",
 });
 artworkSchema.index({ status: 1, isSponsored: 1, createdAt: -1 });
+artworkSchema.index({ section: 1, status: 1, moderationStatus: 1, decoraCategory: 1, price: 1 });
+artworkSchema.index({ section: 1, status: 1, moderationStatus: 1, decoraPrice: 1, _id: 1 });
 artworkSchema.index({ storeId: 1, status: 1, createdAt: -1 });
 // Compound indexes for common discover-page filter combinations
 // Covers: category filter + status/moderation guard + sort by date
@@ -513,6 +559,18 @@ const orderItemSchema = new Schema(
     image: String,
     price: money,
     quantity: { type: Number, required: true, min: 1, default: 1 },
+    customization: {
+      type: [
+        new Schema(
+          {
+            label: { ...requiredString, maxlength: 60 },
+            value: { ...requiredString, maxlength: 300 },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
   },
   { _id: true, versionKey: false },
 );
@@ -1273,6 +1331,18 @@ export const CartModel = modelFor(
           artworkId: { type: objectId, ref: "Artwork", required: true },
           quantity: { type: Number, min: 1, max: 10, default: 1 },
           priceSnapshot: { type: Number, min: 0 },
+          customization: {
+            type: [
+              new Schema(
+                {
+                  label: { ...requiredString, maxlength: 60 },
+                  value: { ...requiredString, maxlength: 300 },
+                },
+                { _id: false },
+              ),
+            ],
+            default: [],
+          },
         },
       ],
       expiresAt: Date,

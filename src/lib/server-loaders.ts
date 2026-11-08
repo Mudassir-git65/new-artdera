@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { decoraCategorySchema } from "./decora";
 
 export const fetchExhibitionLanding = createServerFn({ method: "GET" }).handler(async () => {
   const { connectDatabase } = await import("../../server/db");
@@ -75,6 +76,8 @@ export const fetchStoreCatalog = createServerFn({ method: "GET" })
 export const fetchCatalogPage = createServerFn({ method: "GET" })
   .validator(
     (data?: {
+      section?: "artwork" | "decora";
+      decoraCategory?: import("./decora").DecoraCategory;
       cursor?: string;
       limit?: number;
       category?: string;
@@ -89,6 +92,8 @@ export const fetchCatalogPage = createServerFn({ method: "GET" })
     }) =>
       z
         .object({
+          section: z.enum(["artwork", "decora"]).optional(),
+          decoraCategory: decoraCategorySchema.optional(),
           cursor: z.string().max(2000).optional(),
           limit: z.number().int().positive().max(100).optional(),
           category: z.string().max(120).optional(),

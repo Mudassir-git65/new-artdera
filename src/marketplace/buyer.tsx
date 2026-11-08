@@ -39,6 +39,7 @@ import {
   type ShippingQuote,
 } from "./services";
 import type { Artwork, Notification, Store } from "./types";
+import { CustomizationSummary } from "@/components/site/CustomizationSummary";
 import { PageLoading } from "@/components/site/PageLoading";
 import { AffiliateDashboard } from "./affiliate";
 
@@ -334,6 +335,16 @@ function BuyerOrders() {
                 },
               )}
             </div>
+            {order.items
+              .filter((item) => item.customization?.length)
+              .map((item) => (
+                <div key={item.id} className="mt-4 rounded-xl bg-[var(--ivory)] p-4">
+                  <p className="text-sm font-semibold">
+                    {item.title} · Qty {item.quantity}
+                  </p>
+                  <CustomizationSummary selections={item.customization} />
+                </div>
+              ))}
           </article>
         ))}
         {!orders.length && (
@@ -800,13 +811,17 @@ function Security() {
         <div className="eyebrow text-red-700">Account Control & Privacy</div>
         <h2 className="mt-2 font-display text-2xl">Delete Account</h2>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Request permanent deletion of your profile, listings, and stored account data in compliance with Google Play guidelines.
+          Request permanent deletion of your profile, listings, and stored account data in
+          compliance with Google Play guidelines.
         </p>
         <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50/50 p-4">
           <div>
-            <div className="font-semibold text-xs text-red-900">Permanent Account & Data Erasure</div>
+            <div className="font-semibold text-xs text-red-900">
+              Permanent Account & Data Erasure
+            </div>
             <div className="mt-0.5 text-[11px] text-red-700">
-              Submits a formal deletion request. Processed by an administrator upon identity verification.
+              Submits a formal deletion request. Processed by an administrator upon identity
+              verification.
             </div>
           </div>
           <a
@@ -878,11 +893,14 @@ function BuyerSettings() {
         <div className="eyebrow text-red-700">Danger Zone</div>
         <h2 className="mt-2 font-display text-2xl">Delete Account</h2>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Submit an account deletion request to permanently erase your profile, saved works, messages, and listings.
+          Submit an account deletion request to permanently erase your profile, saved works,
+          messages, and listings.
         </p>
         <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50/50 p-4">
           <div>
-            <div className="font-semibold text-xs text-red-900">Google Play Compliant Account Deletion</div>
+            <div className="font-semibold text-xs text-red-900">
+              Google Play Compliant Account Deletion
+            </div>
             <div className="mt-0.5 text-[11px] text-red-700">
               Open the public account deletion request page to proceed.
             </div>

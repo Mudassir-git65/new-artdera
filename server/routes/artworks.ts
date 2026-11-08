@@ -11,6 +11,8 @@ import { notify } from "../services/notifications";
 import { findPublicArtwork, readArtworkPage } from "../services/catalog";
 import { sanitizeText } from "../lib/security";
 import { trackArtworkView } from "../services/view-tracker";
+import { customizationOptionsSchema, decoraCategorySchema } from "../../src/lib/decora";
+import { validateDecoraListing } from "../services/decora";
 
 export const artworksRouter = Router();
 const legacyStatuses: Record<string, string> = {
@@ -34,6 +36,9 @@ const slug = z
 const artworkInput = z
   .object({
     storeId: z.string().min(1).optional(),
+    section: z.enum(["artwork", "decora"]).default("artwork"),
+    decoraCategory: decoraCategorySchema.optional(),
+    customizationOptions: customizationOptionsSchema.default([]),
     title: z.string().trim().min(2).max(180),
     slug: slug.optional(),
     description: z.string().trim().max(8000).default(""),
@@ -51,8 +56,8 @@ const artworkInput = z
     colours: z.array(z.string().trim().max(50)).max(20).default([]),
     yearCreated: z.number().int().min(1000).max(2200).optional(),
     year: z.number().int().min(1000).max(2200).optional(),
-    artworkType: z.enum(["original", "print", "limited_edition"]).optional(),
-    kind: z.enum(["Original", "Print", "Limited Edition"]).optional(),
+    artworkType: z.enum(["original", "print", "limited_edition", "handmade"]).optional(),
+    kind: z.enum(["Original", "Print", "Limited Edition", "Handmade"]).optional(),
     editionType: z.enum(["open", "limited", "unique"]).nullable().optional(),
     editionNumber: z.number().int().positive().optional(),
     editionTotal: z.number().int().positive().optional(),
@@ -132,9 +137,10 @@ const artworkInput = z
   .strict();
 
 function normalizeArtwork(input: z.infer<typeof artworkInput>) {
+  validateDecoraListing(input);
   const status = legacyStatuses[input.status] ?? input.status;
   const artworkType =
-    input.artworkType ??
+    (input.artworkType === "handmade" ? undefined : input.artworkType) ??
     (input.kind === "Print"
       ? "print"
       : input.kind === "Limited Edition"
@@ -144,6 +150,9 @@ function normalizeArtwork(input: z.infer<typeof artworkInput>) {
   const storyText = typeof input.story === "string" ? input.story : (input.story?.text ?? "");
   const sanitizedStoryText = sanitizeText(storyText, 2000);
   return {
+    section: input.section,
+    decoraCategory: input.section === "decora" ? input.decoraCategory : undefined,
+    customizationOptions: input.section === "decora" ? input.customizationOptions : [],
     title: sanitizeText(input.title, 180),
     slug: input.slug,
     description: sanitizeText(input.description, 8000),
@@ -155,11 +164,12 @@ function normalizeArtwork(input: z.infer<typeof artworkInput>) {
     themes: input.themes,
     colours: input.colours,
     yearCreated: input.yearCreated ?? input.year,
-    artworkType,
+    artworkType: input.section === "decora" ? "handmade" : artworkType,
     editionType: input.editionType,
     editionNumber: input.editionNumber,
     editionTotal: input.editionTotal,
     price: input.price,
+    decoraPrice: input.section === "decora" ? (input.discountPrice ?? input.price) : undefined,
     discountPrice: input.discountPrice,
     width: input.width ?? (dimensions ? Number(dimensions[1]) : undefined),
     height: input.height ?? (dimensions ? Number(dimensions[2]) : undefined),
@@ -208,6 +218,15 @@ artworksRouter.get(
     const page = pageQuery(req.query.page);
     const limit = limitQuery(req.query.limit, 24, 60);
     const filter: Record<string, any> = { status: "published", moderationStatus: "approved" };
+    // Legacy artwork routes retain their existing inventory; Décora is explicitly scoped.
+    if (req.query.section === "decora") {
+      filter.section = "decora";
+      filter.price = { $gt: 0, $lt: 3000 };
+      if (typeof req.query.decoraCategory === "string")
+        filter.decoraCategory = decoraCategorySchema.parse(req.query.decoraCategory);
+    } else if (!req.query.storeId && !req.query.artistId && !req.query.galleryId) {
+      filter.section = { $ne: "decora" };
+    }
     const text = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 120) : "";
     if (text) filter.$text = { $search: text };
     for (const field of ["category", "medium", "style", "orientation", "pickupCity"] as const) {
@@ -222,9 +241,10 @@ artworksRouter.get(
     const minPrice = Number(req.query.minPrice);
     const maxPrice = Number(req.query.maxPrice);
     if (Number.isFinite(minPrice) || Number.isFinite(maxPrice)) {
-      filter.price = {};
-      if (Number.isFinite(minPrice)) filter.price.$gte = Math.max(0, minPrice);
-      if (Number.isFinite(maxPrice)) filter.price.$lte = Math.max(0, maxPrice);
+      const priceField = req.query.section === "decora" ? "decoraPrice" : "price";
+      filter[priceField] = filter[priceField] ?? {};
+      if (Number.isFinite(minPrice)) filter[priceField].$gte = Math.max(0, minPrice);
+      if (Number.isFinite(maxPrice)) filter[priceField].$lte = Math.max(0, maxPrice);
     }
     if (req.query.verified === "true") {
       const stores = await StoreModel.find({ verificationStatus: "approved", isPublished: true })
@@ -393,6 +413,15 @@ artworksRouter.patch(
     // intentionally contain computed/read-only properties and must never be fed
     // back into a strict write schema.
     const current = {
+      section: item.section ?? "artwork",
+      decoraCategory: item.decoraCategory,
+      customizationOptions: item.customizationOptions.map(
+        (option: import("../../src/lib/decora").CustomizationOption) => ({
+          label: option.label,
+          required: option.required,
+          choices: [...option.choices],
+        }),
+      ),
       storeId: String(item.storeId),
       title: item.title,
       slug: item.slug,

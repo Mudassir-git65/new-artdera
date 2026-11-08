@@ -108,17 +108,26 @@ export function publicArtwork(artwork: Record<string, any>) {
         }
       : undefined,
     category: artwork.category,
+    section: artwork.section ?? "artwork",
+    decoraCategory: artwork.decoraCategory,
+    customizationOptions: (artwork.customizationOptions ?? []).map((option: any) => ({
+      label: option.label,
+      required: Boolean(option.required),
+      choices: option.choices ?? [],
+    })),
     medium: artwork.medium,
     style: artwork.style ?? "",
     subject: artwork.subject ?? "",
     colours: artwork.colours ?? [],
     year: artwork.yearCreated,
     kind:
-      artwork.artworkType === "limited_edition"
-        ? "Limited Edition"
-        : artwork.artworkType === "print"
-          ? "Print"
-          : "Original",
+      artwork.artworkType === "handmade"
+        ? "Handmade"
+        : artwork.artworkType === "limited_edition"
+          ? "Limited Edition"
+          : artwork.artworkType === "print"
+            ? "Print"
+            : "Original",
     price: artwork.price,
     discountPrice: artwork.discountPrice,
     dimensions:

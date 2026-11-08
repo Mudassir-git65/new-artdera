@@ -5,6 +5,7 @@ import { useAuth } from "@/marketplace/auth";
 import { useCurrency } from "@/marketplace/currency";
 import { CartService, WishlistService, type CartEntry } from "@/marketplace/services";
 import { PageLoading } from "@/components/site/PageLoading";
+import { CustomizationSummary } from "@/components/site/CustomizationSummary";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -44,7 +45,7 @@ function Cart() {
   const setQuantity = async (entry: CartEntry, quantity: number) => {
     if (quantity < 1 || quantity > entry.artwork.quantity) return;
     setPendingId(entry.artwork.id);
-    const result = await CartService.add(entry.artwork.id, quantity);
+    const result = await CartService.add(entry.artwork.id, quantity, entry.customization);
     if (result.error) setNotice(result.error.message);
     else await loadCart();
     setPendingId("");
@@ -104,7 +105,7 @@ function Cart() {
             </div>
           ) : items.length ? (
             <div className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
-              {items.map(({ artwork, quantity, priceChanged, available }) => {
+              {items.map(({ artwork, quantity, priceChanged, available, customization }) => {
                 const unitPrice = artwork.discountPrice ?? artwork.price;
                 const pending = pendingId === artwork.id;
                 return (
@@ -137,6 +138,16 @@ function Cart() {
                           The price changed since this work was added.
                         </p>
                       )}
+                      <CustomizationSummary selections={customization} />
+                      {artwork.section === "decora" &&
+                        Boolean(artwork.customizationOptions?.length) && (
+                          <a
+                            href={`/product/${artwork.id}-${artwork.slug}`}
+                            className="mt-2 inline-block text-xs font-semibold text-[var(--oxblood)] underline"
+                          >
+                            Edit personalization
+                          </a>
+                        )}
                       {!available && (
                         <p className="mt-2 text-xs text-[var(--destructive)]">
                           This work is currently unavailable.
@@ -148,7 +159,7 @@ function Cart() {
                           disabled={pending || quantity <= 1}
                           onClick={() =>
                             void setQuantity(
-                              { artwork, quantity, priceChanged, available },
+                              { artwork, quantity, priceChanged, available, customization },
                               quantity - 1,
                             )
                           }
@@ -163,7 +174,7 @@ function Cart() {
                           disabled={pending || quantity >= artwork.quantity}
                           onClick={() =>
                             void setQuantity(
-                              { artwork, quantity, priceChanged, available },
+                              { artwork, quantity, priceChanged, available, customization },
                               quantity + 1,
                             )
                           }
@@ -223,7 +234,11 @@ function Cart() {
           <div className="font-display text-3xl">Order summary</div>
           <dl className="mt-6 divide-y divide-[var(--color-border)] text-sm">
             <div className="flex justify-between py-3">
-              <dt>Painting price</dt>
+              <dt>
+                {items.some((item) => item.artwork.section === "decora")
+                  ? "Product total"
+                  : "Painting price"}
+              </dt>
               <dd>{formatPrice(subtotal)}</dd>
             </div>
           </dl>

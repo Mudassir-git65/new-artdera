@@ -324,7 +324,7 @@ artworkSchema.pre("validate", function () {
   this.set("decoraPrice", this.discountPrice ?? this.price);
   if (!this.decoraCategory) this.invalidate("decoraCategory", "Choose a Décora category");
   if (!isDecoraPrice(this.price))
-    this.invalidate("price", "Décora prices must be above zero and below PKR 3,000");
+    this.invalidate("price", "Décora prices must be above zero and at or below PKR 3,000");
   if (
     this.discountPrice != null &&
     (!isDecoraPrice(this.discountPrice) || this.discountPrice > this.price)

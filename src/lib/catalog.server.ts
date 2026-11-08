@@ -33,7 +33,11 @@ export async function loadProduct(slug: string) {
 
 export async function loadCatalogPage(query?: { cursor?: string; limit?: number } & CatalogSearch) {
   await connectDatabase();
-  const page = await readArtworkPage({ ...query, filter: catalogSearchFilter(query) });
+  const page = await readArtworkPage({
+    ...query,
+    section: query?.section === "decora" ? "decora" : undefined,
+    filter: catalogSearchFilter(query),
+  });
   const storeIds = [...new Set(page.items.map((item) => item.storeId))];
   const stores = await StoreModel.find({ _id: { $in: storeIds } }).lean();
   return { ...page, products: productsFromPage(page.items, stores.map(publicStore)) };

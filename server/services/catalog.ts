@@ -5,6 +5,7 @@ import { ApiError } from "../lib/http";
 import { publicArtwork, publicStore } from "../lib/serializers";
 import { catalogProduct } from "../../src/lib/catalog-product";
 import type { Artwork, Store } from "../../src/marketplace/types";
+import { DECORA_PRICE_LIMIT } from "../../src/lib/decora";
 
 // Listing quotas are enforced on writes. Reads never truncate by subscription.
 export const publicArtworkFilter = {
@@ -45,6 +46,7 @@ export async function findPublicArtwork(value: string) {
 }
 
 export interface CatalogQuery {
+  section?: "decora";
   filter?: Record<string, any>;
   store?: Record<string, any>;
   sort?: string;
@@ -69,10 +71,15 @@ export interface CatalogSearch {
 
 export function catalogSearchFilter(query: CatalogSearch = {}) {
   const filter: Record<string, any> = {
-    section: query.section === "decora" ? "decora" : { $ne: "decora" },
+    ...(query.section === "decora" ? {} : { section: { $ne: "decora" } }),
   };
-  if (query.section === "decora" && query.decoraCategory)
-    filter.decoraCategory = query.decoraCategory;
+  if (query.section === "decora" && query.decoraCategory) {
+    if (query.decoraCategory === "artworks") filter.section = { $ne: "decora" };
+    else {
+      filter.section = "decora";
+      filter.decoraCategory = query.decoraCategory;
+    }
+  }
   const escape = (text: string) => text.slice(0, 120).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   if (query.category) {
     const category = escape(query.category.replaceAll("-", " ").replace(/s$/, ""));
@@ -114,14 +121,52 @@ export function catalogSearchFilter(query: CatalogSearch = {}) {
       ...(Number.isFinite(query.max) ? { $lte: query.max } : {}),
     };
   }
-  if (query.section === "decora") filter.price = { ...filter.price, $gt: 0, $lt: 3000 };
+  if (query.section === "decora")
+    filter.decoraPrice = {
+      ...filter.decoraPrice,
+      $gt: 0,
+      $lte: Math.min(query.max ?? DECORA_PRICE_LIMIT, DECORA_PRICE_LIMIT),
+    };
   return filter;
+}
+
+async function readDecoraRows(
+  filter: Record<string, any>,
+  sort: Record<string, 1 | -1>,
+  seek: Record<string, any>,
+  skip: number,
+  limit: number,
+  populate: boolean,
+): Promise<{ rows: Record<string, any>[]; total: number }> {
+  const { decoraPrice, ...match } = filter;
+  // Existing artwork records do not need a migration or a new section assignment.
+  // Cast ownership IDs before aggregation, then calculate the displayed price for all listings.
+  const castMatch = ArtworkModel.find(match).cast(ArtworkModel);
+  const [result] = await ArtworkModel.aggregate([
+    { $match: castMatch },
+    { $set: { decoraPrice: { $ifNull: ["$discountPrice", "$price"] } } },
+    { $match: { decoraPrice } },
+    { $sort: sort },
+    {
+      $facet: {
+        rows: [{ $match: seek }, { $skip: skip }, { $limit: limit + 1 }],
+        count: [{ $count: "value" }],
+      },
+    },
+  ]);
+  const rows = result?.rows ?? [];
+  if (populate)
+    await ArtworkModel.populate(rows, [
+      { path: "artistId", select: "fullName" },
+      { path: "storeId", select: "name slug" },
+    ]);
+  return { rows, total: result?.count[0]?.value ?? 0 };
 }
 
 export async function readArtworkPage(query: CatalogQuery = {}) {
   const filter = { ...query.filter, ...publicArtworkFilter };
   const requestedSort =
-    query.filter?.section === "decora" && ["price_asc", "price_desc"].includes(query.sort ?? "")
+    query.section === "decora" && ["price_asc", "price_desc"].includes(query.sort ?? "")
       ? `decora_${query.sort}`
       : query.sort;
   const sortName = requestedSort && catalogSorts[requestedSort] ? requestedSort : "newest";
@@ -188,9 +233,19 @@ export async function readArtworkPage(query: CatalogQuery = {}) {
     startAt: { $lte: now },
     endAt: { $gt: now },
   };
-  const [rows, total, storePromotions] = await Promise.all([
-    listing.lean(),
-    ArtworkModel.countDocuments(filter),
+  const [{ rows, total }, storePromotions] = await Promise.all([
+    query.section === "decora"
+      ? readDecoraRows(
+          filter,
+          sort,
+          seek,
+          query.cursor ? 0 : (page - 1) * limit,
+          limit,
+          !query.store,
+        )
+      : Promise.all([listing.lean(), ArtworkModel.countDocuments(filter)]).then(
+          ([rows, total]) => ({ rows, total }),
+        ),
     query.store
       ? PromotionModel.find({ ...promotionFilter, storeId: query.store._id })
           .select("artworkId")

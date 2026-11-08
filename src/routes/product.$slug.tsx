@@ -84,7 +84,7 @@ export const Route = createFileRoute("/product/$slug")({
     const descDim = p.dimensions ? ` (${p.dimensions})` : "";
     const description =
       p.artwork?.section === "decora"
-        ? `${p.title} by ${creatorName}. ArtDera Décora — Artful Décor. Thoughtful Gifts. Under PKR 3,000. ${p.description || ""}`.trim()
+        ? `${p.title} by ${creatorName}. ArtDera Décora — Artful Décor. Thoughtful Gifts. Up to PKR 3,000. ${p.description || ""}`.trim()
         : `${descKind} ${descMedium.toLowerCase()}${descDim} by ${creatorName}. Discover this original artwork on ArtDera. ${p.description || ""}`.trim();
     const truncatedDesc =
       description.length > 200 ? `${description.slice(0, 197)}...` : description;

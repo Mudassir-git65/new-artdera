@@ -20,7 +20,7 @@ export function validateDecoraListing(input: {
     throw new ApiError(
       422,
       "DECORA_PRICE_LIMIT",
-      "Décora prices, including personalization, must be above zero and below PKR 3,000. A discount cannot exceed the regular price.",
+      "Décora prices, including personalization, must be above zero and at or below PKR 3,000. A discount cannot exceed the regular price.",
     );
 }
 

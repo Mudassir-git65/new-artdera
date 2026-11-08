@@ -1558,7 +1558,7 @@ function AddArtwork({
           (!isDecoraPrice(Number(form.discount)) || Number(form.discount) > Number(form.price))))
     )
       return toast.error(
-        "Décora prices, including personalization, must be above zero and below PKR 3,000. Discounts cannot exceed the regular price.",
+        "Décora prices, including personalization, must be above zero and at or below PKR 3,000. Discounts cannot exceed the regular price.",
       );
     if (form.section === "decora") {
       const checked = customizationOptionsSchema.safeParse(form.customizationOptions ?? []);
@@ -1704,15 +1704,15 @@ function AddArtwork({
             }}
           >
             <option value="artwork">ArtDera — Artworks</option>
-            <option value="decora">ArtDera Décora — under PKR 3,000</option>
+            <option value="decora">ArtDera Décora — at PKR 3,000 or less</option>
           </select>
         </DashboardField>
         {form.section === "decora" && (
           <div className="mt-5 space-y-5">
             <p className="rounded-xl bg-[var(--ivory)] p-4 text-sm leading-6">
-              Artful Décor. Thoughtful Gifts. Keep the regular and discounted unit price below PKR
-              3,000, including all personalization. Your existing listing quota, review and order
-              process apply.
+              Artful Décor. Thoughtful Gifts. Keep the regular and discounted unit price at or below
+              PKR 3,000, including all personalization. Your existing listing quota, review and
+              order process apply.
             </p>
             <DashboardField label="Décora category">
               <select

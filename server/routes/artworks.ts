@@ -11,7 +11,11 @@ import { notify } from "../services/notifications";
 import { findPublicArtwork, readArtworkPage } from "../services/catalog";
 import { sanitizeText } from "../lib/security";
 import { trackArtworkView } from "../services/view-tracker";
-import { customizationOptionsSchema, decoraCategorySchema } from "../../src/lib/decora";
+import {
+  customizationOptionsSchema,
+  decoraCategorySchema,
+  decoraBrowseCategorySchema,
+} from "../../src/lib/decora";
 import { validateDecoraListing } from "../services/decora";
 
 export const artworksRouter = Router();
@@ -220,10 +224,15 @@ artworksRouter.get(
     const filter: Record<string, any> = { status: "published", moderationStatus: "approved" };
     // Legacy artwork routes retain their existing inventory; Décora is explicitly scoped.
     if (req.query.section === "decora") {
-      filter.section = "decora";
-      filter.price = { $gt: 0, $lt: 3000 };
-      if (typeof req.query.decoraCategory === "string")
-        filter.decoraCategory = decoraCategorySchema.parse(req.query.decoraCategory);
+      filter.decoraPrice = { $gt: 0, $lte: 3000 };
+      if (typeof req.query.decoraCategory === "string") {
+        const category = decoraBrowseCategorySchema.parse(req.query.decoraCategory);
+        if (category === "artworks") filter.section = { $ne: "decora" };
+        else {
+          filter.section = "decora";
+          filter.decoraCategory = category;
+        }
+      }
     } else if (!req.query.storeId && !req.query.artistId && !req.query.galleryId) {
       filter.section = { $ne: "decora" };
     }
@@ -244,7 +253,11 @@ artworksRouter.get(
       const priceField = req.query.section === "decora" ? "decoraPrice" : "price";
       filter[priceField] = filter[priceField] ?? {};
       if (Number.isFinite(minPrice)) filter[priceField].$gte = Math.max(0, minPrice);
-      if (Number.isFinite(maxPrice)) filter[priceField].$lte = Math.max(0, maxPrice);
+      if (Number.isFinite(maxPrice))
+        filter[priceField].$lte = Math.max(
+          0,
+          req.query.section === "decora" ? Math.min(maxPrice, 3000) : maxPrice,
+        );
     }
     if (req.query.verified === "true") {
       const stores = await StoreModel.find({ verificationStatus: "approved", isPublished: true })
@@ -253,6 +266,7 @@ artworksRouter.get(
       filter.$and = [{ storeId: { $in: stores.map((store) => store._id) } }];
     }
     const result = await readArtworkPage({
+      section: req.query.section === "decora" ? "decora" : undefined,
       filter,
       sort: String(req.query.sort ?? "newest"),
       page,

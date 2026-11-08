@@ -5,6 +5,7 @@ import { createApp } from "../server/app";
 import {
   ArtworkModel,
   AuthSessionModel,
+  CollectionModel,
   OrderModel,
   StoreModel,
   SubscriptionModel,
@@ -12,7 +13,7 @@ import {
   UserModel,
 } from "../server/models";
 import { hashToken } from "../server/lib/security";
-import { loadCatalogPage, loadHomeCatalog } from "../src/lib/catalog.server";
+import { loadCatalogPage, loadHomeCatalog, loadCollectionCatalog } from "../src/lib/catalog.server";
 import { customizationOptionsSchema } from "../src/lib/decora";
 
 const app = createApp();
@@ -92,9 +93,9 @@ async function fixture() {
 }
 
 describe("ArtDera Décora", () => {
-  it("enforces the strict price ceiling on create and partial updates without changing artwork pricing", async () => {
+  it("enforces the inclusive price ceiling on create and partial updates without changing artwork pricing", async () => {
     const { seller, payload } = await fixture();
-    for (const price of [0, 3000, 3001]) {
+    for (const price of [0, 3000.01, 3001]) {
       const rejected = await request(app)
         .post("/api/artworks")
         .set("Cookie", seller.cookie)
@@ -120,7 +121,7 @@ describe("ArtDera Décora", () => {
     const saved = await request(app)
       .post("/api/artworks")
       .set("Cookie", seller.cookie)
-      .send({ ...payload, price: 2999.99 })
+      .send({ ...payload, price: 3000 })
       .expect(201);
     const id = saved.body.data.id;
     expect(saved.body.data.kind).toBe("Handmade");
@@ -129,6 +130,11 @@ describe("ArtDera Décora", () => {
       .patch(`/api/artworks/${id}`)
       .set("Cookie", seller.cookie)
       .send({ price: 3000 })
+      .expect(200);
+    await request(app)
+      .patch(`/api/artworks/${id}`)
+      .set("Cookie", seller.cookie)
+      .send({ price: 3000.01 })
       .expect(422);
     await request(app)
       .patch(`/api/artworks/${id}`)
@@ -368,5 +374,80 @@ describe("ArtDera Décora", () => {
     expect(api.body.data.items.map((item: any) => item.discountPrice ?? item.price)).toEqual([
       500, 900,
     ]);
+  });
+
+  it("includes collection artwork up to PKR 3,000 without moving or duplicating the original listings", async () => {
+    const { seller, store, payload } = await fixture();
+    const artworks = await ArtworkModel.create(
+      [
+        { title: "Affordable original", slug: "affordable-original", price: 1500 },
+        { title: "Exactly three thousand", slug: "exactly-three-thousand", price: 3000 },
+        { title: "Over the limit", slug: "over-the-limit", price: 3000.01 },
+        {
+          title: "Discounted collection work",
+          slug: "discounted-collection-work",
+          price: 5000,
+          discountPrice: 500,
+        },
+        {
+          title: "Awaiting review",
+          slug: "awaiting-review",
+          price: 800,
+          status: "pending_review",
+          moderationStatus: "pending",
+        },
+        { title: "Demo work", slug: "demo-work", price: 700, isDemo: true },
+      ].map((artwork) => ({
+        storeId: store._id,
+        artistId: seller.user._id,
+        category: "Painting",
+        medium: "Oil",
+        artworkType: "original",
+        status: "published",
+        moderationStatus: "approved",
+        ...artwork,
+      })),
+    );
+    await CollectionModel.create({
+      name: "Existing collection",
+      slug: "existing-collection",
+      isPublished: true,
+      artworkIds: artworks.slice(0, 4).map((artwork: { _id: unknown }) => artwork._id),
+    });
+    const originalCollection = await loadCollectionCatalog();
+    const listing = await request(app)
+      .post("/api/artworks")
+      .set("Cookie", seller.cookie)
+      .send(payload)
+      .expect(201);
+    const first = await loadCatalogPage({ section: "decora", sort: "price_asc", limit: 2 });
+    expect(first.total).toBe(4);
+    expect(first.products.map((product) => product.price)).toEqual([500, 1500]);
+    const second = await loadCatalogPage({
+      section: "decora",
+      sort: "price_asc",
+      limit: 2,
+      cursor: first.nextCursor!,
+    });
+    expect(second.products.map((product) => product.price)).toEqual([2499, 3000]);
+    expect(second.nextCursor).toBeNull();
+    const collectionOnly = await loadCatalogPage({ section: "decora", decoraCategory: "artworks" });
+    expect(collectionOnly.products.map((product) => product.title).sort()).toEqual([
+      "Affordable original",
+      "Discounted collection work",
+      "Exactly three thousand",
+    ]);
+    const api = await request(app)
+      .get(`/api/artworks?section=decora&storeId=${store._id}&maxPrice=99999`)
+      .expect(200);
+    expect(api.body.data.total).toBe(4);
+    expect(new Set(api.body.data.items.map((item: any) => item.id)).size).toBe(4);
+    const category = await request(app)
+      .get("/api/artworks?section=decora&decoraCategory=prayer-mats")
+      .expect(200);
+    expect(category.body.data.items.map((item: any) => item.id)).toEqual([listing.body.data.id]);
+    expect((await loadCollectionCatalog()).collections).toEqual(originalCollection.collections);
+    expect((await ArtworkModel.findById(artworks[0]._id))?.section).toBe("artwork");
+    expect(await ArtworkModel.countDocuments()).toBe(7);
   });
 });

@@ -14,7 +14,7 @@ export function DecoraPromotion() {
             className="absolute inset-0 h-full w-full object-cover"
           />
           <span className="absolute bottom-5 right-5 rounded-full bg-[var(--ivory)] px-5 py-3 text-xs font-semibold">
-            Every piece under PKR 3,000
+            Every piece at PKR 3,000 or less
           </span>
         </div>
         <div className="p-7 sm:p-12 lg:p-16">
@@ -31,7 +31,7 @@ export function DecoraPromotion() {
           </h2>
           <p className="mt-5 max-w-md text-sm leading-7 text-muted-foreground">
             Small treasures for everyday living. Discover home décor, personalized gifts, prayer
-            mats and handmade finds, all under PKR 3,000.
+            mats and handmade finds, all at PKR 3,000 or less.
           </p>
           <a href="/decora" className="btn-primary mt-7">
             Explore Décora <ArrowUpRight className="h-4 w-4" />

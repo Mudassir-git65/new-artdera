@@ -15,7 +15,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { fetchCatalogPage } from "@/lib/server-loaders";
-import { DECORA_CATEGORIES, DECORA_TAGLINE, decoraCategorySchema } from "@/lib/decora";
+import { DECORA_CATEGORIES, DECORA_TAGLINE, decoraBrowseCategorySchema } from "@/lib/decora";
 import { generateMeta, generateBreadcrumbSchema, generateItemListSchema } from "@/lib/seo";
 import { artworkRouteSlug } from "@/lib/catalog-product";
 import { artworkImageUrl } from "@/lib/artwork-image";
@@ -23,7 +23,7 @@ import type { Product } from "@/lib/artdera";
 import { z } from "zod";
 
 const searchSchema = z.object({
-  category: decoraCategorySchema.optional().catch(undefined),
+  category: decoraBrowseCategorySchema.optional().catch(undefined),
   budget: z.preprocess(
     (value) => (typeof value === "number" ? String(value) : value),
     z.enum(["all", "1000", "2000", "3000"]).catch("all"),
@@ -52,7 +52,7 @@ export const Route = createFileRoute("/decora")({
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {
     const min = deps.budget === "2000" ? 1000 : deps.budget === "3000" ? 2000 : 0;
-    const max = deps.budget === "1000" ? 999.99 : deps.budget === "2000" ? 1999.99 : 2999.99;
+    const max = deps.budget === "1000" ? 999.99 : deps.budget === "2000" ? 1999.99 : 3000;
     const [catalog, featured] = await Promise.all([
       fetchCatalogPage({
         data: {
@@ -72,9 +72,9 @@ export const Route = createFileRoute("/decora")({
   },
   head: ({ loaderData }) => {
     const seo = generateMeta({
-      title: "ArtDera Décora | Décor & Personalized Gifts Under PKR 3,000",
+      title: "ArtDera Décora | Décor & Personalized Gifts Up to PKR 3,000",
       description:
-        "Artful Décor. Thoughtful Gifts. Shop affordable home décor, personalized gifts, customized prayer mats, booklets, mini paintings, handmade crafts and accessories. Every piece under PKR 3,000.",
+        "Artful Décor. Thoughtful Gifts. Shop affordable home décor, personalized gifts, customized prayer mats, booklets, mini paintings, handmade crafts and accessories. Every piece at PKR 3,000 or less.",
       canonicalPath: "/decora",
       ogImage: "/images/hero-interior.jpg",
     });
@@ -150,7 +150,7 @@ function DecoraPage() {
                 Find your little treasure <ArrowUpRight className="h-4 w-4" />
               </a>
               <span className="text-xs font-semibold text-[var(--oxblood)]">
-                Every piece under PKR 3,000
+                Every piece at PKR 3,000 or less
               </span>
             </div>
           </div>
@@ -256,7 +256,9 @@ function DecoraPage() {
                 The Décora collection.
               </h2>
             </div>
-            <p className="text-xs text-muted-foreground">All product prices below PKR 3,000</p>
+            <p className="text-xs text-muted-foreground">
+              All product prices at or below PKR 3,000
+            </p>
           </div>
           <form
             action="/decora#decora-shop"
@@ -284,6 +286,7 @@ function DecoraPage() {
                 className="art-field mt-2"
               >
                 <option value="">All categories</option>
+                <option value="artworks">Artworks from the collection</option>
                 {DECORA_CATEGORIES.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -294,10 +297,10 @@ function DecoraPage() {
             <label className="text-[11px] font-semibold">
               Price range
               <select name="budget" defaultValue={search.budget} className="art-field mt-2">
-                <option value="all">All under PKR 3,000</option>
+                <option value="all">All at PKR 3,000 or less</option>
                 <option value="1000">Under PKR 1,000</option>
                 <option value="2000">PKR 1,000 – 1,999</option>
-                <option value="3000">PKR 2,000 – 2,999</option>
+                <option value="3000">PKR 2,000 – 3,000</option>
               </select>
             </label>
             <label className="text-[11px] font-semibold">
@@ -398,7 +401,7 @@ function DecoraPage() {
               >
                 Find a thoughtful gift <ArrowUpRight className="h-4 w-4" />
               </a>
-              <p className="mt-4 text-xs text-white/75">Always under PKR 3,000 per piece.</p>
+              <p className="mt-4 text-xs text-white/75">Always at PKR 3,000 or less per piece.</p>
             </div>
           </div>
         </div>
@@ -409,7 +412,7 @@ function DecoraPage() {
           <h2 className="mt-3 font-display text-3xl">Your craft belongs here.</h2>
           <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
             List your décor and gifts through your ArtDera seller dashboard. Choose Décora, add your
-            personal touches, and keep every piece under PKR 3,000.
+            personal touches, and keep every piece at PKR 3,000 or less.
           </p>
         </div>
         <a href="/artist/dashboard/add-decora" className="btn-ghost shrink-0 border">
@@ -446,7 +449,9 @@ function DecoraCard({ product }: { product: Product }) {
         )}
       </a>
       <p className="mt-4 text-[10px] uppercase tracking-wider text-muted-foreground">
-        {category?.name ?? "Décora"}
+        {product.artwork?.section === "decora"
+          ? (category?.name ?? "Décora")
+          : "From the art collection"}
       </p>
       <h3 className="mt-1 font-display text-xl leading-snug">
         <a href={url} className="hover:text-[var(--oxblood)]">

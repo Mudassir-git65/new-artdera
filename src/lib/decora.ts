@@ -40,6 +40,7 @@ export type DecoraCategory = (typeof DECORA_CATEGORIES)[number]["id"];
 export const decoraCategorySchema = z.enum(
   DECORA_CATEGORIES.map((item) => item.id) as [DecoraCategory, ...DecoraCategory[]],
 );
+export const decoraBrowseCategorySchema = z.union([decoraCategorySchema, z.literal("artworks")]);
 export const customizationOptionSchema = z
   .object({
     label: z.string().trim().min(1).max(60),
@@ -69,5 +70,5 @@ export type CustomizationOption = z.infer<typeof customizationOptionSchema>;
 export type CustomizationSelection = z.infer<typeof customizationSchema>;
 
 export function isDecoraPrice(price: number) {
-  return Number.isFinite(price) && price > 0 && price < DECORA_PRICE_LIMIT;
+  return Number.isFinite(price) && price > 0 && price <= DECORA_PRICE_LIMIT;
 }

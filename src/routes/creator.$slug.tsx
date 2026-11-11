@@ -1,3 +1,4 @@
+import { SiteLink } from "@/components/site/SiteLink";
 import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
 import { useEffect, useRef, useState } from "react";
 import { uniqueById } from "@/lib/catalog-product";
@@ -82,9 +83,9 @@ export const Route = createFileRoute("/creator/$slug")({
   notFoundComponent: () => (
     <div className="container-editorial py-24 text-center">
       <h1 className="font-display text-4xl">Creator not found</h1>
-      <a href="/creators" className="btn-primary mt-6">
+      <SiteLink href="/creators" className="btn-primary mt-6">
         Meet the creators
-      </a>
+      </SiteLink>
     </div>
   ),
 });

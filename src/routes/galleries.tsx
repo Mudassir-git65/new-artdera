@@ -1,12 +1,17 @@
+import { SiteLink } from "@/components/site/SiteLink";
 import { createFileRoute } from "@tanstack/react-router";
 import { BadgeCheck, MapPin, Star } from "lucide-react";
 import { STORES } from "@/marketplace/data";
-import { fetchCreatorsList } from "@/lib/server-loaders";
+import { fetchCreatorPage } from "@/lib/server-loaders";
+import { useEffect, useState } from "react";
+import type { Creator } from "@/lib/artdera";
+import { CreatorDirectoryMore } from "@/components/site/CreatorDirectoryMore";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
 import { generateMeta, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/galleries")({
   loader: async () => {
-    return await fetchCreatorsList({ data: { type: "gallery" } });
+    return await fetchCreatorPage({ data: { type: "gallery" } });
   },
   head: () => {
     const seo = generateMeta({
@@ -37,7 +42,11 @@ export const Route = createFileRoute("/galleries")({
 
 function Galleries() {
   const loaderGalleries = Route.useLoaderData();
-  const galleries = loaderGalleries.map((gallery) => gallery.store!).filter(Boolean);
+  const [creators, setCreators] = useState<Creator[]>(loaderGalleries.items);
+  useEffect(() => {
+    setCreators(loaderGalleries.items);
+  }, [loaderGalleries]);
+  const galleries = creators.map((gallery) => gallery.store!).filter(Boolean);
 
   return (
     <div className="container-editorial py-14">
@@ -51,20 +60,28 @@ function Galleries() {
       </p>
       <div className="mt-10 grid gap-6 md:grid-cols-2">
         {galleries.map((store) => (
-          <a
+          <SiteLink
             key={store.id}
             href={`/store/${store.slug}`}
             className="group overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--porcelain)]"
           >
             <div className="relative h-64 overflow-hidden">
               <img
-                src={store.coverImage}
+                src={artworkImageUrl(store.coverImage, 960)}
+                srcSet={artworkImageSrcSet(store.coverImage)}
+                sizes="(max-width: 767px) 100vw, 50vw"
+                loading="lazy"
+                decoding="async"
                 alt={`${store.name} gallery`}
                 className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <img
-                src={store.profileImage}
+                src={artworkImageUrl(store.profileImage, 320)}
+                loading="lazy"
+                decoding="async"
+                width={80}
+                height={80}
                 alt=""
                 className="absolute bottom-4 left-4 h-20 w-20 rounded-full border-4 border-white/20 object-cover"
               />
@@ -87,9 +104,19 @@ function Galleries() {
                 <span>{store.followers.toLocaleString()} followers</span>
               </div>
             </div>
-          </a>
+          </SiteLink>
         ))}
       </div>
+      <CreatorDirectoryMore
+        type="gallery"
+        resetKey={loaderGalleries}
+        initialCursor={loaderGalleries.nextCursor}
+        onPage={(items) =>
+          setCreators((current) => [
+            ...new Map([...current, ...items].map((item) => [item.slug, item])).values(),
+          ])
+        }
+      />
       <div className="mt-10 rounded-2xl bg-[var(--ink)] p-7 text-[var(--ivory)]">
         <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
           <div>
@@ -98,9 +125,12 @@ function Galleries() {
               Manage artists, staff, inventory and exhibitions.
             </h2>
           </div>
-          <a href="/sell/plans" className="btn-primary bg-[var(--terracotta)] !text-[var(--ink)]">
+          <SiteLink
+            href="/sell/plans"
+            className="btn-primary bg-[var(--terracotta)] !text-[var(--ink)]"
+          >
             View Gallery Plan
-          </a>
+          </SiteLink>
         </div>
       </div>
     </div>

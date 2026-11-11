@@ -1,6 +1,8 @@
+import { SiteLink } from "@/components/site/SiteLink";
 import { createFileRoute } from "@tanstack/react-router";
 import { fetchCollectionCatalog } from "@/lib/server-loaders";
 import { ProductCard } from "@/components/site/ProductCard";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
 
 export const Route = createFileRoute("/collections")({
   loader: () => fetchCollectionCatalog(),
@@ -22,6 +24,7 @@ export const Route = createFileRoute("/collections")({
 
 function Collections() {
   const { collections: COLLECTIONS, products: PRODUCTS } = Route.useLoaderData();
+  const productsBySlug = new Map(PRODUCTS.map((product) => [product.slug, product]));
   return (
     <div className="container-editorial py-14">
       <div className="max-w-2xl">
@@ -34,9 +37,7 @@ function Collections() {
       </div>
       <div className="mt-14 space-y-24">
         {COLLECTIONS.map((col) => {
-          const items = col.products
-            .map((s) => PRODUCTS.find((p) => p.slug === s)!)
-            .filter(Boolean);
+          const items = col.products.map((s) => productsBySlug.get(s)!).filter(Boolean);
           return (
             <section key={col.slug}>
               <div className="grid md:grid-cols-[1fr_1.4fr] gap-8 items-end">
@@ -47,7 +48,10 @@ function Collections() {
                 </div>
                 <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
                   <img
-                    src={col.cover}
+                    src={artworkImageUrl(col.cover, 960)}
+                    srcSet={artworkImageSrcSet(col.cover)}
+                    sizes="(max-width: 767px) 100vw, 60vw"
+                    decoding="async"
                     alt={col.name}
                     className="h-full w-full object-cover"
                     loading="lazy"

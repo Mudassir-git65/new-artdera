@@ -1,3 +1,5 @@
+import { artworkRouteSlug } from "@/lib/catalog-product";
+import { SiteLink } from "@/components/site/SiteLink";
 import { fetchHomeCatalog } from "@/lib/server-loaders";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -20,6 +22,8 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { DecoraPromotion } from "@/components/site/DecoraPromotion";
 import { NewsletterService, MarketplaceService } from "@/marketplace/services";
 import { toast } from "sonner";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
+import { afterPageLoad } from "@/lib/idle";
 // import { ArtDeraScrollStory } from "@/components/site/scroll-story/ArtDeraScrollStory";
 
 import {
@@ -49,7 +53,10 @@ export const Route = createFileRoute("/")({
 
     return {
       meta: seo.meta,
-      links: seo.links,
+      links: [
+        ...seo.links,
+        { rel: "preload", as: "image", href: IMAGES.heroInterior, fetchPriority: "high" },
+      ],
       scripts: [
         {
           type: "application/ld+json",
@@ -221,7 +228,7 @@ function FeaturedArtistsSection({
               Meet distinguished artists shaping the ArtDera collection.
             </p>
           </div>
-          <a
+          <SiteLink
             href="/creators"
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition"
             style={{
@@ -240,7 +247,7 @@ function FeaturedArtistsSection({
           >
             View all creators
             <ArrowRight className="h-4 w-4" />
-          </a>
+          </SiteLink>
         </div>
         <div className="mt-10 grid gap-8 md:grid-cols-3">
           {artistsData.map(({ artist }) => {
@@ -255,11 +262,13 @@ function FeaturedArtistsSection({
               >
                 <div className="relative h-64 overflow-hidden bg-white/5">
                   <img
-                    src={portraitUrl}
+                    src={artworkImageUrl(portraitUrl, 640)}
+                    srcSet={artworkImageSrcSet(portraitUrl)}
+                    sizes="(max-width: 767px) 100vw, 33vw"
                     alt={artist.name}
                     className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                    loading="eager"
-                    fetchPriority="high"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       e.currentTarget.src =
                         "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=50&auto=format&fit=crop";
@@ -296,6 +305,15 @@ function FeaturedArtistsSection({
 
 function CinematicHero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [videoReady, setVideoReady] = useState(false);
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } })
+      .connection;
+    if (connection?.saveData || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return;
+    return afterPageLoad(() => setVideoReady(true));
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -331,12 +349,11 @@ function CinematicHero() {
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="none"
+        src={videoReady ? "/hero.mp4" : undefined}
         poster={IMAGES.heroInterior}
         className="absolute inset-0 h-full w-full object-cover object-center"
-      >
-        <source src="/hero.mp4" type="video/mp4" />
-      </video>
+      ></video>
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(23,23,23,0.82)_0%,rgba(23,23,23,0.52)_38%,rgba(23,23,23,0.16)_72%),linear-gradient(0deg,rgba(23,23,23,0.78)_0%,transparent_36%,rgba(23,23,23,0.24)_100%)]" />
       <div className="relative z-10 flex min-h-[100svh] items-end">
         <div className="container-editorial pb-24 pt-36 md:pb-28">
@@ -358,20 +375,20 @@ function CinematicHero() {
               <Link to="/discover" className="btn-primary">
                 Explore the Marketplace
               </Link>
-              <a
+              <SiteLink
                 href="/sell"
                 className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/35 px-5 text-sm font-semibold text-white transition hover:bg-white hover:text-[var(--ink)]"
               >
                 Sell on ArtDera
-              </a>
+              </SiteLink>
             </div>
           </div>
-          <a
+          <SiteLink
             href="#artdera-scroll-story"
             className="scroll-cue absolute bottom-8 left-1/2 hidden -translate-x-1/2 items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/60 md:flex"
           >
             Begin the story <ChevronRight className="h-4 w-4 rotate-90" />
-          </a>
+          </SiteLink>
         </div>
       </div>
     </section>
@@ -432,17 +449,19 @@ function CategoryMosaic() {
       />
       <div className="mt-10 grid auto-rows-[220px] grid-cols-1 gap-4 md:grid-cols-4 md:auto-rows-[250px]">
         {CATEGORIES.map((category, index) => (
-          <a
+          <SiteLink
             key={category.slug}
             href={`/discover?category=${category.slug}`}
             className={`group relative overflow-hidden rounded-xl ${classes[index]}`}
           >
             <img
-              src={category.image}
+              src={artworkImageUrl(category.image, 960)}
+              srcSet={artworkImageSrcSet(category.image)}
+              sizes="(max-width: 767px) 100vw, 50vw"
               alt={category.name}
               className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
-              loading={index > 1 ? "lazy" : "eager"}
-              fetchPriority={index === 0 ? "high" : index === 1 ? "low" : undefined}
+              loading="lazy"
+              decoding="async"
               onError={(e) => {
                 const img = e.currentTarget;
                 if (!img.dataset.fallback) {
@@ -462,7 +481,7 @@ function CategoryMosaic() {
                 Explore <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" />
               </div>
             </div>
-          </a>
+          </SiteLink>
         ))}
       </div>
     </section>
@@ -492,14 +511,17 @@ function ArtDeraEdit({
         <div className="mt-10 grid gap-5 lg:grid-cols-[1.18fr_0.82fr]">
           <Link
             to="/product/$slug"
-            params={{ slug: dominant.slug }}
+            params={{ slug: artworkRouteSlug(dominant) }}
             className="group relative min-h-[520px] overflow-hidden rounded-xl bg-[var(--ink)] text-white"
           >
             <img
-              src={dominant.images[0]}
+              decoding="async"
+              src={artworkImageUrl(dominant.images[0], 960)}
+              srcSet={artworkImageSrcSet(dominant.images[0])}
+              sizes="(max-width: 767px) 100vw, 50vw"
               alt={dominant.title}
-              loading="eager"
-              fetchPriority="high"
+              loading="lazy"
+              fetchPriority="auto"
               className="absolute inset-0 h-full w-full bg-[#ebe7df] object-contain opacity-88 transition duration-700 group-hover:scale-[1.025]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/18 to-transparent" />
@@ -517,11 +539,14 @@ function ArtDeraEdit({
               <Link
                 key={product.slug}
                 to="/product/$slug"
-                params={{ slug: product.slug }}
+                params={{ slug: artworkRouteSlug(product) }}
                 className="group grid grid-cols-[120px_1fr] gap-4 rounded-xl border border-[var(--color-border)] bg-white/55 p-3 transition hover:border-[var(--oxblood)]"
               >
                 <img
-                  src={product.images[0]}
+                  decoding="async"
+                  src={artworkImageUrl(product.images[0], 960)}
+                  srcSet={artworkImageSrcSet(product.images[0])}
+                  sizes="(max-width: 767px) 100vw, 50vw"
                   alt={product.title}
                   className="h-36 w-full rounded-lg bg-[#ebe7df] object-contain transition group-hover:scale-[1.02]"
                   loading="lazy"
@@ -592,9 +617,9 @@ function CurateWallQuiz({
             Tell us about your room, style and budget. We will help you discover pieces that belong
             in your space.
           </p>
-          <a href={`/discover?${params.toString()}`} className="btn-primary mt-7">
+          <SiteLink href={`/discover?${params.toString()}`} className="btn-primary mt-7">
             Curate My Wall
-          </a>
+          </SiteLink>
         </div>
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--porcelain)] p-5 shadow-[var(--shadow-soft)] md:p-7">
           <QuizGroup
@@ -644,7 +669,11 @@ function CurateWallQuiz({
             <div className="mt-7 grid gap-4 rounded-xl bg-[var(--ivory)] p-4 md:grid-cols-[100px_1fr_auto] md:items-center">
               {recommendation.images[0] ? (
                 <img
-                  src={recommendation.images[0]}
+                  decoding="async"
+                  loading="lazy"
+                  src={artworkImageUrl(recommendation.images[0], 960)}
+                  srcSet={artworkImageSrcSet(recommendation.images[0])}
+                  sizes="(max-width: 767px) 100vw, 50vw"
                   alt={recommendation.title}
                   className="h-28 w-24 rounded-lg object-cover"
                 />
@@ -660,7 +689,7 @@ function CurateWallQuiz({
               </div>
               <Link
                 to="/product/$slug"
-                params={{ slug: recommendation.slug }}
+                params={{ slug: artworkRouteSlug(recommendation) }}
                 className="btn-ghost"
               >
                 View Work
@@ -743,7 +772,10 @@ function ShopThisSpace({
             </p>
             <div className="relative mt-8 overflow-hidden rounded-xl">
               <img
-                src={IMAGES.heroInterior}
+                decoding="async"
+                src={artworkImageUrl(IMAGES.heroInterior, 960)}
+                srcSet={artworkImageSrcSet(IMAGES.heroInterior)}
+                sizes="(max-width: 767px) 100vw, 50vw"
                 alt="Sophisticated living room with art and decor"
                 className="h-full min-h-[460px] w-full object-cover"
                 loading="lazy"
@@ -766,7 +798,10 @@ function ShopThisSpace({
           </div>
           <div className="rounded-2xl border border-white/12 bg-white/[0.06] p-5">
             <img
-              src={active.images[0]}
+              decoding="async"
+              src={artworkImageUrl(active.images[0], 960)}
+              srcSet={artworkImageSrcSet(active.images[0])}
+              sizes="(max-width: 767px) 100vw, 50vw"
               alt={active.title}
               className="aspect-[4/5] w-full rounded-xl bg-[#ebe7df] object-contain"
               loading="lazy"
@@ -778,7 +813,7 @@ function ShopThisSpace({
               <div className="mt-4 font-semibold">{formatPrice(active.price)}</div>
               <Link
                 to="/product/$slug"
-                params={{ slug: active.slug }}
+                params={{ slug: artworkRouteSlug(active) }}
                 className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--ivory)] px-5 text-sm font-semibold text-[var(--ink)]"
               >
                 View Product
@@ -817,7 +852,10 @@ function CreatorSpotlight({
       <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div className="relative overflow-hidden rounded-xl">
           <img
-            src={creator.portrait}
+            decoding="async"
+            src={artworkImageUrl(creator.portrait, 960)}
+            srcSet={artworkImageSrcSet(creator.portrait)}
+            sizes="(max-width: 767px) 100vw, 50vw"
             alt={creator.name}
             className="aspect-[4/5] w-full object-cover"
             loading="lazy"
@@ -837,11 +875,14 @@ function CreatorSpotlight({
               <Link
                 key={work.slug}
                 to="/product/$slug"
-                params={{ slug: work.slug }}
+                params={{ slug: artworkRouteSlug(work) }}
                 className="group block"
               >
                 <img
-                  src={work.images[0]}
+                  decoding="async"
+                  src={artworkImageUrl(work.images[0], 960)}
+                  srcSet={artworkImageSrcSet(work.images[0])}
+                  sizes="(max-width: 767px) 100vw, 50vw"
                   alt={work.title}
                   className="aspect-square rounded-lg bg-[#ebe7df] object-contain transition group-hover:scale-[1.03]"
                   loading="lazy"
@@ -875,13 +916,19 @@ function CollectorSpotlight({
         <div className="grid gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
           <div className="grid grid-cols-[1fr_0.42fr] gap-4">
             <img
-              src={product.images[0]}
+              decoding="async"
+              src={artworkImageUrl(product.images[0], 960)}
+              srcSet={artworkImageSrcSet(product.images[0])}
+              sizes="(max-width: 767px) 100vw, 50vw"
               alt={product.title}
               className="min-h-[520px] rounded-xl bg-white/5 object-contain"
               loading="lazy"
             />
             <img
-              src={product.images[0]}
+              decoding="async"
+              src={artworkImageUrl(product.images[0], 960)}
+              srcSet={artworkImageSrcSet(product.images[0])}
+              sizes="(max-width: 767px) 100vw, 50vw"
               alt=""
               className="h-72 rounded-xl bg-white/5 object-contain lg:h-full"
               loading="lazy"
@@ -929,7 +976,7 @@ function CollectorSpotlight({
             <div className="mt-6 font-display text-3xl">{formatPrice(product.price)}</div>
             <Link
               to="/product/$slug"
-              params={{ slug: product.slug }}
+              params={{ slug: artworkRouteSlug(product) }}
               className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--ivory)] px-5 text-sm font-semibold text-[var(--ink)]"
             >
               Collect This Work
@@ -1024,9 +1071,12 @@ function CommissionPreview() {
             Shape the brief before you contact a creator. The result opens a commission-ready
             discovery path.
           </p>
-          <a href={`/discover?category=custom-commissions&q=${query}`} className="btn-primary mt-7">
+          <SiteLink
+            href={`/discover?category=custom-commissions&q=${query}`}
+            className="btn-primary mt-7"
+          >
             Start a Commission
-          </a>
+          </SiteLink>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <SelectPill
@@ -1147,13 +1197,13 @@ function AffordableDiscoveries({
           ["Under PKR 50,000", "/discover?max=50000"],
           ["Collector pieces", "/discover?kind=Original"],
         ].map(([label, href]) => (
-          <a
+          <SiteLink
             key={label}
             href={href}
             className="rounded-xl border border-[var(--color-border)] bg-[var(--porcelain)] p-4 font-display text-2xl transition hover:border-[var(--oxblood)]"
           >
             {label}
-          </a>
+          </SiteLink>
         ))}
       </div>
       <div className="mt-10 flex snap-x gap-5 overflow-x-auto pb-4 no-scrollbar">
@@ -1179,12 +1229,12 @@ function BusinessSection() {
               Curated sourcing for interior designers, hotels, restaurants, offices, developers and
               corporate gifting teams.
             </p>
-            <a
+            <SiteLink
               href="/trade"
               className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--ivory)] px-5 text-sm font-semibold text-[var(--ink)]"
             >
               Work With ArtDera
-            </a>
+            </SiteLink>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[Building2, Globe2, HeartHandshake].map((Icon, index) => (
@@ -1209,9 +1259,9 @@ function BuyerProtectionSection() {
         <div>
           <div className="eyebrow">Buyer protection</div>
           <h2 className="mt-3 font-display text-3xl md:text-4xl">Buy with confidence.</h2>
-          <a href="/buyer-protection" className="btn-ghost mt-6">
+          <SiteLink href="/buyer-protection" className="btn-ghost mt-6">
             How ArtDera Protects You
-          </a>
+          </SiteLink>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {[
@@ -1236,7 +1286,10 @@ function SellerInvitation() {
     <section className="container-editorial pb-16">
       <div className="relative overflow-hidden rounded-2xl bg-[var(--ink)] text-white">
         <img
-          src={IMAGES.creator1}
+          decoding="async"
+          src={artworkImageUrl(IMAGES.creator1, 960)}
+          srcSet={artworkImageSrcSet(IMAGES.creator1)}
+          sizes="(max-width: 767px) 100vw, 50vw"
           alt="Artist working in studio"
           className="absolute inset-0 h-full w-full object-cover opacity-35"
           loading="lazy"
@@ -1251,12 +1304,12 @@ function SellerInvitation() {
             Build your storefront, reach serious buyers and manage products, commissions and orders
             from one place.
           </p>
-          <a
+          <SiteLink
             href="/sell"
             className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--ivory)] px-5 text-sm font-semibold text-[var(--ink)]"
           >
             Apply to Sell
-          </a>
+          </SiteLink>
         </div>
       </div>
     </section>
@@ -1283,11 +1336,12 @@ function JournalSection() {
       />
       <div className="mt-10 grid gap-5 md:grid-cols-[1.2fr_0.8fr_0.8fr]">
         {articles.map(([title, text, image], index) => (
-          <a key={title as string} href="/journal" className="group block">
+          <SiteLink key={title as string} href="/journal" className="group block">
             <div
               className={`overflow-hidden rounded-xl ${index === 0 ? "aspect-[16/10]" : "aspect-[4/3]"}`}
             >
               <img
+                decoding="async"
                 src={image as string}
                 alt=""
                 className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
@@ -1296,7 +1350,7 @@ function JournalSection() {
             </div>
             <div className="mt-4 font-display text-2xl">{title}</div>
             <p className="mt-1 text-sm text-muted-foreground">{text}</p>
-          </a>
+          </SiteLink>
         ))}
       </div>
     </section>
@@ -1369,10 +1423,10 @@ function SectionHead({
         )}
       </div>
       {cta && (
-        <a href={cta[1]} className="btn-ghost">
+        <SiteLink href={cta[1]} className="btn-ghost">
           {cta[0]}
           <ArrowRight className="h-4 w-4" />
-        </a>
+        </SiteLink>
       )}
     </div>
   );

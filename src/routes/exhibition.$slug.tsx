@@ -2,6 +2,8 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { fetchExhibitionBySlug } from "@/lib/server-loaders";
 import { generateMeta } from "@/lib/seo";
 import { ExhibitionDetailPage } from "@/components/exhibition/Exhibition";
+import "@/exhibition.css";
+import "@/exhibition-launch.css";
 
 export const Route = createFileRoute("/exhibition/$slug")({
   loader: async ({ params }) => {
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/exhibition/$slug")({
       canonicalPath: `/exhibition/${params.slug}`,
       ogImage: loaderData?.exhibition.coverImageUrl || loaderData?.artworks[0]?.images[0]?.url,
     }),
-  component: () => <ExhibitionDetailPage initial={Route.useLoaderData()} />,
+  component: ExhibitionDetailRoute,
   notFoundComponent: () => (
     <div className="container-editorial py-24 text-center">
       <div className="eyebrow">Online exhibitions</div>
@@ -29,3 +31,7 @@ export const Route = createFileRoute("/exhibition/$slug")({
     </div>
   ),
 });
+
+function ExhibitionDetailRoute() {
+  return <ExhibitionDetailPage initial={Route.useLoaderData()} />;
+}

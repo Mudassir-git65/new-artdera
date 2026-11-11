@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CREATORS, type Creator } from "@/lib/artdera";
-import { fetchCreatorsList } from "@/lib/server-loaders";
+import { fetchCreatorPage } from "@/lib/server-loaders";
+import { useEffect, useState } from "react";
+import { CreatorDirectoryMore } from "@/components/site/CreatorDirectoryMore";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
 import { generateMeta, generateBreadcrumbSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/creators")({
   loader: async () => {
-    return await fetchCreatorsList({ data: { type: "artist" } });
+    return await fetchCreatorPage({ data: { type: "artist" } });
   },
   head: () => {
     const seo = generateMeta({
@@ -36,7 +39,10 @@ export const Route = createFileRoute("/creators")({
 
 function Creators() {
   const loaderCreators = Route.useLoaderData();
-  const creators: Creator[] = loaderCreators;
+  const [creators, setCreators] = useState<Creator[]>(loaderCreators.items);
+  useEffect(() => {
+    setCreators(loaderCreators.items);
+  }, [loaderCreators]);
 
   return (
     <div className="container-editorial py-14">
@@ -57,7 +63,10 @@ function Creators() {
           <Link key={c.slug} to="/creator/$slug" params={{ slug: c.slug }} className="group block">
             <div className="relative aspect-[4/5] overflow-hidden rounded-lg">
               <img
-                src={c.portrait}
+                src={artworkImageUrl(c.portrait)}
+                srcSet={artworkImageSrcSet(c.portrait)}
+                sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                decoding="async"
                 alt={c.name}
                 className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-700"
                 loading="lazy"
@@ -81,6 +90,16 @@ function Creators() {
           </Link>
         ))}
       </div>
+      <CreatorDirectoryMore
+        type="artist"
+        resetKey={loaderCreators}
+        initialCursor={loaderCreators.nextCursor}
+        onPage={(items) =>
+          setCreators((current) => [
+            ...new Map([...current, ...items].map((item) => [item.slug, item])).values(),
+          ])
+        }
+      />
     </div>
   );
 }

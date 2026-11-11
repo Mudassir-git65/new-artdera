@@ -1,6 +1,7 @@
 import { ArtworkModel, ArtistProfileModel, ExhibitionModel, StoreModel } from "../models";
 import { publicArtwork, publicAssetUrl } from "../lib/serializers";
 import { publicStoreFilter } from "./catalog";
+import { cachedCatalog } from "../lib/catalog-cache";
 import {
   exhibitionPhase,
   type ExhibitionDetail,
@@ -125,16 +126,25 @@ export async function exhibitionDetail(item: Record<string, any>): Promise<Exhib
 }
 
 export async function readExhibition(slug: string) {
+  return cachedCatalog(`exhibition:${slug}`, () => queryExhibition(slug));
+}
+
+async function queryExhibition(slug: string) {
   const item = await ExhibitionModel.findOne({ ...visibleExhibitionFilter, slug }).lean();
   return item ? exhibitionDetail(item) : null;
 }
 
 export async function readExhibitionLanding(): Promise<ExhibitionLanding> {
+  const page = await cachedCatalog("exhibition-landing", queryExhibitionLanding, 5000);
+  return { ...page, launch: page.launch ? { ...page.launch, serverNow: Date.now() } : page.launch };
+}
+
+async function queryExhibitionLanding(): Promise<ExhibitionLanding> {
   const { readExhibitionLaunch } = await import("./exhibition-launch");
-  const items = await ExhibitionModel.find(visibleExhibitionFilter)
-    .sort({ startAt: -1 })
-    .limit(100)
-    .lean();
+  const [items, launch] = await Promise.all([
+    ExhibitionModel.find(visibleExhibitionFilter).sort({ startAt: -1 }).limit(100).lean(),
+    readExhibitionLaunch(),
+  ]);
   const exhibitions = items.map(serializeOnlineExhibition);
   const now = Date.now();
   const selected =
@@ -143,7 +153,7 @@ export async function readExhibitionLanding(): Promise<ExhibitionLanding> {
     exhibitions[0];
   return {
     exhibitions,
-    launch: await readExhibitionLaunch(),
+    launch,
     featured: selected
       ? await exhibitionDetail(items.find((item) => String(item._id) === selected.id)!)
       : null,

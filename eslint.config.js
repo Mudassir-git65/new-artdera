@@ -7,7 +7,16 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist", ".output", ".vinxi", ".vercel", ".wrangler", ".tanstack", "test-uploads"],
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      ".vercel",
+      ".wrangler",
+      ".tanstack",
+      ".performance",
+      "test-uploads",
+    ],
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],

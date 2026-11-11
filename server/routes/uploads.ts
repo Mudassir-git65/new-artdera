@@ -11,9 +11,144 @@ import { getEnv } from "../config/env";
 import { ApiError, asyncRoute, ok } from "../lib/http";
 import { requireAuth } from "../middleware/auth";
 import { UploadModel } from "../models";
+import { AsyncCache } from "../lib/async-cache";
 
 export const uploadsRouter = Router();
 const upload = multer({ storage: multer.memoryStorage() });
+const variants = new AsyncCache<Buffer>(200, 16 * 1024 * 1024, (buffer) => buffer.length);
+class ImageConversionError extends Error {
+  constructor(readonly source?: Buffer) {
+    super("The original image must be served.");
+  }
+}
+let activeImageJobs = 0;
+const imageWaiters: (() => void)[] = [];
+async function withImageSlot<T>(task: () => Promise<T>) {
+  if (activeImageJobs >= 2) await new Promise<void>((resolve) => imageWaiters.push(resolve));
+  else activeImageJobs++;
+  try {
+    return await task();
+  } finally {
+    const next = imageWaiters.shift();
+    if (next) next();
+    else activeImageJobs--;
+  }
+}
+
+function variantCollection() {
+  return mongoose.connection.db!.collection<{
+    _id: string;
+    publicId: string;
+    content?: mongoose.mongo.Binary;
+    unsupported?: boolean;
+  }>("uploadImageVariants");
+}
+
+type PublicImageSource = {
+  publicId: string;
+  provider?: string;
+  storageKey: string;
+  access: string;
+  mimeType: string;
+};
+async function storedImageBytes(record: PublicImageSource) {
+  return providerFor(record) === "local"
+    ? readFile(safeLocalTarget(record.storageKey))
+    : Buffer.concat(
+        await gridFsBucket()
+          .openDownloadStream(new mongoose.Types.ObjectId(record.storageKey))
+          .toArray(),
+      );
+}
+
+export async function preparePublicImageVariants(record: PublicImageSource, source?: Buffer) {
+  if (record.access !== "public" || !record.mimeType.startsWith("image/"))
+    throw new ApiError(403, "FORBIDDEN", "Only public images can have public derivatives.");
+  const widths = [320, 480, 640, 960, 1280];
+  const existing = await variantCollection()
+    .find(
+      {
+        _id: { $in: widths.map((width) => `${record.publicId}:${width}:webp:1`) },
+      },
+      { projection: { _id: 1 } },
+    )
+    .toArray();
+  const stored = new Set(existing.map((item) => item._id));
+  const missing = widths.filter((width) => !stored.has(`${record.publicId}:${width}:webp:1`));
+  if (!missing.length) return [];
+  if (
+    await variantCollection().findOne(
+      { _id: `${record.publicId}:unsupported:1` },
+      { projection: { _id: 1 } },
+    )
+  )
+    throw new ImageConversionError();
+  // One source download for all sizes, including when backfilling old uploads.
+  const bytes = source ?? (await storedImageBytes(record));
+  const results = await Promise.allSettled(
+    missing.map((width) => imageVariant(record, width, bytes)),
+  );
+  if (results.some((result) => result.status === "rejected"))
+    throw new Error("Some public image derivatives could not be prepared.");
+  return missing;
+}
+
+async function imageVariant(
+  record: { publicId: string; provider?: string; storageKey: string },
+  width: number,
+  uploadedSource?: Buffer,
+) {
+  const key = `${record.publicId}:${width}:webp:1`;
+  return variants.get(key, 300_000, async () => {
+    const stored = await variantCollection().findOne({ _id: key });
+    if (stored?.content) return Buffer.from(stored.content.value());
+    const failureKey = `${record.publicId}:unsupported:1`;
+    if (await variantCollection().findOne({ _id: failureKey }, { projection: { _id: 1 } }))
+      throw new ImageConversionError();
+    const thumbnail = await withImageSlot(async () => {
+      const source =
+        uploadedSource ??
+        (providerFor(record) === "local"
+          ? await readFile(safeLocalTarget(record.storageKey))
+          : Buffer.concat(
+              await gridFsBucket()
+                .openDownloadStream(new mongoose.Types.ObjectId(record.storageKey))
+                .toArray(),
+            ));
+      try {
+        return await sharp(source, { limitInputPixels: 40_000_000 })
+          .rotate()
+          .resize({ width, withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toBuffer();
+      } catch (error) {
+        if (/premature|corrupt|unsupported image|VipsJpeg|pngload|webpload/i.test(String(error)))
+          await variantCollection()
+            .updateOne(
+              { _id: failureKey },
+              {
+                $setOnInsert: { publicId: record.publicId, unsupported: true },
+              },
+              { upsert: true },
+            )
+            .catch(() => undefined);
+        // Reuse bytes already downloaded on this miss. Do not read a large
+        // original a second time just because the decoder rejected it.
+        throw new ImageConversionError(source);
+      }
+    });
+    // Survive cold starts and share derivatives between function instances.
+    // _id makes simultaneous fills idempotent, without storing a second original.
+    await variantCollection().updateOne(
+      { _id: key },
+      {
+        $setOnInsert: { publicId: record.publicId, content: new mongoose.mongo.Binary(thumbnail) },
+      },
+      { upsert: true },
+    );
+    return thumbnail;
+  });
+}
 
 function gridFsBucket() {
   if (!mongoose.connection.db)
@@ -206,12 +341,9 @@ uploadsRouter.post(
       });
       storageKey = String(stream.id);
     }
-    const base = (env.UPLOAD_PUBLIC_BASE_URL ?? "/uploads").replace(/\/$/, "");
     const url =
       access === "public"
-        ? env.UPLOAD_PROVIDER === "mongodb"
-          ? `/api/uploads/${publicId}/content`
-          : `${base}/${filename}`
+        ? `/api/uploads/${publicId}/content`
         : `/api/uploads/${publicId}/download`;
     const record = await UploadModel.create({
       ownerId: req.auth!.user._id,
@@ -225,6 +357,14 @@ uploadsRouter.post(
       access,
       purpose: input.purpose,
     });
+    if (access === "public" && detected.mime.startsWith("image/")) {
+      // Reuse the upload buffer, avoiding another GridFS download. Complete
+      // derivatives before the seller publishes the new image; old uploads
+      // still get the same persistent derivatives on their first request.
+      await preparePublicImageVariants(record, req.file.buffer).catch(() => {
+        console.warn("Some image derivatives will be retried on demand.");
+      });
+    }
     return ok(
       res,
       {
@@ -247,27 +387,37 @@ uploadsRouter.get(
     const record = await UploadModel.findOne({
       publicId: req.params.publicId,
       access: "public",
-    }).select("+storageKey");
+    })
+      .select("+storageKey")
+      .lean();
     if (!record) throw new ApiError(404, "UPLOAD_NOT_FOUND", "File not found");
+    // This route serves only explicitly public, immutable upload IDs. Do not
+    // inherit Vary: Cookie (which disables Vercel's shared image cache).
+    res.setHeader("Vary", "Accept-Encoding");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.removeHeader("Access-Control-Allow-Credentials");
+    res.setHeader("CDN-Cache-Control", "public, max-age=31536000, immutable");
     if (req.query.w !== undefined) {
       const width = Number(req.query.w);
       if (![320, 480, 640, 960, 1280].includes(width) || req.query.format !== "webp")
         throw new ApiError(422, "INVALID_IMAGE_SIZE", "Choose a supported image size.");
       if (!record.mimeType.startsWith("image/"))
         throw new ApiError(422, "NOT_AN_IMAGE", "This file is not an image.");
-      const source =
-        providerFor(record) === "local"
-          ? await readFile(safeLocalTarget(record.storageKey))
-          : Buffer.concat(
-              await gridFsBucket()
-                .openDownloadStream(new mongoose.Types.ObjectId(record.storageKey))
-                .toArray(),
-            );
-      const thumbnail = await sharp(source, { limitInputPixels: 40_000_000 })
-        .rotate()
-        .resize({ width, withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
+      let thumbnail: Buffer;
+      try {
+        thumbnail = await imageVariant(record, width);
+      } catch (error) {
+        // Some legacy JPEGs are readable by browsers but rejected by the
+        // stricter decoder. Preserve the original instead of breaking a work
+        // that displayed before responsive conversion was introduced.
+        if (!res.destroyed && !res.writableEnded) {
+          if (error instanceof ImageConversionError && error.source) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+            res.type(record.mimeType).send(error.source);
+          } else await sendStoredUpload(record, res);
+        }
+        return;
+      }
       // Image work can finish after navigation cancels the response.
       if (res.destroyed || res.writableEnded) return;
       res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
@@ -313,6 +463,8 @@ uploadsRouter.delete(
       );
     await deleteStoredUpload(record);
     await record.deleteOne();
+    await variantCollection().deleteMany({ publicId: record.publicId });
+    variants.clear();
     return ok(res, { publicId: record.publicId, deleted: true }, "File deleted");
   }),
 );

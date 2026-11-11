@@ -1,3 +1,4 @@
+import { SiteLink } from "@/components/site/SiteLink";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -18,7 +19,7 @@ import { fetchCatalogPage } from "@/lib/server-loaders";
 import { DECORA_CATEGORIES, DECORA_TAGLINE, decoraBrowseCategorySchema } from "@/lib/decora";
 import { generateMeta, generateBreadcrumbSchema, generateItemListSchema } from "@/lib/seo";
 import { artworkRouteSlug } from "@/lib/catalog-product";
-import { artworkImageUrl } from "@/lib/artwork-image";
+import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
 import type { Product } from "@/lib/artdera";
 import { z } from "zod";
 
@@ -111,9 +112,9 @@ export const Route = createFileRoute("/decora")({
       <p className="mt-4 text-muted-foreground">
         We couldn’t load the collection. Please try again.
       </p>
-      <a href="/decora" className="btn-primary mt-6">
+      <SiteLink href="/decora" className="btn-primary mt-6">
         Try again
-      </a>
+      </SiteLink>
     </div>
   ),
 });
@@ -128,9 +129,9 @@ function DecoraPage() {
         <div className="container-editorial grid items-center gap-8 py-10 md:grid-cols-2 md:gap-12 md:py-16 lg:py-20">
           <div className="relative z-10">
             <nav aria-label="Breadcrumb" className="mb-9 flex gap-2 text-xs text-muted-foreground">
-              <a href="/" className="hover:underline">
+              <SiteLink href="/" className="hover:underline">
                 Home
-              </a>
+              </SiteLink>
               <span>/</span>
               <span aria-current="page">Décora</span>
             </nav>
@@ -146,9 +147,9 @@ function DecoraPage() {
               personal gifts, with a price to make you smile.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-4">
-              <a href="#decora-shop" className="btn-primary">
+              <SiteLink href="#decora-shop" className="btn-primary">
                 Find your little treasure <ArrowUpRight className="h-4 w-4" />
-              </a>
+              </SiteLink>
               <span className="text-xs font-semibold text-[var(--oxblood)]">
                 Every piece at PKR 3,000 or less
               </span>
@@ -198,15 +199,18 @@ function DecoraPage() {
               Find your kind of lovely.
             </h2>
           </div>
-          <a href="#decora-shop" className="inline-flex items-center gap-2 text-xs font-semibold">
+          <SiteLink
+            href="#decora-shop"
+            className="inline-flex items-center gap-2 text-xs font-semibold"
+          >
             Shop all Décora <ArrowRight className="h-4 w-4" />
-          </a>
+          </SiteLink>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
           {DECORA_CATEGORIES.map((category, index) => {
             const Icon = icons[index];
             return (
-              <a
+              <SiteLink
                 key={category.id}
                 href={`${href({ ...search, category: category.id, cursor: undefined })}#decora-shop`}
                 aria-current={search.category === category.id ? "true" : undefined}
@@ -221,7 +225,7 @@ function DecoraPage() {
                   />
                 </div>
                 <h3 className="text-xs font-semibold leading-5">{category.name}</h3>
-              </a>
+              </SiteLink>
             );
           })}
         </div>
@@ -325,12 +329,12 @@ function DecoraPage() {
               {filtered ? " matching your filters" : " in the collection"}
             </span>
             {(filtered || search.cursor) && (
-              <a
+              <SiteLink
                 href="/decora#decora-shop"
                 className="font-semibold text-[var(--oxblood)] underline underline-offset-4"
               >
                 Clear filters
-              </a>
+              </SiteLink>
             )}
           </div>
           {catalog.products.length ? (
@@ -342,12 +346,12 @@ function DecoraPage() {
               </div>
               {catalog.nextCursor && (
                 <div className="mt-12 text-center">
-                  <a
+                  <SiteLink
                     href={`${href({ ...search, cursor: catalog.nextCursor })}#decora-shop`}
                     className="btn-ghost border"
                   >
                     Next finds <ArrowRight className="h-4 w-4" />
-                  </a>
+                  </SiteLink>
                 </div>
               )}
             </>
@@ -364,13 +368,13 @@ function DecoraPage() {
                   ? "Try another category, price range or search to find your next thoughtful piece."
                   : "Our Décora collection is waiting for its first seller creations. Come back soon for thoughtful gifts and beautiful everyday details."}
               </p>
-              <a
+              <SiteLink
                 href={filtered ? "/decora#decora-shop" : "/artist/dashboard/add-decora"}
                 className="btn-primary mt-6"
               >
                 {filtered ? "Reset filters" : "List a Décora creation"}{" "}
                 <ArrowUpRight className="h-4 w-4" />
-              </a>
+              </SiteLink>
             </div>
           )}
         </div>
@@ -395,12 +399,12 @@ function DecoraPage() {
               </p>
             </div>
             <div className="md:justify-self-end">
-              <a
+              <SiteLink
                 href="/decora?category=personalized-gifts#decora-shop"
                 className="btn-ghost border border-white/40 !text-[var(--ivory)]"
               >
                 Find a thoughtful gift <ArrowUpRight className="h-4 w-4" />
-              </a>
+              </SiteLink>
               <p className="mt-4 text-xs text-white/75">Always at PKR 3,000 or less per piece.</p>
             </div>
           </div>
@@ -415,9 +419,9 @@ function DecoraPage() {
             personal touches, and keep every piece at PKR 3,000 or less.
           </p>
         </div>
-        <a href="/artist/dashboard/add-decora" className="btn-ghost shrink-0 border">
+        <SiteLink href="/artist/dashboard/add-decora" className="btn-ghost shrink-0 border">
           Sell with Décora <ArrowUpRight className="h-4 w-4" />
-        </a>
+        </SiteLink>
       </section>
     </div>
   );
@@ -429,13 +433,16 @@ function DecoraCard({ product }: { product: Product }) {
   const url = `/product/${artworkRouteSlug(product)}`;
   return (
     <article className="group min-w-0">
-      <a
+      <SiteLink
         href={url}
         className="relative block overflow-hidden rounded-xl bg-[#efe8dc]"
         aria-label={`View ${product.title}`}
       >
         <img
           src={artworkImageUrl(product.images[0])}
+          srcSet={artworkImageSrcSet(product.images[0])}
+          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
+          decoding="async"
           alt={product.title}
           loading="lazy"
           width={600}
@@ -447,27 +454,27 @@ function DecoraCard({ product }: { product: Product }) {
             Make it personal
           </span>
         )}
-      </a>
+      </SiteLink>
       <p className="mt-4 text-[10px] uppercase tracking-wider text-muted-foreground">
         {product.artwork?.section === "decora"
           ? (category?.name ?? "Décora")
           : "From the art collection"}
       </p>
       <h3 className="mt-1 font-display text-xl leading-snug">
-        <a href={url} className="hover:text-[var(--oxblood)]">
+        <SiteLink href={url} className="hover:text-[var(--oxblood)]">
           {product.title}
-        </a>
+        </SiteLink>
       </h3>
       <p className="mt-1 truncate text-xs text-muted-foreground">by {product.creatorName}</p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-semibold text-[var(--oxblood)]">{money(product.price)}</span>
-        <a
+        <SiteLink
           href={url}
           className="inline-flex items-center gap-1 text-[11px] font-semibold underline-offset-4 hover:underline"
         >
           {personalized ? "Personalize" : "View piece"}
           <ArrowUpRight className="h-3 w-3" />
-        </a>
+        </SiteLink>
       </div>
     </article>
   );

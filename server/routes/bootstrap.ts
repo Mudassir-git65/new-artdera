@@ -49,16 +49,7 @@ bootstrapRouter.get(
     res.setHeader("Cache-Control", "private, no-store");
     res.vary("Cookie");
 
-    const [
-      plans,
-      stores,
-      artworks,
-      artistProfiles,
-      galleryProfiles,
-      taxonomies,
-      collections,
-      exhibitions,
-    ] = await Promise.all([
+    const [plans, stores, artworks, taxonomies, collections, exhibitions] = await Promise.all([
       SubscriptionPlanModel.find({ isActive: true }).sort({ sortOrder: 1 }).lean(),
       StoreModel.find(publicStoreFilter)
         .select(
@@ -74,18 +65,6 @@ bootstrapRouter.get(
         .sort({ createdAt: -1, _id: -1 })
         .limit(24)
         .lean(),
-      ArtistProfileModel.find({ onboardingCompleted: true })
-        .select(
-          "userId displayName professionalTitle shortBio profileImageUrl coverImageUrl city country categories styles mediums verificationStatus",
-        )
-        .populate("userId", "fullName city province country avatarUrl")
-        .lean(),
-      GalleryProfileModel.find({ onboardingCompleted: true })
-        .select(
-          "userId galleryName description logoUrl coverImageUrl city country verificationStatus",
-        )
-        .populate("userId", "fullName city province country avatarUrl")
-        .lean(),
       TaxonomyModel.find({ isActive: true }).sort({ type: 1, sortOrder: 1, name: 1 }).lean(),
       CollectionModel.find({ isPublished: true, isDemo: { $ne: true } })
         .sort({ sortOrder: 1 })
@@ -99,16 +78,28 @@ bootstrapRouter.get(
         .lean(),
     ]);
     const publicOwnerIds = stores.map((store) => store.ownerId);
-    const publicSubscriptions = publicOwnerIds.length
-      ? await SubscriptionModel.find({
-          userId: { $in: publicOwnerIds },
-          planId: "professional",
-          status: "active",
-          currentPeriodEnd: { $gt: new Date() },
-        })
-          .select("userId planId status currentPeriodEnd")
-          .lean()
-      : [];
+    const [artistProfiles, galleryProfiles, publicSubscriptions] = await Promise.all([
+      ArtistProfileModel.find({ onboardingCompleted: true, userId: { $in: publicOwnerIds } })
+        .select(
+          "userId displayName professionalTitle shortBio profileImageUrl coverImageUrl city country categories styles mediums verificationStatus",
+        )
+        .populate("userId", "fullName city province country avatarUrl")
+        .lean(),
+      GalleryProfileModel.find({ onboardingCompleted: true, userId: { $in: publicOwnerIds } })
+        .select(
+          "userId galleryName description logoUrl coverImageUrl city country verificationStatus",
+        )
+        .populate("userId", "fullName city province country avatarUrl")
+        .lean(),
+      SubscriptionModel.find({
+        userId: { $in: publicOwnerIds },
+        planId: "professional",
+        status: "active",
+        currentPeriodEnd: { $gt: new Date() },
+      })
+        .select("userId planId status currentPeriodEnd")
+        .lean(),
+    ]);
     const publicSubscriptionByOwner = new Map(
       publicSubscriptions
         .filter((subscription) => isActiveProfessionalSubscription(subscription))

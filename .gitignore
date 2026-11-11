@@ -25,6 +25,7 @@ dist-ssr
 /uploads/
 /test-uploads/
 coverage/
+.performance/
 
 # Wrangler / Cloudflare
 .wrangler/

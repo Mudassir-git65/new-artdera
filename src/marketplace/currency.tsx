@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
+
+const pkrFormatter = new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 });
+const internationalFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 export type CurrencyCode = "PKR" | "USD" | "EUR" | "GBP" | "AED" | "SAR" | "AUD" | "CAD";
 
@@ -73,7 +76,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     let active = true;
 
     // 1. Check existing cookie or localStorage preference first (manual user override takes priority)
-    const saved = (getCookie("artdera_currency") || (typeof localStorage !== "undefined" ? localStorage.getItem("artdera_currency") : null)) as CurrencyCode | null;
+    const saved = (getCookie("artdera_currency") ||
+      (typeof localStorage !== "undefined"
+        ? localStorage.getItem("artdera_currency")
+        : null)) as CurrencyCode | null;
     const hasManualPreference = Boolean(saved && FALLBACK_EXCHANGE_RATES[saved]);
 
     if (hasManualPreference && saved) {
@@ -94,7 +100,11 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
           setRates(data.rates);
         }
         // If user has not set a manual preference, adopt suggested regional currency
-        if (!hasManualPreference && data.suggestedCurrency && FALLBACK_EXCHANGE_RATES[data.suggestedCurrency]) {
+        if (
+          !hasManualPreference &&
+          data.suggestedCurrency &&
+          FALLBACK_EXCHANGE_RATES[data.suggestedCurrency]
+        ) {
           setCurrencyState(data.suggestedCurrency);
           setCookie("artdera_currency", data.suggestedCurrency);
         }
@@ -110,47 +120,52 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const setCurrency = (curr: CurrencyCode) => {
+  const setCurrency = useCallback((curr: CurrencyCode) => {
     setCurrencyState(curr);
     setCookie("artdera_currency", curr);
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("artdera_currency", curr);
     }
-  };
+  }, []);
 
-  const convertPrice = (pkrAmount: number) => {
-    const rate = rates[currency] || FALLBACK_EXCHANGE_RATES[currency] || 1;
-    return pkrAmount * rate;
-  };
-
-  const formatPrice = (pkrAmount: number) => {
-    if (currency === "PKR") {
-      const formatted = new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(pkrAmount);
-      return `PKR ${formatted}`;
-    }
-
-    const converted = convertPrice(pkrAmount);
-    // Round logically for display
-    const rounded = Math.round(converted);
-    const formattedNum = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(rounded);
-    const prefix = PREFIX_SYMBOLS[currency] || `${currency} `;
-    return `${prefix}${formattedNum}`;
-  };
-
-  return (
-    <CurrencyContext.Provider
-      value={{
-        currency,
-        setCurrency,
-        formatPrice,
-        convertPrice,
-        rates,
-        symbol: PREFIX_SYMBOLS[currency],
-      }}
-    >
-      {children}
-    </CurrencyContext.Provider>
+  const convertPrice = useCallback(
+    (pkrAmount: number) => {
+      const rate = rates[currency] || FALLBACK_EXCHANGE_RATES[currency] || 1;
+      return pkrAmount * rate;
+    },
+    [currency, rates],
   );
+
+  const formatPrice = useCallback(
+    (pkrAmount: number) => {
+      if (currency === "PKR") {
+        const formatted = pkrFormatter.format(pkrAmount);
+        return `PKR ${formatted}`;
+      }
+
+      const converted = convertPrice(pkrAmount);
+      // Round logically for display
+      const rounded = Math.round(converted);
+      const formattedNum = internationalFormatter.format(rounded);
+      const prefix = PREFIX_SYMBOLS[currency] || `${currency} `;
+      return `${prefix}${formattedNum}`;
+    },
+    [currency, convertPrice],
+  );
+
+  const value = useMemo(
+    () => ({
+      currency,
+      setCurrency,
+      formatPrice,
+      convertPrice,
+      rates,
+      symbol: PREFIX_SYMBOLS[currency],
+    }),
+    [currency, setCurrency, formatPrice, convertPrice, rates],
+  );
+
+  return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -159,4 +174,3 @@ export function useCurrency() {
   if (!context) throw new Error("useCurrency must be used within CurrencyProvider");
   return context;
 }
-

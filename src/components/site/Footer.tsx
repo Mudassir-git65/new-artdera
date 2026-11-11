@@ -1,3 +1,4 @@
+import { SiteLink } from "@/components/site/SiteLink";
 import { Facebook, Instagram, Linkedin, Youtube, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "./Logo";
@@ -83,7 +84,7 @@ export function Footer() {
               {SOCIAL_LINKS.map((item) => {
                 const Icon = ICON_MAP[item.name];
                 return (
-                  <a
+                  <SiteLink
                     key={item.name}
                     href={item.href}
                     target="_blank"
@@ -93,7 +94,7 @@ export function Footer() {
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:scale-110 hover:border-white/60 hover:bg-white/10 hover:text-white"
                   >
                     {Icon && <Icon className="h-4 w-4" />}
-                  </a>
+                  </SiteLink>
                 );
               })}
             </div>
@@ -106,9 +107,9 @@ export function Footer() {
                 <ul className="mt-4 space-y-2.5 text-sm">
                   {col.links.map(([label, href]) => (
                     <li key={label}>
-                      <a href={href} className="text-white/72 transition hover:text-white">
+                      <SiteLink href={href} className="text-white/72 transition hover:text-white">
                         {label}
-                      </a>
+                      </SiteLink>
                     </li>
                   ))}
                 </ul>
@@ -170,27 +171,27 @@ export function Footer() {
         <div className="mt-14 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/50">
           <div>© {new Date().getFullYear()} ArtDera. Discover Art. Shape Your Space.</div>
           <div className="flex flex-wrap gap-4">
-            <a href="/legal/terms" className="hover:text-white">
+            <SiteLink href="/legal/terms" className="hover:text-white">
               Terms
-            </a>
-            <a href="/legal/privacy" className="hover:text-white">
+            </SiteLink>
+            <SiteLink href="/legal/privacy" className="hover:text-white">
               Privacy
-            </a>
-            <a href="/legal/cookies" className="hover:text-white">
+            </SiteLink>
+            <SiteLink href="/legal/cookies" className="hover:text-white">
               Cookies
-            </a>
-            <a href="/legal/copyright" className="hover:text-white">
+            </SiteLink>
+            <SiteLink href="/legal/copyright" className="hover:text-white">
               Copyright
-            </a>
-            <a href="/legal/ai-policy" className="hover:text-white">
+            </SiteLink>
+            <SiteLink href="/legal/ai-policy" className="hover:text-white">
               AI Policy
-            </a>
-            <a href="/legal/sponsored" className="hover:text-white">
+            </SiteLink>
+            <SiteLink href="/legal/sponsored" className="hover:text-white">
               Sponsored Content
-            </a>
-            <a href="/legal/community" className="hover:text-white">
+            </SiteLink>
+            <SiteLink href="/legal/community" className="hover:text-white">
               Community
-            </a>
+            </SiteLink>
           </div>
         </div>
       </div>

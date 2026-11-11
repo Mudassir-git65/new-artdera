@@ -1,13 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AuthService, MarketplaceService, SESSION_EXPIRED_EVENT } from "./services";
+import { afterPageLoad } from "@/lib/idle";
 import type { User } from "./types";
 
 type AuthContextValue = {
@@ -41,8 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // `catalogReady` flips to true once /api/bootstrap has been received.
   const [catalogReady, setCatalogReady] = useState(false);
   const [error, setError] = useState("");
-  // Prevent double-init in React StrictMode
-  const initialized = useRef(false);
 
   const refresh = async () => {
     const next = await AuthService.currentUser();
@@ -60,31 +51,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
-    // Run session check AND catalog bootstrap in parallel so neither
-    // blocks the other. The session result tells us if the user is logged in;
-    // bootstrap populates the public catalog. Both can start immediately since
-    // the public portion of bootstrap doesn't need auth data.
+    let active = true;
+    // Keep the session check immediate; private workspaces bootstrap as soon
+    // as it resolves. Anonymous hydration runs after critical page resources.
     const sessionPromise = AuthService.currentUser();
-    const bootstrapPromise = MarketplaceService.bootstrap(true);
+    let cancelBootstrap: (() => void) | undefined;
+    const bootstrapPromise = sessionPromise.then((next) => {
+      if (!active) return;
+      if (next) return MarketplaceService.bootstrap(true);
+      // Server-rendered public content is already usable. Anonymous catalog
+      // hydration must not compete with the hero image, fonts and first input.
+      return new Promise<void>((resolve, reject) => {
+        cancelBootstrap = afterPageLoad(() => {
+          void MarketplaceService.bootstrap(true).then(resolve, reject);
+        });
+      });
+    });
 
     sessionPromise
       .then((next) => {
+        if (!active) return;
         setUser(next);
         setReady(true);
       })
       .catch(() => {
+        if (!active) return;
         setReady(true);
       });
 
     bootstrapPromise
       .then(() => {
+        if (!active) return;
         setCatalogVersion((version) => version + 1);
         setCatalogReady(true);
       })
       .catch((initError: unknown) => {
+        if (!active) return;
         setError(
           initError instanceof Error
             ? initError.message
@@ -94,6 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Even on error, unblock the UI so users aren't stuck on the loading screen.
         setCatalogReady(true);
       });
+    return () => {
+      active = false;
+      cancelBootstrap?.();
+    };
   }, []);
 
   const value = useMemo<AuthContextValue>(

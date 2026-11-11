@@ -1,3 +1,4 @@
+import { artworkImageUrl } from "@/lib/artwork-image";
 import { uniqueById } from "@/lib/catalog-product";
 import { DECORA_CATEGORIES, isDecoraPrice, customizationOptionsSchema } from "@/lib/decora";
 import { CustomizationSummary } from "@/components/site/CustomizationSummary";
@@ -61,16 +62,15 @@ import {
   Info,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 import { PageLoading } from "@/components/site/PageLoading";
 import { CATEGORIES_LIST, STYLES_LIST, SUBJECTS_LIST } from "@/lib/taxonomy";
@@ -135,6 +135,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { IMAGES } from "@/lib/artdera";
 import { PlanFeatureGate } from "@/components/marketplace/PlanFeatureGate";
+
+const DashboardChart = lazy(() => import("./dashboard-chart"));
 
 const artistNavigation: NavGroup[] = [
   {
@@ -803,31 +805,9 @@ function Overview({
             </a>
           </div>
           <div className="mt-5 h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={activitySeries}>
-                <defs>
-                  <linearGradient id="dashboardViews" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6e2334" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#6e2334" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ddd4c7" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(value) => value.slice(8)}
-                  tick={{ fontSize: 11 }}
-                />
-                <YAxis tick={{ fontSize: 11 }} width={35} />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="storeViews"
-                  stroke="#6e2334"
-                  strokeWidth={2}
-                  fill="url(#dashboardViews)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<div className="h-full w-full" />}>
+              <DashboardChart data={activitySeries} variant="overview" />
+            </Suspense>
           </div>
         </section>
         <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--porcelain)] p-5 md:p-6">
@@ -1192,7 +1172,9 @@ function ArtworkManager({ storeId, planId }: { storeId: string; planId: PlanId }
                     <td className="p-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={item.images[0].url}
+                          decoding="async"
+                          loading="lazy"
+                          src={artworkImageUrl(item.images[0].url, 320)}
                           alt=""
                           className="h-14 w-12 rounded object-cover"
                         />
@@ -1324,6 +1306,7 @@ function ArtworkCard({
         )}
         {imageUrl ? (
           <img
+            loading="lazy"
             src={imageUrl}
             alt={imageAlt}
             onLoad={() => setLoaded(true)}
@@ -2067,6 +2050,8 @@ function AddArtwork({
         <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
           {form.imageUrl ? (
             <img
+              decoding="async"
+              loading="lazy"
               src={form.imageUrl}
               alt="Artwork upload preview"
               className="aspect-[4/5] w-full rounded-xl object-cover"
@@ -2220,6 +2205,8 @@ function AddArtwork({
         </DashboardField>
         <div className="mt-5 grid gap-4 rounded-xl bg-[var(--ivory)] p-4 sm:grid-cols-[100px_1fr]">
           <img
+            decoding="async"
+            loading="lazy"
             src={IMAGES.art1}
             alt="Listing preview"
             className="aspect-[4/5] w-full rounded-lg object-cover"
@@ -2492,13 +2479,17 @@ function StoreManager({ storeId, storeSlug }: { storeId: string; storeSlug: stri
       </Panel>
       <aside className="h-fit overflow-hidden rounded-2xl bg-[var(--ink)] text-[var(--ivory)] xl:sticky xl:top-28">
         <img
+          decoding="async"
+          loading="lazy"
           src={store.coverImage}
           alt="Store cover"
           className="h-40 w-full object-cover opacity-65"
         />
         <div className="p-5">
           <img
-            src={store.profileImage}
+            decoding="async"
+            loading="lazy"
+            src={artworkImageUrl(store.profileImage, 320)}
             alt=""
             className="-mt-14 h-20 w-20 rounded-full border-4 border-[var(--ink)] object-cover"
           />
@@ -2570,7 +2561,13 @@ function OrdersManager({ userId }: { userId: string }) {
               className={`w-full rounded-xl border p-4 text-left ${active.id === order.id ? "border-[var(--oxblood)] bg-[var(--ivory)]" : "border-[var(--color-border)]"}`}
             >
               <div className="flex gap-3">
-                <img src={order.items[0].image} alt="" className="h-16 w-14 rounded object-cover" />
+                <img
+                  decoding="async"
+                  loading="lazy"
+                  src={artworkImageUrl(order.items[0].image, 320)}
+                  alt=""
+                  className="h-16 w-14 rounded object-cover"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <strong className="truncate text-sm">{order.orderNumber}</strong>
@@ -2801,7 +2798,9 @@ function MessageCenter() {
               >
                 {artwork?.images[0] && (
                   <img
-                    src={artwork.images[0].url}
+                    decoding="async"
+                    loading="lazy"
+                    src={artworkImageUrl(artwork.images[0].url, 320)}
                     alt=""
                     className="h-14 w-12 rounded object-cover"
                   />
@@ -2835,6 +2834,8 @@ function MessageCenter() {
           <div className="flex items-center gap-3">
             {currentArtwork?.images[0] && (
               <img
+                decoding="async"
+                loading="lazy"
                 src={currentArtwork.images[0].url}
                 alt=""
                 className="h-11 w-11 rounded-lg object-cover"
@@ -3204,38 +3205,9 @@ function Analytics({ planId }: { planId: PlanId }) {
           <span className="chip">{PLANS[planId].analytics} analytics</span>
         </div>
         <div className="mt-6 h-[330px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="storeAnalytics" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#263454" stopOpacity={0.35} />
-                  <stop offset="1" stopColor="#263454" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} stroke="#ddd4c7" />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(value) => value.slice(5)}
-                tick={{ fontSize: 11 }}
-              />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="artworkViews"
-                stroke="#263454"
-                strokeWidth={2}
-                fill="url(#storeAnalytics)"
-              />
-              <Area
-                type="monotone"
-                dataKey="storeViews"
-                stroke="#b65f42"
-                strokeWidth={2}
-                fill="transparent"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<div className="h-full w-full" />}>
+            <DashboardChart data={chartData} variant="analytics" />
+          </Suspense>
         </div>
       </Panel>
       {planId !== "free" && (
@@ -3254,7 +3226,9 @@ function Analytics({ planId }: { planId: PlanId }) {
                   >
                     <span className="font-display text-xl text-muted-foreground">{index + 1}</span>
                     <img
-                      src={artwork.images[0].url}
+                      decoding="async"
+                      loading="lazy"
+                      src={artworkImageUrl(artwork.images[0].url, 320)}
                       alt=""
                       className="h-14 w-12 rounded object-cover"
                     />
@@ -3395,6 +3369,8 @@ function Promotions() {
             <div className="eyebrow">Placement preview</div>
             <div className="relative mt-4 overflow-hidden rounded-xl">
               <img
+                decoding="async"
+                loading="lazy"
                 src={ARTWORKS.find((item) => item.id === artwork)?.images[0].url}
                 alt="Promotion preview"
                 className="aspect-[4/3] w-full object-cover"
@@ -3479,7 +3455,13 @@ function Promotions() {
                 className="rounded-xl border border-[var(--color-border)] p-4"
               >
                 <div className="flex items-start gap-3">
-                  <img src={art?.images[0].url} alt="" className="h-16 w-14 rounded object-cover" />
+                  <img
+                    decoding="async"
+                    loading="lazy"
+                    src={artworkImageUrl(art?.images[0].url, 320)}
+                    alt=""
+                    className="h-16 w-14 rounded object-cover"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold">{place?.name}</div>
                     <div className="mt-1 truncate text-xs text-muted-foreground">{art?.title}</div>
@@ -4713,6 +4695,8 @@ function Exhibitions() {
         >
           {exhibition.coverImage ? (
             <img
+              decoding="async"
+              loading="lazy"
               src={exhibition.coverImage}
               alt={exhibition.name}
               className="h-full min-h-56 w-full object-cover"

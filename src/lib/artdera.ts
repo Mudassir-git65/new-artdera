@@ -1,31 +1,7 @@
-import art1 from "@/assets/art-1.jpg";
-import art2 from "@/assets/art-2.jpg";
-import art3 from "@/assets/art-3.jpg";
-import art4 from "@/assets/art-4.jpg";
-import art5 from "@/assets/art-5.jpg";
-import art6 from "@/assets/art-6.jpg";
-import creator1 from "@/assets/artist.png";
-import creator2 from "@/assets/creator-2.jpg";
-import creator3 from "@/assets/creator-3.jpg";
-import heroInterior from "@/assets/hero-interior.jpg";
-import heroStudio from "@/assets/hero-studio.jpg";
-import roomDining from "@/assets/room-dining.jpg";
+import { IMAGES } from "./static-images.generated";
 import { CATEGORIES_LIST } from "./taxonomy";
 
-export const IMAGES = {
-  art1,
-  art2,
-  art3,
-  art4,
-  art5,
-  art6,
-  creator1,
-  creator2,
-  creator3,
-  heroInterior,
-  heroStudio,
-  roomDining,
-};
+export { IMAGES };
 
 export type Category = { slug: string; name: string; blurb: string; image: string };
 export type Creator = {
@@ -127,12 +103,12 @@ const SEED_CATEGORIES: Category[] = CATEGORIES_LIST.map((name) => {
 
 // Room names are presentation filters rather than marketplace records.
 export const ROOMS = [
-  { slug: "living-room", name: "Living Room", image: heroInterior },
-  { slug: "bedroom", name: "Bedroom", image: art1 },
-  { slug: "dining", name: "Dining", image: roomDining },
-  { slug: "office", name: "Office", image: art4 },
-  { slug: "hospitality", name: "Hospitality", image: heroStudio },
-  { slug: "small-spaces", name: "Small Spaces", image: art5 },
+  { slug: "living-room", name: "Living Room", image: IMAGES.heroInterior },
+  { slug: "bedroom", name: "Bedroom", image: IMAGES.art1 },
+  { slug: "dining", name: "Dining", image: IMAGES.roomDining },
+  { slug: "office", name: "Office", image: IMAGES.art4 },
+  { slug: "hospitality", name: "Hospitality", image: IMAGES.heroStudio },
+  { slug: "small-spaces", name: "Small Spaces", image: IMAGES.art5 },
 ];
 
 function replace<T>(target: T[], source: T[]) {

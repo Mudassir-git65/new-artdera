@@ -40,6 +40,14 @@ export const fetchProductBySlug = createServerFn({ method: "GET" })
     return loadProduct(data);
   });
 
+// Resolve dependent product + artist data in one server round trip.
+export const fetchProductDetail = createServerFn({ method: "GET" })
+  .validator((data: string) => z.string().trim().min(1).max(220).parse(data))
+  .handler(async ({ data }) => {
+    const { loadProductDetail } = await import("./catalog.server");
+    return loadProductDetail(data);
+  });
+
 export const fetchProductsList = createServerFn({ method: "GET" })
   .validator((data?: z.infer<typeof listQuery>) => listQuery.parse(data))
   .handler(async ({ data }) => {
@@ -60,6 +68,20 @@ export const fetchCreatorsList = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { loadCreators } = await import("./catalog.server");
     return loadCreators(data);
+  });
+
+export const fetchCreatorPage = createServerFn({ method: "GET" })
+  .validator((data: { type: "artist" | "gallery"; cursor?: string }) =>
+    z
+      .object({
+        type: z.enum(["artist", "gallery"]),
+        cursor: z.string().max(2000).optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { loadCreatorPage } = await import("./catalog.server");
+    return loadCreatorPage(data);
   });
 
 export const fetchStoreCatalog = createServerFn({ method: "GET" })

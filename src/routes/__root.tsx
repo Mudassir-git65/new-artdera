@@ -22,6 +22,7 @@ import { CurrencyProvider } from "@/marketplace/currency";
 import { Toaster } from "@/components/ui/sonner";
 import { generateOrganizationSchema, generateWebSiteSchema } from "@/lib/seo";
 import { AffiliateService } from "@/marketplace/services";
+import { afterPageLoad } from "@/lib/idle";
 
 function NotFoundComponent() {
   return (
@@ -114,17 +115,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      {
+        rel: "preload",
+        as: "font",
+        type: "font/woff2",
+        href: "/fonts/fdf61e20fd2c0108.woff2",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "preload",
+        as: "font",
+        type: "font/woff2",
+        href: "/fonts/8c2def024c1bf31a.woff2",
+        crossOrigin: "anonymous",
+      },
       // DNS prefetch for upload CDN and image sources
       { rel: "preconnect", href: "https://images.unsplash.com" },
-      // Google Fonts — preconnect before stylesheet so DNS is warm
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      // Optimized font stack: 3 Manrope weights (was 5) + 1 DM Serif variant (was 2)
-      // display=swap means text renders in system font while custom font loads (no FOIT)
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;600;700&display=swap",
-      },
     ],
     scripts: [
       {
@@ -216,13 +222,16 @@ function MarketplaceLayout() {
   useEffect(() => {
     if (privateWorkspace || isExhibition) return;
     if (document.querySelector("script[data-adsense]")) return;
-    const script = document.createElement("script");
-    script.src =
-      "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6561467807135376";
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    script.setAttribute("data-adsense", "1");
-    document.head.appendChild(script);
+    return afterPageLoad(() => {
+      if (document.querySelector("script[data-adsense]")) return;
+      const script = document.createElement("script");
+      script.src =
+        "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6561467807135376";
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      script.setAttribute("data-adsense", "1");
+      document.head.appendChild(script);
+    });
   }, [privateWorkspace, isExhibition]);
 
   // For catalog-dependent public pages, render immediately and let each page

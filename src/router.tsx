@@ -9,7 +9,13 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
+    // Hover/touch intent preloads one likely destination rather than every
+    // card in a large mobile catalog. Reuse it briefly, then revalidate.
+    defaultPreload: "intent",
+    defaultPreloadDelay: 80,
+    defaultPreloadStaleTime: 10_000,
+    defaultStaleTime: 10_000,
+    defaultGcTime: 5 * 60_000,
   });
 
   return router;

@@ -1,5 +1,6 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 import { isDecoraPrice } from "../../src/lib/decora";
+import { registerCatalogInvalidation } from "../lib/catalog-cache";
 
 const objectId = Schema.Types.ObjectId;
 const timestamps = { timestamps: true, versionKey: false } as const;
@@ -31,6 +32,7 @@ const addressSchema = new Schema(
 );
 
 function modelFor<T>(name: string, schema: Schema<T>): Model<T> {
+  if (!mongoose.models[name]) registerCatalogInvalidation(name, schema as Schema);
   return (mongoose.models[name] as Model<T> | undefined) ?? mongoose.model<T>(name, schema);
 }
 
@@ -200,6 +202,8 @@ export const storeSchema = new Schema(
 );
 storeSchema.add({ slugAliases: { type: [String], default: [], index: true } });
 storeSchema.index({ isPublished: 1, status: 1, createdAt: -1 });
+storeSchema.index({ isPublished: 1, status: 1, ownerType: 1, createdAt: -1, _id: -1 });
+storeSchema.index({ isPublished: 1, status: 1, createdAt: -1, _id: -1 });
 export type StoreDocument = InferSchemaType<typeof storeSchema>;
 export const StoreModel = modelFor("Store", storeSchema);
 
@@ -354,6 +358,8 @@ artworkSchema.index({ status: 1, moderationStatus: 1, isSponsored: 1, createdAt:
 artworkSchema.index({ status: 1, moderationStatus: 1, createdAt: -1, _id: -1 });
 artworkSchema.index({ storeId: 1, status: 1, moderationStatus: 1, createdAt: -1, _id: -1 });
 artworkSchema.index({ status: 1, moderationStatus: 1, price: 1, _id: 1 });
+artworkSchema.index({ status: 1, moderationStatus: 1, discountPrice: 1, _id: 1 });
+artworkSchema.index({ status: 1, moderationStatus: 1, views: -1, wishlistCount: -1, _id: -1 });
 export type ArtworkDocument = InferSchemaType<typeof artworkSchema>;
 export const ArtworkModel = modelFor("Artwork", artworkSchema);
 

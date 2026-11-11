@@ -1,4 +1,6 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { artworkRouteSlug } from "@/lib/catalog-product";
+import { SiteLink } from "@/components/site/SiteLink";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   ArrowUpRight,
   ChevronDown,
@@ -22,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/marketplace/auth";
 import { useCurrency, CURRENCIES } from "@/marketplace/currency";
 import { Logo } from "./Logo";
+import { artworkImageUrl } from "@/lib/artwork-image";
 import {
   Dialog,
   DialogContent,
@@ -73,9 +76,9 @@ export function Announcement({ light = false }: { light?: boolean }) {
         <span className="opacity-40">/</span>
         <span>Protected purchases</span>
         <span className="opacity-40">/</span>
-        <a href="/sell" className="underline-offset-4 hover:underline">
+        <SiteLink href="/sell" className="underline-offset-4 hover:underline">
           Apply to sell on ArtDera
-        </a>
+        </SiteLink>
       </div>
     </div>
   );
@@ -90,6 +93,11 @@ export function Header() {
   const [megaOpen, setMegaOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => {
+    setMegaOpen(false);
+    setSearchOpen(false);
+    setDrawerOpen(false);
+  }, [locationHref]);
   const isHome = pathname === "/";
   const heroMode = isHome && !scrolled && !drawerOpen && !searchOpen;
   const loginHref = `/auth/login?redirect=${encodeURIComponent(locationHref || pathname)}`;
@@ -152,7 +160,7 @@ export function Header() {
                 {megaOpen && <DiscoverMegaMenu onClose={() => setMegaOpen(false)} />}
               </div>
               {NAV.map((item) => (
-                <a
+                <SiteLink
                   key={item.label}
                   href={item.href}
                   aria-current={
@@ -164,7 +172,7 @@ export function Header() {
                   className={cn("whitespace-nowrap transition-colors", linkTone)}
                 >
                   {item.label}
-                </a>
+                </SiteLink>
               ))}
             </nav>
           </div>
@@ -195,7 +203,7 @@ export function Header() {
             >
               <Search className="h-[18px] w-[18px]" />
             </button>
-            <a
+            <SiteLink
               aria-label="Wishlist"
               href="/wishlist"
               className={cn(
@@ -204,8 +212,8 @@ export function Header() {
               )}
             >
               <Heart className="h-[18px] w-[18px]" />
-            </a>
-            <a
+            </SiteLink>
+            <SiteLink
               aria-label="Messages"
               href="/messages"
               className={cn(
@@ -214,8 +222,8 @@ export function Header() {
               )}
             >
               <MessageCircle className="h-[18px] w-[18px]" />
-            </a>
-            <a
+            </SiteLink>
+            <SiteLink
               aria-label="Account"
               href={accountHref}
               className={cn(
@@ -224,8 +232,8 @@ export function Header() {
               )}
             >
               <User className="h-[18px] w-[18px]" />
-            </a>
-            <a
+            </SiteLink>
+            <SiteLink
               aria-label="Cart"
               href="/cart"
               className={cn(
@@ -234,8 +242,8 @@ export function Header() {
               )}
             >
               <ShoppingBag className="h-[18px] w-[18px]" />
-            </a>
-            <a
+            </SiteLink>
+            <SiteLink
               href={sellerHref}
               className={cn(
                 "ml-2 hidden rounded-full px-4 py-2 text-sm font-semibold transition md:inline-flex",
@@ -245,7 +253,7 @@ export function Header() {
               )}
             >
               {sellerLabel}
-            </a>
+            </SiteLink>
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
               <SheetTrigger asChild>
                 <button
@@ -282,7 +290,7 @@ function DiscoverMegaMenu({ onClose }: { onClose: () => void }) {
       <div className="absolute left-0 top-8 w-[520px] rounded-2xl border border-[var(--color-border)] bg-[var(--porcelain)] p-4 text-[var(--ink)] shadow-[var(--shadow-lift)]">
         <div className="grid grid-cols-2 gap-1">
           {DISCOVER_LINKS.map(([label, href]) => (
-            <a
+            <SiteLink
               key={label}
               href={href}
               onClick={onClose}
@@ -290,7 +298,7 @@ function DiscoverMegaMenu({ onClose }: { onClose: () => void }) {
             >
               {label}
               <ArrowUpRight className="h-3.5 w-3.5 opacity-40" />
-            </a>
+            </SiteLink>
           ))}
         </div>
         <p className="px-3 pb-2 pt-4 text-xs text-muted-foreground">
@@ -305,7 +313,7 @@ function DiscoverMegaMenu({ onClose }: { onClose: () => void }) {
       <div className="grid grid-cols-[1.2fr_0.9fr] gap-5">
         <div className="grid grid-cols-2 gap-1">
           {DISCOVER_LINKS.map(([label, href]) => (
-            <a
+            <SiteLink
               key={label}
               href={href}
               onClick={onClose}
@@ -313,11 +321,11 @@ function DiscoverMegaMenu({ onClose }: { onClose: () => void }) {
             >
               {label}
               <ArrowUpRight className="h-3.5 w-3.5 opacity-40 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
-            </a>
+            </SiteLink>
           ))}
         </div>
-        <a
-          href={`/product/${featured.slug}`}
+        <SiteLink
+          href={`/product/${artworkRouteSlug(featured)}`}
           onClick={onClose}
           className="group block overflow-hidden rounded-xl bg-[var(--ink)] text-white"
         >
@@ -341,7 +349,7 @@ function DiscoverMegaMenu({ onClose }: { onClose: () => void }) {
               {formatPKR(featured.price)} / {featured.kind}
             </div>
           </div>
-        </a>
+        </SiteLink>
       </div>
     </div>
   );
@@ -355,6 +363,7 @@ function SearchOverlay({
   onOpenChange: (open: boolean) => void;
 }) {
   const [query, setQuery] = useState("");
+  const navigate = useNavigate();
   const normalized = query.trim().toLowerCase();
   const matches = useMemo(() => {
     if (!normalized) return PRODUCTS.filter((product) => product.featured).slice(0, 4);
@@ -376,7 +385,8 @@ function SearchOverlay({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const q = query.trim();
-    window.location.href = q ? `/discover?q=${encodeURIComponent(q)}` : "/discover";
+    onOpenChange(false);
+    void navigate({ to: "/discover", search: q ? { q } : {} });
   }
 
   const suggestions = [
@@ -432,34 +442,34 @@ function SearchOverlay({
               </div>
               <div className="mt-8 grid grid-cols-2 gap-2">
                 {CATEGORIES.slice(0, 6).map((category) => (
-                  <a
+                  <SiteLink
                     href={`/discover?category=${category.slug}`}
                     key={category.slug}
                     className="rounded-xl border border-[var(--color-border)] bg-white/45 p-3 text-sm font-semibold transition hover:border-[var(--oxblood)]"
                   >
                     {category.name}
-                  </a>
+                  </SiteLink>
                 ))}
               </div>
             </div>
             <div>
               <div className="mb-3 flex items-center justify-between">
                 <div className="eyebrow">Products</div>
-                <a href="/discover" className="text-xs font-semibold hover:underline">
+                <SiteLink href="/discover" className="text-xs font-semibold hover:underline">
                   View all
-                </a>
+                </SiteLink>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {matches.map((product) => {
                   const creator = CREATORS.find((item) => item.slug === product.creatorSlug);
                   return (
-                    <a
+                    <SiteLink
                       key={product.slug}
-                      href={`/product/${product.slug}`}
+                      href={`/product/${artworkRouteSlug(product)}`}
                       className="group grid grid-cols-[76px_1fr] gap-3 rounded-xl border border-[var(--color-border)] bg-white/50 p-2 transition hover:border-[var(--oxblood)]"
                     >
                       <img
-                        src={product.images[0]}
+                        src={artworkImageUrl(product.images[0], 320)}
                         alt={product.title}
                         className="h-24 w-full rounded-lg object-cover"
                       />
@@ -472,7 +482,7 @@ function SearchOverlay({
                           {formatPKR(product.price)}
                         </span>
                       </span>
-                    </a>
+                    </SiteLink>
                   );
                 })}
               </div>
@@ -549,14 +559,14 @@ function MobileDrawer({
             </summary>
             <div className="mt-3 grid gap-1">
               {DISCOVER_LINKS.slice(0, 6).map(([label, href]) => (
-                <a
+                <SiteLink
                   key={label}
                   href={href}
                   onClick={onNavigate}
                   className="rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-[var(--ivory)] hover:text-foreground"
                 >
                   {label}
-                </a>
+                </SiteLink>
               ))}
             </div>
           </details>
@@ -570,14 +580,14 @@ function MobileDrawer({
             </summary>
             <div className="mt-3 grid gap-1">
               {NAV.map((item) => (
-                <a
+                <SiteLink
                   key={item.label}
                   href={item.href}
                   onClick={onNavigate}
                   className="rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-[var(--ivory)] hover:text-foreground"
                 >
                   {item.label}
-                </a>
+                </SiteLink>
               ))}
             </div>
           </details>
@@ -585,7 +595,7 @@ function MobileDrawer({
 
         <div className="mt-6 grid grid-cols-2 gap-2 text-sm font-semibold">
           {utilityLinks.map(({ label, href, Icon }) => (
-            <a
+            <SiteLink
               key={label}
               href={label === "Account" ? accountHref : href}
               onClick={onNavigate}
@@ -593,13 +603,13 @@ function MobileDrawer({
             >
               <Icon className="h-4 w-4" />
               {label}
-            </a>
+            </SiteLink>
           ))}
         </div>
 
-        <a href={sellerHref} onClick={onNavigate} className="btn-primary mt-6 w-full">
+        <SiteLink href={sellerHref} onClick={onNavigate} className="btn-primary mt-6 w-full">
           {sellerLabel}
-        </a>
+        </SiteLink>
 
         <div className="mt-8 border-t border-[var(--color-border)] pt-6">
           <div className="eyebrow text-muted-foreground">Follow ArtDera</div>
@@ -614,7 +624,7 @@ function MobileDrawer({
                       ? Linkedin
                       : Facebook;
               return (
-                <a
+                <SiteLink
                   key={item.name}
                   href={item.href}
                   target="_blank"
@@ -624,7 +634,7 @@ function MobileDrawer({
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-white/50 text-foreground/75 transition hover:border-foreground hover:bg-foreground hover:text-background"
                 >
                   <Icon className="h-4 w-4" />
-                </a>
+                </SiteLink>
               );
             })}
           </div>

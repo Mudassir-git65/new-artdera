@@ -139,12 +139,25 @@ export class HttpApiClient {
       }
       if (
         method !== "GET" &&
-        ["/api/artworks", "/api/stores", "/api/admin/artworks", "/api/admin/stores"].some(
-          (prefix) => path.startsWith(prefix),
-        ) &&
+        [
+          "/api/artworks",
+          "/api/stores",
+          "/api/admin/artworks",
+          "/api/admin/stores",
+          "/api/checkout",
+          "/api/orders",
+          "/api/payments",
+          "/api/order-payments",
+          "/api/admin/payment",
+          "/api/exhibitions",
+          "/api/admin/exhibitions",
+          "/api/auth/profile",
+          "/api/subscriptions",
+        ].some((prefix) => path.startsWith(prefix)) &&
         typeof window !== "undefined"
       )
         window.dispatchEvent(new Event("artdera:catalog-changed"));
+      if (method !== "GET") this.pendingReads.clear();
       return { data: body.data };
     } catch {
       return {
@@ -161,7 +174,9 @@ export class HttpApiClient {
     if (typeof window === "undefined") return this.request<T>("GET", path);
     const existing = this.pendingReads.get(path);
     if (existing) return existing;
-    const request = this.request<T>("GET", path).finally(() => this.pendingReads.delete(path));
+    const request = this.request<T>("GET", path).finally(() => {
+      if (this.pendingReads.get(path) === request) this.pendingReads.delete(path);
+    });
     this.pendingReads.set(path, request);
     return request;
   }

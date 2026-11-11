@@ -1,6 +1,7 @@
 import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
 import { artworkRouteSlug } from "@/lib/catalog-product";
-import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect, useNavigate } from "@tanstack/react-router";
+import { SiteLink } from "@/components/site/SiteLink";
 import { ProBadge } from "@/components/ui/ProBadge";
 import {
   BadgeCheck,
@@ -37,12 +38,12 @@ import { hasActiveProfessionalSubscription } from "@/lib/subscription-status";
 
 import { generateMeta, generateProductSchema, generateBreadcrumbSchema } from "@/lib/seo";
 
-import { fetchProductBySlug } from "@/lib/server-loaders";
-import { fetchCreatorFromDatabase } from "@/lib/creator-meta";
+import { fetchProductDetail } from "@/lib/server-loaders";
 
 export const Route = createFileRoute("/product/$slug")({
+  remountDeps: ({ params }) => params.slug,
   loader: async ({ params }) => {
-    const productData = await fetchProductBySlug({ data: params.slug });
+    const { productData, creatorData } = await fetchProductDetail({ data: params.slug });
     if (!productData) throw notFound();
     if (params.slug !== artworkRouteSlug(productData))
       throw redirect({
@@ -50,10 +51,6 @@ export const Route = createFileRoute("/product/$slug")({
         params: { slug: artworkRouteSlug(productData) },
         statusCode: 301,
       });
-    let creatorData = null;
-    if (productData?.creatorSlug) {
-      creatorData = await fetchCreatorFromDatabase({ data: productData.creatorSlug });
-    }
     return { productData, creatorData };
   },
   head: ({ loaderData, params }) => {
@@ -146,14 +143,15 @@ export const Route = createFileRoute("/product/$slug")({
   notFoundComponent: () => (
     <div className="container-editorial py-24 text-center">
       <h1 className="font-display text-4xl">Work not found</h1>
-      <a href="/discover" className="btn-primary mt-6">
+      <SiteLink href="/discover" className="btn-primary mt-6">
         Back to Discover
-      </a>
+      </SiteLink>
     </div>
   ),
 });
 
 function ProductPage() {
+  const navigate = useNavigate();
   const { slug } = Route.useParams();
   const { productData, creatorData } = Route.useLoaderData();
   const product = productData;
@@ -206,9 +204,7 @@ function ProductPage() {
 
   const requireCollector = () => {
     if (!user) {
-      window.location.assign(
-        `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`,
-      );
+      void navigate({ to: "/auth/login", search: { redirect: window.location.pathname } });
       return false;
     }
     return true;
@@ -235,7 +231,7 @@ function ProductPage() {
     setAddingToCart(false);
     if (result.error) return toast.error(result.error.message);
     toast.success("Added to your secure cart");
-    if (buyNow) window.location.assign("/checkout");
+    if (buyNow) void navigate({ to: "/checkout" });
   };
 
   const toggleWishlist = async () => {
@@ -258,14 +254,14 @@ function ProductPage() {
   return (
     <div className="pb-20 lg:pb-0">
       <div className="container-editorial py-6 text-xs text-muted-foreground">
-        <a
+        <SiteLink
           href={artwork?.section === "decora" ? "/decora" : "/discover"}
           className="hover:text-foreground"
         >
           {artwork?.section === "decora" ? "Décora" : "Discover"}
-        </a>{" "}
+        </SiteLink>{" "}
         <span className="mx-1.5">/</span>
-        <a
+        <SiteLink
           href={
             artwork?.section === "decora"
               ? `/decora?category=${artwork.decoraCategory}`
@@ -274,7 +270,7 @@ function ProductPage() {
           className="hover:text-foreground"
         >
           {product.categorySlug.replace(/-/g, " ")}
-        </a>{" "}
+        </SiteLink>{" "}
         <span className="mx-1.5">/</span>
         <span className="text-foreground">{product.title}</span>
       </div>
@@ -520,12 +516,12 @@ function ProductPage() {
               Buy Now
             </button>
             {artwork?.internationalShipping && (
-              <a
+              <SiteLink
                 href={`/request-quote?artwork=${product.slug}`}
                 className="btn-ghost w-full py-3.5 border border-[var(--color-border)]"
               >
                 Request International Shipping Quote
-              </a>
+              </SiteLink>
             )}
             <ViewInSpace product={product} />
             <div className="grid grid-cols-2 gap-3">
@@ -606,12 +602,12 @@ function ProductPage() {
             >
               <Share2 className="h-4 w-4" /> Share Artwork
             </button>
-            <a
+            <SiteLink
               href={`/discover?category=custom-commissions&q=${encodeURIComponent(product.title)}`}
               className="btn-ghost w-full"
             >
               Request Customization
-            </a>
+            </SiteLink>
           </div>
 
           <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-[var(--color-border)] pt-6 text-xs">
@@ -836,16 +832,16 @@ function ArtworkModerationNotice({ artwork, isAdmin }: { artwork: Artwork; isAdm
             </p>
           </div>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a
+            <SiteLink
               href={isAdmin ? "/admin/artworks" : "/artist/dashboard/artworks"}
               className="btn-primary"
             >
               {isAdmin ? "Open moderation queue" : "Back to my artworks"}
-            </a>
+            </SiteLink>
             {!isAdmin && (
-              <a href="/artist/dashboard" className="btn-ghost">
+              <SiteLink href="/artist/dashboard" className="btn-ghost">
                 Go to dashboard
-              </a>
+              </SiteLink>
             )}
           </div>
         </div>

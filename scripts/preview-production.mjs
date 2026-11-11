@@ -1,14 +1,18 @@
 import "dotenv/config";
 import express from "express";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 // Exercise the same Node/Nitro artifact that Vercel runs, including /api routes.
 // vite preview expects dist/server/server.js, which this Vercel build does not emit.
 process.env.NODE_ENV = "production";
 process.env.APP_URL = "https://www.artdera.com";
-const { default: handler } = await import("../.vercel/output/functions/__server.func/index.mjs");
+const artifact = path.resolve(process.env.PREVIEW_ARTIFACT ?? ".vercel/output");
+const { default: handler } = await import(
+  pathToFileURL(path.join(artifact, "functions/__server.func/index.mjs")).href
+);
 const app = express();
-app.use(express.static(path.resolve(".vercel/output/static")));
+app.use(express.static(path.join(artifact, "static")));
 app.use((req, res) => {
   // Local test transport stands in for Vercel's TLS-terminating proxy.
   // The Vercel adapter annotates each invocation socket once. Close dynamic
@@ -22,5 +26,5 @@ app.use((req, res) => {
   });
 });
 app.listen(Number(process.env.PREVIEW_PORT ?? 4174), "127.0.0.1", () => {
-  console.log("Production artifact preview: http://127.0.0.1:4174");
+  console.log(`Production artifact preview: http://127.0.0.1:${process.env.PREVIEW_PORT ?? 4174}`);
 });

@@ -12,11 +12,18 @@ import {
   UploadModel,
   UserModel,
 } from "../server/models";
-import { loadCollectionCatalog, loadProduct, loadStoreCatalog } from "../src/lib/catalog.server";
+import {
+  loadCollectionCatalog,
+  loadProduct,
+  loadStoreCatalog,
+  loadCreatorPage,
+  loadProductDetail,
+} from "../src/lib/catalog.server";
 import { catalogSearchFilter, readArtworkPage } from "../server/services/catalog";
 import { uniqueById } from "../src/lib/catalog-product";
 import { hashToken } from "../server/lib/security";
 import { disconnectDatabase } from "../server/db";
+import { clearCatalogCache } from "../server/lib/catalog-cache";
 import { mkdir, writeFile } from "node:fs/promises";
 
 async function fixture(count = 21) {
@@ -64,6 +71,101 @@ async function fixture(count = 21) {
 }
 
 describe("authoritative artwork catalog", () => {
+  it("prepares all responsive sizes for new public uploads and removes derivatives on deletion", async () => {
+    const { cookie } = await fixture(0);
+    const png = await sharp({
+      create: { width: 1600, height: 1200, channels: 3, background: "blue" },
+    })
+      .png()
+      .toBuffer();
+    const app = createApp();
+    const uploaded = await request(app)
+      .post("/api/uploads")
+      .set("Cookie", cookie)
+      .field("purpose", "artwork")
+      .field("access", "public")
+      .attach("file", png, { filename: "new-artwork.png", contentType: "image/png" })
+      .expect(201);
+    const publicId = uploaded.body.data.publicId;
+    const derivatives = mongoose.connection.db!.collection("uploadImageVariants");
+    expect(await derivatives.countDocuments({ publicId })).toBe(5);
+    const thumbnail = await request(app)
+      .get(`${uploaded.body.data.url}?w=320&format=webp`)
+      .expect(200);
+    expect((await sharp(thumbnail.body).metadata()).width).toBe(320);
+    await request(app).delete(`/api/uploads/${publicId}`).set("Cookie", cookie).expect(200);
+    expect(await derivatives.countDocuments({ publicId })).toBe(0);
+  });
+
+  it("reuses warm reads and observes price edits from this and other instances", async () => {
+    const { items } = await fixture(1);
+    expect((await loadProduct(items[0].slug))?.price).toBe(1000);
+    const find = vi.spyOn(ArtworkModel, "findOne");
+    try {
+      const reads = await Promise.all(Array.from({ length: 20 }, () => loadProduct(items[0].slug)));
+      expect(reads.every((item) => item?.price === 1000)).toBe(true);
+      expect(find).not.toHaveBeenCalled();
+      await ArtworkModel.updateOne({ _id: items[0]._id }, { price: 1500 });
+      expect((await loadProduct(items[0].slug))?.price).toBe(1500);
+      expect((await loadProductDetail(items[0].slug)).productData?.price).toBe(1500);
+      // Native writes plus a new revision model another function instance;
+      // no local cache clear or Mongoose hooks run in this process.
+      await ArtworkModel.collection.updateOne({ _id: items[0]._id }, { $set: { price: 2000 } });
+      await mongoose.connection
+        .db!.collection<{ _id: string; version: string }>("catalogRevisions")
+        .updateOne({ _id: "public" }, { $set: { version: "another-instance-write" } });
+      expect((await loadProduct(items[0].slug))?.price).toBe(2000);
+      expect((await loadProductDetail(items[0].slug)).productData?.price).toBe(2000);
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          await ArtworkModel.updateOne({ _id: items[0]._id }, { price: 2500 }, { session });
+        });
+        expect((await loadProduct(items[0].slug))?.price).toBe(2500);
+        session.startTransaction();
+        await ArtworkModel.updateOne({ _id: items[0]._id }, { price: 9999 }, { session });
+        await session.abortTransaction();
+        expect((await loadProduct(items[0].slug))?.price).toBe(2500);
+      } finally {
+        await session.endSession();
+      }
+    } finally {
+      find.mockRestore();
+    }
+  });
+
+  it("paginates every artist without repeats and rejects a cursor from another directory", async () => {
+    const { user } = await fixture(0);
+    await StoreModel.insertMany(
+      Array.from({ length: 76 }, (_, i) => ({
+        ownerId: user._id,
+        ownerType: "artist",
+        name: `Studio ${i}`,
+        slug: `directory-studio-${i}`,
+        status: "active",
+        isPublished: true,
+        createdAt: new Date("2026-01-01"),
+      })),
+    );
+    const seen = new Set<string>();
+    let cursor: string | undefined;
+    let firstCursor: string | undefined;
+    do {
+      const page = await loadCreatorPage({ type: "artist", cursor });
+      expect(page.items.length).toBeLessThanOrEqual(36);
+      for (const item of page.items) {
+        expect(seen.has(item.slug)).toBe(false);
+        seen.add(item.slug);
+      }
+      cursor = page.nextCursor ?? undefined;
+      firstCursor ??= cursor;
+    } while (cursor);
+    expect(seen.size).toBe(77);
+    await expect(loadCreatorPage({ type: "gallery", cursor: firstCursor })).rejects.toThrow(
+      "Refresh",
+    );
+  });
+
   it("shows every eligible studio artwork exactly once across 30 concurrent loads", async () => {
     const { store, items } = await fixture();
     await ArtworkModel.create({
@@ -105,6 +207,7 @@ describe("authoritative artwork catalog", () => {
     expect((await loadStoreCatalog("catalog-studio"))?.total).toBe(21);
     expect(await loadStoreCatalog("missing-studio")).toBeNull();
     expect(await loadProduct("quiet-horizon")).toBeNull();
+    clearCatalogCache(); // Exercise an origin failure rather than a valid warm entry.
     const failure = vi.spyOn(StoreModel, "findOne").mockImplementationOnce(() => {
       throw new Error("temporary database failure");
     });
@@ -390,10 +493,55 @@ describe("authoritative artwork catalog", () => {
     const image = await sharp(response.body).metadata();
     expect(image.width).toBe(320);
     expect(response.body.length).toBeLessThan(original.length);
+    expect(response.headers.vary).not.toContain("Cookie");
+    expect(response.headers["cdn-cache-control"]).toContain("31536000");
+    const stored = await mongoose.connection.db!.collection("uploadImageVariants").findOne({
+      publicId: "catalog-thumbnail",
+    });
+    expect(stored).toBeTruthy();
+    await request(app).get("/api/uploads/catalog-thumbnail/content?w=320&format=webp").expect(200);
+    expect(
+      await mongoose.connection
+        .db!.collection("uploadImageVariants")
+        .countDocuments({ publicId: "catalog-thumbnail" }),
+    ).toBe(1);
     await request(app)
       .get("/api/uploads/catalog-thumbnail/content?w=999999&format=webp")
       .expect(422);
     await UploadModel.updateOne({ publicId: "catalog-thumbnail" }, { access: "private" });
     await request(app).get("/api/uploads/catalog-thumbnail/content?w=320&format=webp").expect(404);
+  });
+
+  it("keeps the original available when a legacy image cannot be converted", async () => {
+    const { user } = await fixture(0);
+    const truncated = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+    await mkdir("test-uploads/public", { recursive: true });
+    await writeFile("test-uploads/public/legacy-image.png", truncated);
+    await UploadModel.create({
+      ownerId: user._id,
+      publicId: "legacy-image",
+      url: "/api/uploads/legacy-image/content",
+      storageKey: "public/legacy-image.png",
+      provider: "local",
+      originalName: "legacy-image.png",
+      mimeType: "image/png",
+      size: truncated.length,
+      access: "public",
+      purpose: "artwork",
+    });
+    const response = await request(createApp())
+      .get("/api/uploads/legacy-image/content?w=320&format=webp")
+      .expect(200);
+    expect(response.headers["content-type"]).toContain("image/png");
+    expect(response.body).toEqual(truncated);
+    expect(
+      await mongoose.connection
+        .db!.collection("uploadImageVariants")
+        .findOne({ publicId: "legacy-image", unsupported: true }),
+    ).toBeTruthy();
+    const repeat = await request(createApp())
+      .get("/api/uploads/legacy-image/content?w=640&format=webp")
+      .expect(200);
+    expect(repeat.body).toEqual(truncated);
   });
 });

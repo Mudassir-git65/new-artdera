@@ -22,19 +22,23 @@ import { queryCreatorFromDatabase } from "./creator-db.server";
 import { uniqueById } from "./catalog-product";
 import type { Creator, EditorialCollection } from "./artdera";
 import { isActiveProfessionalSubscription } from "../../server/services/plans";
+import { cachedCatalog } from "../../server/lib/catalog-cache";
+import { Types } from "mongoose";
+import { ApiError } from "../../server/lib/http";
 
-export async function loadProduct(slug: string) {
+async function queryProduct(slug: string) {
   await connectDatabase();
-  const artwork = await findPublicArtwork(slug);
+  const artwork = await findPublicArtwork(slug, false);
   if (!artwork) return null;
   const store = await StoreModel.findById((artwork.storeId as any)?._id ?? artwork.storeId).lean();
   return productsFromPage([publicArtwork(artwork)], store ? [publicStore(store)] : [])[0];
 }
 
-export async function loadCatalogPage(query?: { cursor?: string; limit?: number } & CatalogSearch) {
+async function queryCatalogPage(query?: { cursor?: string; limit?: number } & CatalogSearch) {
   await connectDatabase();
   const page = await readArtworkPage({
     ...query,
+    populate: false,
     section: query?.section === "decora" ? "decora" : undefined,
     filter: catalogSearchFilter(query),
   });
@@ -43,15 +47,12 @@ export async function loadCatalogPage(query?: { cursor?: string; limit?: number 
   return { ...page, products: productsFromPage(page.items, stores.map(publicStore)) };
 }
 
-export async function loadProducts(query?: {
-  category?: string;
-  creatorSlug?: string;
-  limit?: number;
-}) {
+async function queryProducts(query?: { category?: string; creatorSlug?: string; limit?: number }) {
   if (query?.creatorSlug) return (await loadStoreCatalog(query.creatorSlug))?.works ?? [];
   await connectDatabase();
   const page = await readArtworkPage({
     filter: catalogSearchFilter({ category: query?.category }),
+    populate: false,
     limit: query?.limit ?? 60,
   });
   const stores = await StoreModel.find({
@@ -60,7 +61,7 @@ export async function loadProducts(query?: {
   return productsFromPage(page.items, stores.map(publicStore));
 }
 
-export async function loadStoreCatalog(slug: string, cursor?: string) {
+async function queryStoreCatalog(slug: string, cursor?: string) {
   await connectDatabase();
   try {
     const [page, creatorMeta] = await Promise.all([
@@ -75,14 +76,39 @@ export async function loadStoreCatalog(slug: string, cursor?: string) {
   }
 }
 
-export async function loadCreators(query?: {
+async function queryCreators(query?: {
   type?: "artist" | "gallery";
   limit?: number;
-}): Promise<Creator[]> {
+  slugs?: string[];
+  cursor?: string;
+}): Promise<(Creator & { pageCursor: string })[]> {
   await connectDatabase();
+  let seek = {};
+  if (query?.cursor) {
+    try {
+      const cursor = JSON.parse(Buffer.from(query.cursor, "base64url").toString());
+      const createdAt = new Date(cursor.createdAt);
+      if (
+        cursor.type !== query.type ||
+        !Number.isFinite(createdAt.getTime()) ||
+        !/^[a-f0-9]{24}$/.test(cursor.id)
+      )
+        throw new Error("Invalid cursor");
+      seek = {
+        $or: [
+          { createdAt: { $lt: createdAt } },
+          { createdAt, _id: { $lt: new Types.ObjectId(cursor.id) } },
+        ],
+      };
+    } catch {
+      throw new ApiError(422, "INVALID_CURSOR", "Refresh the creator directory.");
+    }
+  }
   const stores = await StoreModel.find({
     ...publicStoreFilter,
     ...(query?.type ? { ownerType: query.type } : {}),
+    ...(query?.slugs?.length ? { slug: { $in: query.slugs } } : {}),
+    ...seek,
   })
     .sort({ createdAt: -1, _id: -1 })
     .limit(query?.limit ?? 1000)
@@ -110,6 +136,9 @@ export async function loadCreators(query?: {
     const gallery = galleryMap.get(String(store.ownerId));
     const subscription = proMap.get(String(store.ownerId));
     return {
+      pageCursor: Buffer.from(
+        JSON.stringify({ type: query?.type, createdAt: store.createdAt, id: String(store._id) }),
+      ).toString("base64url"),
       store: publicStore(store),
       slug: store.slug,
       name:
@@ -136,7 +165,7 @@ export async function loadCreators(query?: {
   });
 }
 
-export async function loadCollectionCatalog() {
+async function queryCollectionCatalog() {
   await connectDatabase();
   const rows = await CollectionModel.find({ isPublished: true, isDemo: { $ne: true } })
     .sort({ sortOrder: 1, _id: 1 })
@@ -160,17 +189,70 @@ export async function loadCollectionCatalog() {
   return { products, collections };
 }
 
-export async function loadHomeCatalog() {
-  const [page, creators, curated] = await Promise.all([
-    loadCatalogPage({ limit: 24 }),
-    loadCreators(),
-    loadCollectionCatalog(),
+async function queryHomeCatalog() {
+  const [page, curated] = await Promise.all([
+    queryCatalogPage({ limit: 24 }),
+    queryCollectionCatalog(),
   ]);
+  const products = uniqueById([...page.products, ...curated.products]).filter(
+    (product) => product.artwork?.section !== "decora",
+  );
+  // The homepage uses creators attached to these works and three named
+  // spotlights. Do not serialize 1,000 unrelated artist biographies into HTML.
+  const slugs = [
+    ...new Set([
+      ...products.map((product) => product.creatorSlug).filter(Boolean),
+      "kausar-bhatti",
+      "kamran-qazi-student",
+      "abdul-rasheed-studio",
+    ]),
+  ];
+  const creators = await queryCreators({ slugs, limit: 1000 });
+  if (!creators.length) creators.push(...(await queryCreators({ limit: 3 })));
   return {
-    products: uniqueById([...page.products, ...curated.products]).filter(
-      (product) => product.artwork?.section !== "decora",
-    ),
+    products,
     creators,
     collections: curated.collections,
   };
+}
+
+async function cached<T>(key: string, query: () => Promise<T>) {
+  await connectDatabase();
+  return cachedCatalog(key, query);
+}
+
+export function loadProduct(slug: string) {
+  return cached(`product:${slug}`, () => queryProduct(slug));
+}
+export function loadProductDetail(slug: string) {
+  return cached(`detail:${slug}`, async () => {
+    const productData = await queryProduct(slug);
+    const creatorData = productData?.creatorSlug
+      ? await queryCreatorFromDatabase(productData.creatorSlug)
+      : null;
+    return { productData, creatorData };
+  });
+}
+export function loadCatalogPage(query?: Parameters<typeof queryCatalogPage>[0]) {
+  return cached(`page:${JSON.stringify(query ?? {})}`, () => queryCatalogPage(query));
+}
+export function loadProducts(query?: Parameters<typeof queryProducts>[0]) {
+  return cached(`products:${JSON.stringify(query ?? {})}`, () => queryProducts(query));
+}
+export function loadStoreCatalog(slug: string, cursor?: string) {
+  return cached(`store:${slug}:${cursor ?? ""}`, () => queryStoreCatalog(slug, cursor));
+}
+export function loadCreators(query?: Parameters<typeof queryCreators>[0]) {
+  return cached(`creators:${JSON.stringify(query ?? {})}`, () => queryCreators(query));
+}
+export async function loadCreatorPage(query: { type: "artist" | "gallery"; cursor?: string }) {
+  const rows = await loadCreators({ ...query, limit: 37 });
+  const items = rows.slice(0, 36);
+  return { items, nextCursor: rows.length > 36 ? items.at(-1)!.pageCursor : null };
+}
+export function loadCollectionCatalog() {
+  return cached("collections", queryCollectionCatalog);
+}
+export function loadHomeCatalog() {
+  return cached("home", queryHomeCatalog);
 }

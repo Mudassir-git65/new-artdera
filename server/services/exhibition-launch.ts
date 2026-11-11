@@ -1,6 +1,7 @@
 import { ArtworkModel, ExhibitionModel, StoreModel, SystemSettingModel } from "../models";
 import { exhibitionDetail, visibleExhibitionFilter } from "./exhibitions";
 import { publicArtworkFilter, publicStoreFilter } from "./catalog";
+import { cachedCatalog } from "../lib/catalog-cache";
 import {
   DEFAULT_LAUNCH_SETTINGS,
   EXHIBITION_LAUNCH_SETTING,
@@ -23,6 +24,11 @@ export async function readLaunchSettings(): Promise<ExhibitionLaunchSettings> {
 }
 
 export async function readExhibitionLaunch(): Promise<ExhibitionLaunch> {
+  const launch = await cachedCatalog("exhibition-launch", queryExhibitionLaunch, 5000);
+  return { ...launch, serverNow: Date.now() };
+}
+
+async function queryExhibitionLaunch(): Promise<ExhibitionLaunch> {
   const settings = await readLaunchSettings();
   const exhibition = await ExhibitionModel.findOne({
     ...visibleExhibitionFilter,

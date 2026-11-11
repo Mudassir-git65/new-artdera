@@ -1,3 +1,4 @@
+import { artworkImageUrl } from "@/lib/artwork-image";
 import { Link } from "@tanstack/react-router";
 import {
   Activity,
@@ -814,7 +815,13 @@ function ArtworkModeration() {
               onClick={() => setActive(item)}
               className={`flex w-full gap-3 rounded-xl p-3 text-left ${active.id === item.id ? "bg-[var(--ivory)]" : "border border-[var(--color-border)]"}`}
             >
-              <img src={item.images[0].url} alt="" className="h-14 w-12 rounded object-cover" />
+              <img
+                decoding="async"
+                loading="lazy"
+                src={artworkImageUrl(item.images[0].url, 320)}
+                alt=""
+                className="h-14 w-12 rounded object-cover"
+              />
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{item.title}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{item.creatorName}</div>
@@ -830,6 +837,8 @@ function ArtworkModeration() {
         <div className="grid gap-6 md:grid-cols-[240px_1fr]">
           <div className="relative group">
             <img
+              decoding="async"
+              loading="lazy"
               src={active.images[0].url}
               alt={active.title}
               className="aspect-[4/5] w-full rounded-xl object-cover"
@@ -1190,6 +1199,8 @@ function VerificationQueue() {
                           className="block mb-3"
                         >
                           <img
+                            decoding="async"
+                            loading="lazy"
                             src={downloadUrl}
                             alt="CNIC / ID Document Preview"
                             className="max-h-48 w-full rounded-lg object-contain bg-white border border-[var(--color-border)] p-1"
@@ -1282,7 +1293,9 @@ function PromotionModeration() {
             >
               <div className="flex gap-3">
                 <img
-                  src={artwork?.images[0].url}
+                  decoding="async"
+                  loading="lazy"
+                  src={artworkImageUrl(artwork?.images[0].url, 320)}
                   alt=""
                   className="h-20 w-16 rounded object-cover"
                 />
@@ -1566,6 +1579,8 @@ function PaymentVerificationQueue() {
                     >
                       {record.screenshotUrl ? (
                         <img
+                          decoding="async"
+                          loading="lazy"
                           src={record.screenshotUrl}
                           alt={`Payment screenshot for ${record.referenceLabel}`}
                           className="max-h-80 w-full rounded-xl object-contain"

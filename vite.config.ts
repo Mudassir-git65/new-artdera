@@ -10,6 +10,10 @@ import type {} from "nitro/vite";
 
 const isVercelBuild = process.env.VERCEL === "1";
 const apiProxyTarget = process.env.API_PROXY_TARGET?.trim();
+const immutableAssets = {
+  "/images/optimized/**": { headers: { "cache-control": "public, max-age=31536000, immutable" } },
+  "/fonts/**": { headers: { "cache-control": "public, max-age=31536000, immutable" } },
+};
 
 export default defineConfig({
   vite: {
@@ -19,12 +23,13 @@ export default defineConfig({
     nitro: isVercelBuild
       ? {
           serverDir: "./nitro",
+          routeRules: immutableAssets,
           vercel: {
             entryFormat: "node",
             functions: { runtime: "nodejs22.x" },
           },
         }
-      : undefined,
+      : { routeRules: immutableAssets },
     resolve: {
       alias: {
         "punycode/": "punycode",

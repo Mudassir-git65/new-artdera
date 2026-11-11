@@ -1,6 +1,6 @@
 import { artworkRouteSlug } from "@/lib/catalog-product";
 import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Eye, Heart, ShieldCheck, ShoppingBag, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -30,10 +30,12 @@ export function ProductCard({
 }) {
   const { formatPrice } = useCurrency();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const creator = CREATORS.find((c) => c.slug === product.creatorSlug);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState<"wishlist" | "cart" | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [showSecondary, setShowSecondary] = useState(false);
   const artwork = product.artwork ?? ARTWORKS.find((item) => item.id === product.id);
   const primaryImage = product.images[0];
   const secondaryImage = product.images[1] ?? primaryImage;
@@ -44,7 +46,7 @@ export function ProductCard({
 
   const requireAccount = () => {
     if (user) return true;
-    window.location.assign(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+    void navigate({ to: "/auth/login", search: { redirect: window.location.pathname } });
     return false;
   };
 
@@ -65,7 +67,7 @@ export function ProductCard({
 
   const addToCart = async (): Promise<void> => {
     if (artwork?.section === "decora" && artwork.customizationOptions?.length) {
-      window.location.assign(`/product/${artworkRouteSlug(product)}`);
+      void navigate({ to: "/product/$slug", params: { slug: artworkRouteSlug(product) } });
       return;
     }
     if (!requireAccount() || !artwork || busy) return;
@@ -81,7 +83,12 @@ export function ProductCard({
   const altText = `${product.title} by ${creatorName} — ${product.kind.toLowerCase()} ${product.medium.toLowerCase()}`;
 
   return (
-    <article className="group relative" data-artwork-id={product.id}>
+    <article
+      className="group relative"
+      data-artwork-id={product.id}
+      onMouseEnter={() => setShowSecondary(true)}
+      onFocus={() => setShowSecondary(true)}
+    >
       <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-[#ebe7df]">
         {!loaded && primaryImage && (
           <div className="absolute inset-0 z-0 animate-pulse bg-gradient-to-r from-[#e3ded5] via-[#f0ede6] to-[#e3ded5]" />
@@ -110,7 +117,7 @@ export function ProductCard({
               Artwork image unavailable
             </span>
           )}
-          {secondaryImage && secondaryImage !== primaryImage && (
+          {showSecondary && secondaryImage && secondaryImage !== primaryImage && (
             <img
               src={artworkImageUrl(secondaryImage)}
               srcSet={artworkImageSrcSet(secondaryImage)}
@@ -269,7 +276,9 @@ function ProductQuickView({
           <div className="relative min-h-[320px] bg-secondary">
             {product.images[0] ? (
               <img
-                src={product.images[0]}
+                src={artworkImageUrl(product.images[0], 960)}
+                srcSet={artworkImageSrcSet(product.images[0])}
+                sizes="(max-width: 767px) 90vw, 45vw"
                 alt={product.title}
                 decoding="async"
                 width={800}

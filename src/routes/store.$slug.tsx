@@ -1,3 +1,4 @@
+import { SiteLink } from "@/components/site/SiteLink";
 import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
 import { artworkRouteSlug } from "@/lib/catalog-product";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
@@ -215,9 +216,9 @@ function Storefront() {
       <div className="container-editorial py-24 text-center">
         <div className="eyebrow">Store not found</div>
         <h1 className="mt-3 font-display text-5xl">This studio is not on the wall.</h1>
-        <a href="/creators" className="btn-primary mt-6">
+        <SiteLink href="/creators" className="btn-primary mt-6">
           Explore Artists
-        </a>
+        </SiteLink>
       </div>
     );
   const toggleFollow = async () => {
@@ -653,7 +654,7 @@ function StoreArtwork({
   const [saved, setSaved] = useState(false);
   return (
     <article className="group" data-artwork-id={artwork.id}>
-      <a
+      <SiteLink
         href={`/product/${artworkRouteSlug(artwork)}`}
         className="relative block overflow-hidden rounded-xl bg-[var(--porcelain)]"
       >
@@ -679,15 +680,15 @@ function StoreArtwork({
             Sold
           </span>
         )}
-      </a>
+      </SiteLink>
       <div className="mt-3 flex items-start justify-between gap-3">
         <div>
-          <a
+          <SiteLink
             href={`/product/${artworkRouteSlug(artwork)}`}
             className="font-display text-xl hover:underline"
           >
             {artwork.title}
-          </a>
+          </SiteLink>
           <div className="mt-1 text-[11px] text-muted-foreground">
             {artwork.medium} · {artwork.dimensions}
           </div>

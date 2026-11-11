@@ -124,6 +124,13 @@ export function createApp() {
   });
   app.use("/api", requireDatabase);
   app.use("/feeds", requireDatabase);
+  // Public image bytes never depend on the viewer's session. Avoid two auth
+  // queries and lastSeen writes for every thumbnail on an authenticated grid.
+  app.use("/api/uploads", (req, res, next) => {
+    if ((req.method === "GET" || req.method === "HEAD") && /^\/[^/]+\/content\/?$/.test(req.path))
+      return uploadsRouter(req, res, next);
+    next();
+  });
   app.use(optionalAuth);
 
   const generalLimit = rateLimit({

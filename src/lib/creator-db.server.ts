@@ -8,11 +8,16 @@ import {
   UserModel,
 } from "../../server/models";
 import { isActiveProfessionalSubscription } from "../../server/services/plans";
+import { cachedCatalog } from "../../server/lib/catalog-cache";
 
 export async function queryCreatorFromDatabase(
   cleanSlug: string,
 ): Promise<CreatorMetaResolved | null> {
   await connectDatabase();
+  return cachedCatalog(`creator:${cleanSlug}`, () => readCreator(cleanSlug));
+}
+
+async function readCreator(cleanSlug: string): Promise<CreatorMetaResolved | null> {
   const store = await findPublicStore(cleanSlug.trim().toLowerCase());
   if (!store) return null;
   const [profile, owner, subscription] = await Promise.all([

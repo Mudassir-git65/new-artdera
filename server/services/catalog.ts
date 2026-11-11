@@ -6,6 +6,7 @@ import { publicArtwork, publicStore } from "../lib/serializers";
 import { catalogProduct } from "../../src/lib/catalog-product";
 import type { Artwork, Store } from "../../src/marketplace/types";
 import { DECORA_PRICE_LIMIT } from "../../src/lib/decora";
+import { cachedCatalog } from "../lib/catalog-cache";
 
 // Listing quotas are enforced on writes. Reads never truncate by subscription.
 export const publicArtworkFilter = {
@@ -38,11 +39,11 @@ export async function findPublicStore(value: string) {
   }).lean();
 }
 
-export async function findPublicArtwork(value: string) {
-  return ArtworkModel.findOne({ ...publicArtworkFilter, ...resolveArtworkIdentity(value) })
-    .populate("artistId", "fullName")
-    .populate("storeId", "name slug verificationStatus")
-    .lean();
+export async function findPublicArtwork(value: string, populate = true) {
+  const query = ArtworkModel.findOne({ ...publicArtworkFilter, ...resolveArtworkIdentity(value) });
+  if (populate)
+    query.populate("artistId", "fullName").populate("storeId", "name slug verificationStatus");
+  return query.lean();
 }
 
 export interface CatalogQuery {
@@ -53,6 +54,7 @@ export interface CatalogQuery {
   limit?: number;
   page?: number;
   cursor?: string;
+  populate?: boolean;
 }
 
 export interface CatalogSearch {
@@ -143,13 +145,21 @@ async function readDecoraRows(
   // Cast ownership IDs before aggregation, then calculate the displayed price for all listings.
   const castMatch = ArtworkModel.find(match).cast(ArtworkModel);
   const [result] = await ArtworkModel.aggregate([
-    { $match: castMatch },
+    // Exclude expensive originals with indexed price predicates BEFORE the
+    // computed-price stage. Include discounted originals exactly as before.
+    {
+      $match: {
+        $and: [
+          castMatch,
+          { $or: [{ discountPrice: decoraPrice }, { discountPrice: null, price: decoraPrice }] },
+        ],
+      },
+    },
     { $set: { decoraPrice: { $ifNull: ["$discountPrice", "$price"] } } },
     { $match: { decoraPrice } },
-    { $sort: sort },
     {
       $facet: {
-        rows: [{ $match: seek }, { $skip: skip }, { $limit: limit + 1 }],
+        rows: [{ $match: seek }, { $sort: sort }, { $skip: skip }, { $limit: limit + 1 }],
         count: [{ $count: "value" }],
       },
     },
@@ -164,6 +174,15 @@ async function readDecoraRows(
 }
 
 export async function readArtworkPage(query: CatalogQuery = {}) {
+  const key = JSON.stringify(
+    { ...query, store: query.store ? String(query.store._id) : undefined },
+    (_key, value) =>
+      value instanceof RegExp ? { regex: value.source, flags: value.flags } : value,
+  );
+  return cachedCatalog(`artworks:${key}`, () => queryArtworkPage(query));
+}
+
+async function queryArtworkPage(query: CatalogQuery = {}) {
   const filter = { ...query.filter, ...publicArtworkFilter };
   const requestedSort =
     query.section === "decora" && ["price_asc", "price_desc"].includes(query.sort ?? "")
@@ -226,7 +245,8 @@ export async function readArtworkPage(query: CatalogQuery = {}) {
     .sort(sort)
     .skip(query.cursor ? 0 : (page - 1) * limit)
     .limit(limit + 1);
-  if (!query.store) listing.populate("artistId", "fullName").populate("storeId", "name slug");
+  if (!query.store && query.populate !== false)
+    listing.populate("artistId", "fullName").populate("storeId", "name slug");
   const now = new Date();
   const promotionFilter = {
     status: { $in: ["active", "scheduled"] },
@@ -241,7 +261,7 @@ export async function readArtworkPage(query: CatalogQuery = {}) {
           seek,
           query.cursor ? 0 : (page - 1) * limit,
           limit,
-          !query.store,
+          !query.store && query.populate !== false,
         )
       : Promise.all([listing.lean(), ArtworkModel.countDocuments(filter)]).then(
           ([rows, total]) => ({ rows, total }),

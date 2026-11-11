@@ -1,3 +1,4 @@
+import { artworkImageUrl } from "@/lib/artwork-image";
 import { Link } from "@tanstack/react-router";
 import {
   Bell,
@@ -226,7 +227,9 @@ function BuyerProfile() {
             {ARTWORKS.slice(0, 3).map((item) => (
               <a key={item.id} href={`/product/${item.slug}`}>
                 <img
-                  src={item.images[0].url}
+                  decoding="async"
+                  loading="lazy"
+                  src={artworkImageUrl(item.images[0].url, 320)}
                   alt={item.title}
                   className="aspect-[4/5] w-full rounded-lg object-cover"
                 />
@@ -273,7 +276,9 @@ function BuyerOrders() {
           <article key={order.id} className="rounded-2xl border border-[var(--color-border)] p-5">
             <div className="grid gap-5 md:grid-cols-[90px_1fr_auto]">
               <img
-                src={order.items[0].image}
+                decoding="async"
+                loading="lazy"
+                src={artworkImageUrl(order.items[0].image, 320)}
                 alt=""
                 className="h-28 w-full rounded-lg object-cover"
               />
@@ -384,7 +389,9 @@ function BuyerWishlist() {
               <div className="relative">
                 <a href={`/product/${item.slug}`}>
                   <img
-                    src={item.images[0].url}
+                    decoding="async"
+                    loading="lazy"
+                    src={artworkImageUrl(item.images[0].url, 320)}
                     alt={item.title}
                     className="aspect-[4/5] w-full rounded-xl object-cover"
                   />
@@ -434,11 +441,19 @@ function FollowedArtists() {
             key={store.id}
             className="overflow-hidden rounded-2xl border border-[var(--color-border)]"
           >
-            <img src={store.coverImage} alt="" className="h-28 w-full object-cover" />
+            <img
+              decoding="async"
+              loading="lazy"
+              src={store.coverImage}
+              alt=""
+              className="h-28 w-full object-cover"
+            />
             <div className="p-4">
               <div className="flex items-center gap-3">
                 <img
-                  src={store.profileImage}
+                  decoding="async"
+                  loading="lazy"
+                  src={artworkImageUrl(store.profileImage, 320)}
                   alt=""
                   className="h-12 w-12 rounded-full object-cover"
                 />
@@ -541,7 +556,9 @@ function Offers() {
             >
               {artwork && (
                 <img
-                  src={artwork.images[0].url}
+                  decoding="async"
+                  loading="lazy"
+                  src={artworkImageUrl(artwork.images[0].url, 320)}
                   alt=""
                   className="aspect-[4/5] w-full rounded-lg object-cover"
                 />

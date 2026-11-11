@@ -26,7 +26,12 @@
     "preview:production": "node scripts/preview-production.mjs",
     "catalog:audit": "tsx scripts/audit-catalog.ts",
     "catalog:indexes": "tsx scripts/catalog-indexes.ts",
-    "catalog:verify": "node scripts/verify-public-catalog.mjs"
+    "catalog:verify": "node scripts/verify-public-catalog.mjs",
+    "images:optimize": "node scripts/optimize-static-images.mjs",
+    "images:prepare-uploads": "tsx scripts/prepare-upload-images.ts",
+    "fonts:vendor": "node scripts/vendor-fonts.mjs",
+    "perf:http": "node scripts/performance-http.mjs",
+    "perf:scale": "tsx scripts/performance-benchmark.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

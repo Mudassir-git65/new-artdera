@@ -5,7 +5,7 @@ import { ApiError } from "../lib/http";
 import { publicArtwork, publicStore } from "../lib/serializers";
 import { catalogProduct } from "../../src/lib/catalog-product";
 import type { Artwork, Store } from "../../src/marketplace/types";
-import { DECORA_PRICE_LIMIT } from "../../src/lib/decora";
+import { DECORA_PRICE_LIMIT, DECORA_PROMOTED_CREATOR_SLUG } from "../../src/lib/decora";
 import { cachedCatalog } from "../lib/catalog-cache";
 
 // Listing quotas are enforced on writes. Reads never truncate by subscription.
@@ -18,6 +18,7 @@ export const publicStoreFilter = { isPublished: true, status: "active", isDemo: 
 export const catalogSorts: Record<string, Record<string, 1 | -1>> = {
   newest: { createdAt: -1, _id: -1 },
   popular: { views: -1, wishlistCount: -1, _id: -1 },
+  decora_popular: { decoraPriority: -1, views: -1, wishlistCount: -1, _id: -1 },
   price_asc: { price: 1, _id: 1 },
   price_desc: { price: -1, _id: -1 },
   decora_price_asc: { decoraPrice: 1, _id: 1 },
@@ -144,6 +145,17 @@ async function readDecoraRows(
   // Existing artwork records do not need a migration or a new section assignment.
   // Cast ownership IDs before aggregation, then calculate the displayed price for all listings.
   const castMatch = ArtworkModel.find(match).cast(ArtworkModel);
+  const promotedStore = sort.decoraPriority
+    ? await StoreModel.findOne({
+        ...publicStoreFilter,
+        $or: [
+          { slug: DECORA_PROMOTED_CREATOR_SLUG },
+          { slugAliases: DECORA_PROMOTED_CREATOR_SLUG },
+        ],
+      })
+        .select("_id")
+        .lean()
+    : null;
   const [result] = await ArtworkModel.aggregate([
     // Exclude expensive originals with indexed price predicates BEFORE the
     // computed-price stage. Include discounted originals exactly as before.
@@ -155,7 +167,21 @@ async function readDecoraRows(
         ],
       },
     },
-    { $set: { decoraPrice: { $ifNull: ["$discountPrice", "$price"] } } },
+    {
+      $set: {
+        decoraPrice: { $ifNull: ["$discountPrice", "$price"] },
+        // Editorial placement applies only to Décora's popular order; analytics stay intact.
+        ...(sort.decoraPriority
+          ? {
+              decoraPriority: promotedStore
+                ? { $cond: [{ $eq: ["$storeId", promotedStore._id] }, 1, 0] }
+                : 0,
+              views: { $ifNull: ["$views", 0] },
+              wishlistCount: { $ifNull: ["$wishlistCount", 0] },
+            }
+          : {}),
+      },
+    },
     { $match: { decoraPrice } },
     {
       $facet: {
@@ -185,7 +211,7 @@ export async function readArtworkPage(query: CatalogQuery = {}) {
 async function queryArtworkPage(query: CatalogQuery = {}) {
   const filter = { ...query.filter, ...publicArtworkFilter };
   const requestedSort =
-    query.section === "decora" && ["price_asc", "price_desc"].includes(query.sort ?? "")
+    query.section === "decora" && ["popular", "price_asc", "price_desc"].includes(query.sort ?? "")
       ? `decora_${query.sort}`
       : query.sort;
   const sortName = requestedSort && catalogSorts[requestedSort] ? requestedSort : "newest";
@@ -302,8 +328,16 @@ async function queryArtworkPage(query: CatalogQuery = {}) {
   const ordinary = items.filter((item) => !boostedIds.has(String(item._id)));
   const ordered = [...ordinary];
   boosted.forEach((item, index) => ordered.splice(index * 5 + 4, 0, item));
+  // Keep the Décora spotlight first even when one of its works also has a paid placement.
+  const placed =
+    sortName === "decora_popular"
+      ? [
+          ...items.filter((item) => item.decoraPriority),
+          ...ordered.filter((item) => !item.decoraPriority),
+        ]
+      : ordered;
   return {
-    items: ordered.map((item) =>
+    items: placed.map((item) =>
       publicArtwork({
         ...item,
         storeId: query.store ?? item.storeId,

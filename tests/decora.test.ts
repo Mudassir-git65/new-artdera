@@ -7,6 +7,7 @@ import {
   AuthSessionModel,
   CollectionModel,
   OrderModel,
+  PromotionModel,
   StoreModel,
   SubscriptionModel,
   SubscriptionPlanModel,
@@ -374,6 +375,127 @@ describe("ArtDera Décora", () => {
     expect(api.body.data.items.map((item: any) => item.discountPrice ?? item.price)).toEqual([
       500, 900,
     ]);
+  });
+
+  it("puts Zeenora first in Décora's popular order with stable pagination and scoped filters", async () => {
+    const { store } = await fixture();
+    const zeenora = await account("artist", "zeenora");
+    const zeenoraStore = await StoreModel.create({
+      ownerId: zeenora.user._id,
+      ownerType: "artist",
+      name: "ZEENORA",
+      slug: "zeenora-candles",
+      status: "active",
+      isPublished: true,
+    });
+    const items = await ArtworkModel.create(
+      [
+        { title: "Popular artwork", slug: "popular-artwork", price: 150, views: 100 },
+        { title: "Another artwork", slug: "another-artwork", price: 600, views: 50 },
+        {
+          title: "Décora craft",
+          slug: "decora-craft",
+          price: 2500,
+          section: "decora",
+          decoraCategory: "handmade-crafts",
+        },
+        {
+          title: "Paraffin candle",
+          slug: "paraffin-candle",
+          storeId: zeenoraStore._id,
+          price: 500,
+          discountPrice: 400,
+        },
+        {
+          title: "Floral candle",
+          slug: "floral-candle",
+          storeId: zeenoraStore._id,
+          price: 2000,
+          discountPrice: 1800,
+          views: 1,
+        },
+        {
+          title: "Expensive candle",
+          slug: "expensive-candle",
+          storeId: zeenoraStore._id,
+          price: 3001,
+        },
+        {
+          title: "Pending candle",
+          slug: "pending-candle",
+          storeId: zeenoraStore._id,
+          status: "pending_review",
+          moderationStatus: "pending",
+        },
+        {
+          title: "Demo candle",
+          slug: "demo-candle",
+          storeId: zeenoraStore._id,
+          isDemo: true,
+        },
+      ].map((artwork) => ({
+        storeId: store._id,
+        category: "Decorative Arts",
+        medium: "Wax",
+        artworkType: "original",
+        price: 500,
+        status: "published",
+        moderationStatus: "approved",
+        createdAt: new Date("2026-01-01"),
+        ...artwork,
+      })),
+    );
+    const expected = [items[4], items[3], items[0], items[1], items[2]].map((item) =>
+      String(item._id),
+    );
+    await PromotionModel.create({
+      userId: zeenora.user._id,
+      storeId: zeenoraStore._id,
+      artworkId: items[4]._id,
+      promotionType: "homepage",
+      placement: "homepage",
+      status: "active",
+      startAt: new Date(Date.now() - 1000),
+      endAt: new Date(Date.now() + 86_400_000),
+      price: 1000,
+      currency: "PKR",
+    });
+    const featured = await loadCatalogPage({ section: "decora", sort: "popular", limit: 4 });
+    expect(featured.total).toBe(5);
+    expect(featured.products.map((product) => product.id)).toEqual(expected.slice(0, 4));
+    expect(featured.products.slice(0, 2).map((product) => product.creatorSlug)).toEqual([
+      "zeenora-candles",
+      "zeenora-candles",
+    ]);
+    const ids: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await loadCatalogPage({ section: "decora", sort: "popular", limit: 1, cursor });
+      ids.push(...page.products.map((product) => product.id!));
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+    expect(ids).toEqual(expected);
+    const api = await request(app).get("/api/artworks?section=decora&sort=popular").expect(200);
+    expect(api.body.data.items.map((item: any) => item.id)).toEqual(expected);
+    await PromotionModel.deleteMany({ artworkId: items[4]._id });
+    const filtered = await loadCatalogPage({
+      section: "decora",
+      sort: "popular",
+      q: "Paraffin",
+      max: 999,
+    });
+    expect(filtered.products.map((product) => product.id)).toEqual([String(items[3]._id)]);
+    const category = await loadCatalogPage({
+      section: "decora",
+      sort: "popular",
+      decoraCategory: "handmade-crafts",
+    });
+    expect(category.products.map((product) => product.id)).toEqual([String(items[2]._id)]);
+    const price = await loadCatalogPage({ section: "decora", sort: "price_asc" });
+    expect(price.products.map((product) => product.price)).toEqual([150, 400, 600, 1800, 2500]);
+    const ordinary = await loadCatalogPage({ sort: "popular" });
+    expect(ordinary.products[0].id).toBe(String(items[0]._id));
+    expect((await ArtworkModel.findById(items[3]._id))?.views).toBe(0);
   });
 
   it("includes collection artwork up to PKR 3,000 without moving or duplicating the original listings", async () => {

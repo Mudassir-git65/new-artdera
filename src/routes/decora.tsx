@@ -16,7 +16,12 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { fetchCatalogPage } from "@/lib/server-loaders";
-import { DECORA_CATEGORIES, DECORA_TAGLINE, decoraBrowseCategorySchema } from "@/lib/decora";
+import {
+  DECORA_CATEGORIES,
+  DECORA_PROMOTED_CREATOR_SLUG,
+  DECORA_TAGLINE,
+  decoraBrowseCategorySchema,
+} from "@/lib/decora";
 import { generateMeta, generateBreadcrumbSchema, generateItemListSchema } from "@/lib/seo";
 import { artworkRouteSlug } from "@/lib/catalog-product";
 import { artworkImageUrl, artworkImageSrcSet } from "@/lib/artwork-image";
@@ -33,7 +38,7 @@ const searchSchema = z.object({
     (value) => (typeof value === "number" ? String(value) : value),
     z.string().trim().max(120).catch(""),
   ),
-  sort: z.enum(["newest", "popular", "price_asc", "price_desc"]).catch("newest"),
+  sort: z.enum(["newest", "popular", "price_asc", "price_desc"]).catch("popular"),
   cursor: z.string().max(2000).optional().catch(undefined),
 });
 type DecoraSearch = z.infer<typeof searchSchema>;
@@ -235,8 +240,16 @@ function DecoraPage() {
         <section aria-labelledby="decora-featured" className="container-editorial pb-16">
           <div className="eyebrow text-[var(--oxblood)]">The Décora edit</div>
           <h2 id="decora-featured" className="mt-3 font-display text-3xl sm:text-4xl">
-            Featured little finds.
+            Most popular.
           </h2>
+          {featured.some((product) => product.creatorSlug === DECORA_PROMOTED_CREATOR_SLUG) && (
+            <SiteLink
+              href={`/creator/${DECORA_PROMOTED_CREATOR_SLUG}`}
+              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-[var(--oxblood)] hover:underline"
+            >
+              Discover Zeenora’s handcrafted candles <ArrowUpRight className="h-4 w-4" />
+            </SiteLink>
+          )}
           <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4">
             {featured.map((product) => (
               <DecoraCard key={product.id} product={product} />
@@ -429,6 +442,7 @@ function DecoraPage() {
 
 function DecoraCard({ product }: { product: Product }) {
   const category = DECORA_CATEGORIES.find((item) => item.id === product.artwork?.decoraCategory);
+  const promoted = product.creatorSlug === DECORA_PROMOTED_CREATOR_SLUG;
   const personalized = Boolean(product.artwork?.customizationOptions?.length);
   const url = `/product/${artworkRouteSlug(product)}`;
   return (
@@ -449,6 +463,11 @@ function DecoraCard({ product }: { product: Product }) {
           height={750}
           className="aspect-[4/5] w-full object-contain p-3 transition duration-500 group-hover:scale-105"
         />
+        {promoted && (
+          <span className="absolute left-3 top-3 rounded-full bg-[var(--oxblood)] px-3 py-1.5 text-[10px] font-semibold text-[var(--ivory)]">
+            Most popular
+          </span>
+        )}
         {personalized && (
           <span className="absolute bottom-3 left-3 right-3 w-fit rounded-full bg-[var(--ivory)] px-3 py-1.5 text-[10px] font-semibold text-[var(--oxblood)]">
             Make it personal

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const DECORA_PRICE_LIMIT = 3000;
+export const DECORA_PROMOTED_CREATOR_SLUG = "zeenora-candles";
 export const DECORA_TAGLINE = "Artful Décor. Thoughtful Gifts.";
 export const DECORA_CATEGORIES = [
   { id: "home-decor", name: "Home décor", detail: "Little touches. Lovely spaces.", icon: "vase" },
